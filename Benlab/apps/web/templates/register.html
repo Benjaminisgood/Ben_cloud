@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+{% set redirect_next = next_url or '' %}
+<div class="row justify-content-center">
+  <div class="col-md-4">
+    <h3 class="mb-4">随便注册一下啦，出门在外身份是自己给的</h3>
+    <form method="post" action="{{ url_for('register_post') }}">
+      <input type="hidden" name="next" value="{{ redirect_next or '' }}">
+      <div class="mb-3">
+        <label for="name" class="form-label">姓名</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+      </div>
+      <div class="mb-3">
+        <label for="username" class="form-label">用户名</label>
+        <input type="text" class="form-control" id="username" name="username" required>
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">密码（不要输入个人的关键信息嗷）</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+      </div>
+      <div class="mb-3">
+        <label for="contact" class="form-label">联系方式 (邮箱或电话)</label>
+        <input type="text" class="form-control" id="contact" name="contact">
+      </div>
+      <button type="submit" class="btn btn-primary">注册</button>
+      <a href="{{ url_for('login') }}{% if redirect_next %}?next={{ redirect_next|urlencode }}{% endif %}" class="btn btn-link">已经是我们社区的成员啦？快快登陆吧</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

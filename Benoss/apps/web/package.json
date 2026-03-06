@@ -1,0 +1,12 @@
+{
+  "name": "@benoss/web",
+  "version": "2.5.1",
+  "private": true,
+  "description": "Benoss web frontend – Jinja2 templates + vanilla JS served by apps/api",
+  "scripts": {
+    "serve": "echo 'Frontend is served by apps/api (FastAPI + Jinja2). Run: cd ../api && uvicorn benoss_api.main:app --reload'"
+  },
+  "notes": {
+    "architecture": "Templates in apps/web/templates/ are rendered by FastAPI (Jinja2Templates). Static assets in apps/web/static/ are served at /static/. Future: migrate to a SPA (Vite + React/Vue) that calls apps/api directly."
+  }
+}

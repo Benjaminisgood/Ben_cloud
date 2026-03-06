@@ -1,0 +1,531 @@
+{% extends "base.html" %}
+{% from "_media_gallery.html" import render_media_gallery %}
+{% block content %}
+{% set detail_refs = location.detail_refs_without_usage_tags %}
+<div class="detail-page-header mb-3">
+  <h4 class="mb-0">{{ location.name }}</h4>
+  <div class="detail-updated-hint">
+    上次更新时间：{{ location.last_modified|china_time if location.last_modified else '未知' }}
+  </div>
+</div>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 page-action-toolbar">
+  {% if location.latitude is not none and location.longitude is not none %}
+  <button type="button" class="btn btn-outline-secondary" id="copyLocationCoordBtn">复制坐标</button>
+  {% endif %}
+  <button type="button" class="btn btn-outline-secondary" id="shareLocationLinkBtn" data-url="{{ request.url }}">分享链接</button>
+  <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addExistingItemsModal" {% if not available_items %}disabled{% endif %}>
+    加入已有物品
+  </button>
+  <a href="{{ url_for('add_item') }}?loc_id={{ location.id }}" class="btn btn-outline-success">
+    新建物品并加入
+  </a>
+  <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#removeItemsModal" {% if not items %}disabled{% endif %}>
+    移除物品
+  </button>
+  <a href="{{ url_for('edit_location', loc_id=location.id) }}" class="btn btn-primary">编辑</a>
+  <form action="{{ url_for('delete_location', loc_id=location.id) }}" method="post" onsubmit="return confirm('确定删除该空间吗？此操作无法恢复。');">
+    <button type="submit" class="btn btn-danger">删除</button>
+  </form>
+  <a href="{{ url_for('locations_list') }}" class="btn btn-secondary">返回列表</a>
+</div>
+<div class="small text-muted mb-3">
+  {% if not items %}当前空间尚未包含物品。{% endif %}
+  {% if not available_items %}暂无可加入的现有物品。{% endif %}
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <ul class="list-group mb-3">
+      <li class="list-group-item"><strong>名称：</strong>{{ location.name }}</li>
+      <li class="list-group-item">
+        <strong>负责人：</strong>
+        {% if location.responsible_members %}
+          {% for member in location.responsible_members %}
+            <a href="{{ url_for('profile', member_id=member.id) }}">{{ member.name or member.username }}</a>{% if not loop.last %}，{% endif %}
+          {% endfor %}
+        {% elif location.is_public %}
+          <span class="text-muted">公共（社区共同维护）</span>
+        {% else %}
+          无
+        {% endif %}
+      </li>
+      {% if location_usage_badges %}
+      <li class="list-group-item">
+        <strong>空间用途：</strong>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          {% for badge in location_usage_badges %}
+          <span class="badge bg-info-subtle text-info-emphasis border">{{ badge.label }}</span>
+          {% endfor %}
+        </div>
+      </li>
+      {% endif %}
+      {% if location.children %}
+      <li class="list-group-item">
+        <strong>子区域：</strong>
+        <ul class="mb-0 ps-3">
+          {% for child in location.children %}
+          <li><a href="{{ url_for('view_location', loc_id=child.id) }}">{{ child.name }}</a></li>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endif %}
+      {% set display_status = normalize_location_status(location.status) %}
+      {% if display_status %}
+      {% set status_intent = location_status_intent(display_status) %}
+      <li class="list-group-item">
+        <strong>属性状态：</strong>
+        <span class="badge
+          {% if status_intent == 'positive' %} bg-success
+          {% elif status_intent == 'warning' %} bg-warning text-dark
+          {% elif status_intent == 'critical' %} bg-danger
+          {% else %} bg-secondary
+          {% endif %}
+        ">{{ display_status }}</span>
+      </li>
+      {% endif %}
+      {% if location.notes %}
+      <li class="list-group-item"><strong>备注：</strong>{{ location.notes }}</li>
+      {% endif %}
+      {% if detail_refs %}
+      <li class="list-group-item">
+        <strong>参考信息：</strong>
+        <ul class="list-unstyled mt-2 mb-0">
+          {% for ref in detail_refs %}
+          {% set value = ref.value %}
+          {% set display_label = ref.label or ref.value %}
+          {% set is_http = value and (value.startswith('http://') or value.startswith('https://')) %}
+          <li class="mb-2">
+            {% if is_http %}
+              <a href="{{ value }}" target="_blank" rel="noopener" class="d-inline-flex align-items-center gap-2 text-decoration-none">
+                <span class="badge bg-primary-subtle text-primary-emphasis border">{{ loop.index }}</span>
+                <span>{{ display_label }}</span>
+              </a>
+              {% if ref.label and ref.label != value %}
+              <div class="small text-muted">{{ value }}</div>
+              {% endif %}
+            {% else %}
+              <span class="badge bg-primary-subtle text-primary-emphasis border">{{ loop.index }}</span>
+              {% if ref.label %}
+                <span class="fw-semibold ms-2">{{ ref.label }}</span>
+                <span class="text-muted ms-2">{{ value }}</span>
+              {% else %}
+                <span class="text-muted ms-2">{{ value }}</span>
+              {% endif %}
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endif %}
+      {% if location.detail_link %}
+      <li class="list-group-item">
+        <strong>详情链接：</strong>
+        <a href="{{ location.detail_link }}" target="_blank" rel="noopener">{{ location.detail_link }}</a>
+      </li>
+      {% endif %}
+      {% if location.latitude is not none and location.longitude is not none %}
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <strong>坐标：</strong>
+            <span id="locationCoordinates">{{ '%.6f'|format(location.latitude) }}, {{ '%.6f'|format(location.longitude) }}</span>
+            {% if location.coordinate_source %}
+            <span class="badge bg-secondary ms-2">
+              {% if location.coordinate_source == 'device' %}自动定位{% elif location.coordinate_source == 'manual' %}手动输入{% elif location.coordinate_source == 'map' %}地图选点{% else %}{{ location.coordinate_source }}{% endif %}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3 location-coordinate-actions">
+          <a class="btn btn-sm btn-outline-primary" href="geo:{{ '%.6f'|format(location.latitude) }},{{ '%.6f'|format(location.longitude) }}">系统地图</a>
+          <a class="btn btn-sm btn-outline-primary" href="https://www.google.com/maps/dir/?api=1&destination={{ '%.6f'|format(location.latitude) }},{{ '%.6f'|format(location.longitude) }}" target="_blank" rel="noopener">Google</a>
+          <a class="btn btn-sm btn-outline-primary" href="http://maps.apple.com/?ll={{ '%.6f'|format(location.latitude) }},{{ '%.6f'|format(location.longitude) }}" target="_blank" rel="noopener">Apple</a>
+        </div>
+      </li>
+      {% endif %}
+    </ul>
+  </div>
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">统计</div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <span class="badge bg-primary-subtle text-primary-emphasis border">物品 {{ items|length }}</span>
+          <span class="badge bg-light text-dark border">负责人 {{ location.responsible_members|length }}</span>
+          <span class="badge bg-primary-subtle text-primary-emphasis border">活动 {{ event_summary.total }}</span>
+          <span class="badge bg-success-subtle text-success-emphasis border">进行中 {{ event_summary.ongoing }}</span>
+          <span class="badge bg-info-subtle text-info-emphasis border">即将 {{ event_summary.upcoming }}</span>
+          <span class="badge bg-warning-subtle text-warning-emphasis border">待安排 {{ event_summary.unscheduled }}</span>
+          <span class="badge bg-secondary-subtle text-secondary-emphasis border">历史 {{ event_summary.past }}</span>
+          {% if event_summary.participants %}
+          <span class="badge bg-light text-dark border">参与 {{ event_summary.participants }}</span>
+          {% endif %}
+          <span class="badge bg-light text-dark border">成员关联 {{ affiliation_total }}</span>
+          {% set ownership_tone = 'public' if location.is_public else 'private' %}
+          <span class="badge badge-item-feature badge-item-feature-{{ ownership_tone }}">{{ '公共' if location.is_public else '私人' }}</span>
+        </div>
+        {% if status_stats %}
+        <hr class="my-3">
+        <div class="text-muted small mb-2">物品状态</div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for stat in status_stats %}
+          <span class="badge bg-info-subtle text-info-emphasis border">{{ stat.label }} {{ stat.count }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if category_stats %}
+        <hr class="my-3">
+        <div class="text-muted small mb-2">物品类别</div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for stat in category_stats %}
+          <span class="badge bg-secondary-subtle text-secondary-emphasis border">{{ stat.label }} {{ stat.count }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if feature_stats %}
+        <hr class="my-3">
+        <div class="text-muted small mb-2">物品归属</div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for stat in feature_stats %}
+          {% set feature_tone = feature_intent(stat.label) %}
+          <span class="badge badge-item-feature badge-item-feature-{{ feature_tone }}">{{ stat.label }} {{ stat.count }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if affiliation_summary %}
+        <hr class="my-3">
+        <div class="text-muted small mb-2">成员关系</div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for entry in affiliation_summary %}
+          <span class="badge bg-light text-dark border">{{ entry.label }} {{ entry.count }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% set media_entries = location_media_entries(location) %}
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>空间媒体</span>
+        <span class="badge bg-light text-dark border">{{ media_entries|length }}</span>
+      </div>
+      <div class="card-body">
+        {{ render_media_gallery(
+            media_entries,
+            'locationMediaGallery',
+            media_kind_labels,
+            '暂无图片或影音',
+            {
+              'layout': 'carousel'
+            }
+          )
+        }}
+      </div>
+    </div>
+    {% if location.latitude is not none and location.longitude is not none %}
+    <div class="card mb-3">
+      <div class="card-header">地图</div>
+      <div class="card-body">
+        <iframe id="locationMapFrame" class="w-100 rounded border" style="min-height: 260px;" loading="lazy" allowfullscreen></iframe>
+      </div>
+    </div>
+    {% endif %}
+    <div class="card">
+      <div class="card-header">二维码</div>
+      <div class="card-body">
+        <div id="locQrBox" class="p-2 border rounded d-inline-block"></div>
+        <div class="mt-2">
+          <input type="text" id="locPermalink" class="form-control form-control-sm" readonly value="{{ request.url }}">
+          <div class="form-text">可复制链接或扫描二维码分享。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# --- 模态框：加入已有物品 --- #}
+<div class="modal fade" id="addExistingItemsModal" tabindex="-1" aria-labelledby="existingItemsLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('manage_location_items', loc_id=location.id) }}">
+        <input type="hidden" name="action" value="add_existing">
+        <div class="modal-header">
+          <h5 class="modal-title" id="existingItemsLabel">选择已有物品加入该位置</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <div class="modal-body">
+          {% if available_items %}
+            <p class="text-muted small mb-2">可多选，支持搜索。</p>
+            <input type="text" class="form-control form-control-sm mb-3" id="existingItemsSearch" placeholder="搜索物品或负责人">
+            <div class="selection-panel rounded p-2 existing-items-container" style="max-height: 320px; overflow-y: auto;">
+              {% for item in available_items %}
+                {% set lead = item.primary_responsible %}
+            <div class="existing-item-row mb-2" data-label="{{ item.name|lower }} {% if lead %}{{ (lead.name or lead.username)|lower }}{% endif %}">
+              <input class="btn-check existing-item-checkbox" type="checkbox" value="{{ item.id }}" name="existing_item_ids" id="existingItem{{ item.id }}">
+              <label class="card-select card-select-surface d-flex justify-content-between align-items-center gap-2 w-100 p-3 border rounded-3 shadow-sm" for="existingItem{{ item.id }}">
+                <div>
+                  <span class="fw-semibold">{{ item.name }}</span>
+                  {% if lead %}
+                  <span class="badge bg-light text-dark border ms-2">{{ lead.name or lead.username }}</span>
+                  {% endif %}
+                </div>
+                <div class="text-end">
+                  {% set item_status = normalize_item_stock_status(item.status) %}
+                  {% if item_status %}
+                  {% set status_intent = stock_status_intent(item_status) %}
+                  <span class="badge badge-item-status badge-item-status-{{ status_intent }}">{{ item_status }}</span>
+                  {% endif %}
+                  {% if item.category %}
+                  <small class="text-muted ms-2">{{ item.category }}</small>
+                  {% endif %}
+                  <div class="text-muted small">
+                    <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+                    <span class="card-select-hint">点击选择</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted mb-0">暂无可加入的物品。</p>
+      {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-primary" id="confirmAddExistingBtn" {% if not available_items %}disabled{% endif %}>加入所选</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# --- 模态框：移除物品 --- #}
+<div class="modal fade" id="removeItemsModal" tabindex="-1" aria-labelledby="removeItemsLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('manage_location_items', loc_id=location.id) }}">
+        <input type="hidden" name="action" value="remove">
+        <div class="modal-header">
+          <h5 class="modal-title" id="removeItemsLabel">移出位置的物品</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <div class="modal-body">
+          {% if items %}
+            <p class="text-muted small mb-2">选择需要移出的物品，支持搜索。</p>
+            <input type="text" class="form-control form-control-sm mb-3" id="removeItemsSearch" placeholder="搜索物品或负责人">
+            <div class="selection-panel rounded p-2 existing-items-container" style="max-height: 320px; overflow-y: auto;">
+              {% for it in items %}
+            <div class="remove-item-row mb-2" data-label="{{ it.name|lower }} {% if it.responsible_members %}{% for member in it.responsible_members %}{{ member.name|lower }} {% endfor %}{% endif %}">
+              <input class="btn-check remove-item-checkbox" type="checkbox" value="{{ it.id }}" name="remove_item_ids" id="removeModalItem{{ it.id }}">
+              <label class="card-select card-select-surface d-flex justify-content-between align-items-center gap-2 w-100 p-3 border rounded-3 shadow-sm" for="removeModalItem{{ it.id }}">
+                <div>
+                  <span class="fw-semibold">{{ it.name }}</span>
+                  {% if it.responsible_members %}
+                    {% for member in it.responsible_members %}
+                    <span class="badge bg-light text-dark border ms-2">{{ member.name or member.username }}</span>
+                    {% endfor %}
+                  {% endif %}
+                </div>
+                <div class="text-end">
+                  {% set item_status = normalize_item_stock_status(it.status) %}
+                  {% if item_status %}
+                  {% set status_intent = stock_status_intent(item_status) %}
+                  <span class="badge badge-item-status badge-item-status-{{ status_intent }}">{{ item_status }}</span>
+                  {% endif %}
+                  {% if it.category %}
+                  <small class="text-muted ms-2">{{ it.category }}</small>
+                  {% endif %}
+                  <div class="text-muted small">
+                    <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+                    <span class="card-select-hint">点击选择</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted mb-0">当前位置暂无物品，无需移除。</p>
+      {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-danger" id="confirmRemoveItemsBtn" {% if not items %}disabled{% endif %}>移除所选</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+  function setupSelectionModal(config) {
+    var modalEl = document.getElementById(config.modalId);
+    if (!modalEl) {
+      return;
+    }
+    var confirmBtn = config.confirmBtnId ? document.getElementById(config.confirmBtnId) : null;
+    var searchInput = config.searchInputId ? document.getElementById(config.searchInputId) : null;
+    var checkboxes = Array.prototype.slice.call(modalEl.querySelectorAll(config.checkboxSelector));
+    var rows = config.rowSelector ? Array.prototype.slice.call(modalEl.querySelectorAll(config.rowSelector)) : [];
+    function updateConfirmState() {
+      if (confirmBtn) {
+        var anySelected = checkboxes.some(function (cb) { return cb.checked; });
+        confirmBtn.disabled = !anySelected;
+      }
+    }
+    checkboxes.forEach(function (cb) {
+      cb.addEventListener('change', updateConfirmState);
+    });
+    updateConfirmState();
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        var term = searchInput.value.trim().toLowerCase();
+        rows.forEach(function (row) {
+          var label = (row.getAttribute('data-label') || '').toLowerCase();
+          row.style.display = term ? (label.indexOf(term) !== -1 ? '' : 'none') : '';
+        });
+      });
+    }
+    modalEl.addEventListener('hidden.bs.modal', function () {
+      rows.forEach(function (row) { row.style.display = ''; });
+      if (searchInput) {
+        searchInput.value = '';
+      }
+      updateConfirmState();
+    });
+  }
+
+  setupSelectionModal({
+    modalId: 'addExistingItemsModal',
+    confirmBtnId: 'confirmAddExistingBtn',
+    searchInputId: 'existingItemsSearch',
+    checkboxSelector: '.existing-item-checkbox',
+    rowSelector: '.existing-item-row'
+  });
+
+  setupSelectionModal({
+    modalId: 'removeItemsModal',
+    confirmBtnId: 'confirmRemoveItemsBtn',
+    searchInputId: 'removeItemsSearch',
+    checkboxSelector: '.remove-item-checkbox',
+    rowSelector: '.remove-item-row'
+  });
+
+  try {
+    var url = document.getElementById('locPermalink').value || window.location.href;
+    var box = document.getElementById('locQrBox');
+    if (box && window.QRCode) {
+      new QRCode(box, { text: url, width: 160, height: 160 });
+    }
+  } catch (e) { console.warn('QR init failed', e); }
+
+  var shareBtn = document.getElementById('shareLocationLinkBtn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function () {
+      var linkInput = document.getElementById('locPermalink');
+      var shareUrl = linkInput ? linkInput.value : window.location.href;
+      if (navigator.share) {
+        navigator.share({
+          title: document.title || '社区空间',
+          url: shareUrl
+        }).catch(function (err) {
+          if (err && err.name === 'AbortError') {
+            return;
+          }
+          fallbackCopy(shareUrl);
+        });
+      } else {
+        fallbackCopy(shareUrl);
+      }
+    });
+  }
+
+  function fallbackCopy(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        showShareFeedback('链接已复制');
+      }).catch(function () {
+        legacyCopy(text);
+      });
+    } else {
+      legacyCopy(text);
+    }
+  }
+
+  function legacyCopy(text) {
+    var temp = document.createElement('textarea');
+    temp.value = text;
+    document.body.appendChild(temp);
+    temp.select();
+    temp.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+    showShareFeedback('链接已复制');
+  }
+
+  function showShareFeedback(msg) {
+    if (!shareBtn) {
+      return;
+    }
+    shareBtn.disabled = true;
+    var original = shareBtn.textContent;
+    shareBtn.textContent = msg;
+    setTimeout(function () {
+      shareBtn.disabled = false;
+      shareBtn.textContent = original;
+    }, 1500);
+  }
+
+  var lat = {{ location.latitude|tojson }};
+  var lng = {{ location.longitude|tojson }};
+  if (typeof lat === 'number' && typeof lng === 'number') {
+    var mapFrame = document.getElementById('locationMapFrame');
+    if (mapFrame) {
+      var delta = 0.01;
+      var bbox = [
+        (lng - delta).toFixed(6),
+        (lat - delta).toFixed(6),
+        (lng + delta).toFixed(6),
+        (lat + delta).toFixed(6)
+      ].join(',');
+      var mapUrl = 'https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker='
+        + lat.toFixed(6) + ',' + lng.toFixed(6)
+        + '&bbox=' + bbox;
+      mapFrame.src = mapUrl;
+    }
+    var copyCoordBtn = document.getElementById('copyLocationCoordBtn');
+    if (copyCoordBtn) {
+      copyCoordBtn.addEventListener('click', function () {
+        var coords = lat.toFixed(6) + ', ' + lng.toFixed(6);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(coords).then(function () {
+            copyCoordBtn.textContent = '已复制';
+            setTimeout(function () { copyCoordBtn.textContent = '复制坐标'; }, 1200);
+          }).catch(function () {
+            window.alert('复制失败，请手动复制：' + coords);
+          });
+        } else {
+          try {
+            var range = document.createRange();
+            range.selectNodeContents(document.getElementById('locationCoordinates'));
+            var selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand('copy');
+            selection.removeAllRanges();
+            copyCoordBtn.textContent = '已复制';
+            setTimeout(function () { copyCoordBtn.textContent = '复制坐标'; }, 1200);
+          } catch (err) {
+            window.alert('复制失败，请手动复制：' + coords);
+          }
+        }
+      });
+    }
+  }
+})();
+</script>
+{% endblock %}

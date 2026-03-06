@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card board-controls" data-reveal>
+  <h2>学习记录 Board</h2>
+  <form id="board-filter-form" class="inline-form">
+    <label>
+      标签
+      <input type="text" name="tag" placeholder="可选，按标签筛选">
+    </label>
+    <button type="submit">刷新 Board</button>
+  </form>
+  <div id="board-hot-tags" class="board-hot-tags" aria-live="polite">
+    <span class="muted">正在加载公开标签统计...</span>
+  </div>
+  <p class="muted">展示天数由 <code>BOARD_DEFAULT_DAYS</code> 控制；热门标签统计窗口与数量由 <code>BOARD_TOP_TAGS_DAYS</code>/<code>BOARD_TOP_TAGS_LIMIT</code> 控制。</p>
+</section>
+
+<section class="card board-layout" data-reveal="80">
+  <div id="board-table-wrap" class="board-table-wrap"></div>
+</section>
+
+<section id="board-digest-section" class="board-records" data-reveal="120" data-digest-day="{{ board_digest_day }}">
+  <article class="card board-side">
+    <h3 id="board-digest-title">{{ board_digest_day }} 的 AI 博客</h3>
+    <p id="board-digest-meta" class="muted">日报时区：{{ digest_timezone }}</p>
+    <div id="board-digest-view" class="board-digest-view"></div>
+  </article>
+</section>
+{% endblock %}

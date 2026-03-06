@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理房间媒体 · Benome</title>
+    <style>
+        :root {
+            --primary: #0f5a46;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --danger: #dc3545;
+            --success: #28a745;
+            --warning: #ffc107;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .header {
+            background: var(--card-bg);
+            padding: 1.5rem 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-sm {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        .btn-warning { background: var(--warning); color: #000; }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+        }
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            background: #fafafa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary);
+            background: #f0f7f4;
+        }
+        .upload-area i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: block;
+        }
+        .upload-area p {
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+        .upload-area input[type="file"] {
+            display: none;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .form-group input[type="text"],
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .form-group input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+        /* 媒体列表 */
+        .media-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .media-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .media-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .media-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #000;
+        }
+        .media-info {
+            padding: 1rem;
+        }
+        .media-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+        .media-description {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .media-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+        }
+        .media-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-image { background: #e3f2fd; color: #1976d2; }
+        .badge-video { background: #f3e5f5; color: #7b1fa2; }
+        .badge-cover { background: var(--warning); color: #000; }
+        .media-item-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        /* 编辑模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .modal-header h3 {
+            color: var(--primary);
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+        .modal-close:hover {
+            color: var(--text);
+        }
+        /* Flash 消息 */
+        .flash-message {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            color: white;
+            z-index: 2000;
+            animation: slideIn 0.3s ease-out;
+        }
+        .flash-message.success { background: var(--success); }
+        .flash-message.error { background: var(--danger); }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .media-list { grid-template-columns: 1fr; }
+            .header { flex-direction: column; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 管理房间媒体 - {{ property.title }}</h1>
+            <div class="header-actions">
+                <a href="/admin/dashboard" class="btn">← 返回管理后台</a>
+                <a href="/properties/{{ property.id }}" class="btn btn-success" target="_blank">查看房间页面</a>
+            </div>
+        </div>
+
+        <!-- 上传区域 -->
+        <div class="card">
+            <h2>⬆️ 上传新媒体</h2>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="upload-area" id="uploadArea">
+                    <i>📁</i>
+                    <p><strong>点击选择文件</strong> 或将文件拖拽到此处</p>
+                    <p style="font-size: 0.9rem;">支持图片（JPG/PNG/GIF/WebP）和视频（MP4/MOV/AVI），最大 500MB</p>
+                    <input type="file" id="fileInput" name="file" accept="image/*,video/*" required>
+                </div>
+                
+                <div style="margin-top: 1.5rem;">
+                    <div class="form-group">
+                        <label for="mediaTitle">标题</label>
+                        <input type="text" id="mediaTitle" name="title" placeholder="例如：客厅全景、钱塘云湾中心宣传视频">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="mediaDescription">描述</label>
+                        <textarea id="mediaDescription" name="description" placeholder="添加更多细节描述..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="mediaIsCover" name="is_cover"> 设为封面
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">📤 上传媒体</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 媒体列表 -->
+        <div class="card">
+            <h2>📋 已上传的媒体</h2>
+            <div class="media-list" id="mediaList">
+                <p style="text-align: center; color: var(--text-light); padding: 2rem;">加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ 编辑媒体信息</h3>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editForm">
+                <input type="hidden" id="editMediaId">
+                
+                <div class="form-group">
+                    <label for="editTitle">标题</label>
+                    <input type="text" id="editTitle" name="title" placeholder="例如：客厅全景">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editDescription">描述</label>
+                    <textarea id="editDescription" name="description" placeholder="添加更多细节描述..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="editIsCover" name="is_cover"> 设为封面
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn btn-success">保存修改</button>
+                    <button type="button" class="btn" onclick="closeEditModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const propertyId = {{ property.id }};
+        const apiPrefix = '/api';
+        
+        // Flash 消息
+        function showFlash(msg, isError = false) {
+            const flash = document.createElement('div');
+            flash.className = `flash-message ${isError ? 'error' : 'success'}`;
+            flash.textContent = msg;
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 3000);
+        }
+        
+        // 显示已保存的 flash 消息
+        const flashData = sessionStorage.getItem('benome_flash');
+        if (flashData) {
+            try {
+                const { msg, err } = JSON.parse(flashData);
+                showFlash(msg, err);
+                sessionStorage.removeItem('benome_flash');
+            } catch (e) {}
+        }
+        
+        // 拖拽上传
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'));
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'));
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                fileInput.files = files;
+                uploadForm.dispatchEvent(new Event('submit'));
+            }
+        });
+        
+        // 从 localStorage 获取用户信息
+        function getUserId() {
+            const sessionData = localStorage.getItem('benome_session_v1');
+            if (sessionData) {
+                try {
+                    const session = JSON.parse(sessionData);
+                    return session.userId;
+                } catch (e) {}
+            }
+            return null;
+        }
+        
+        // 上传表单
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请选择文件');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('title', document.getElementById('mediaTitle').value || '');
+            formData.append('description', document.getElementById('mediaDescription').value || '');
+            formData.append('is_cover', document.getElementById('mediaIsCover').checked ? 'true' : 'false');
+            
+            const userId = getUserId();
+            
+            try {
+                // 注意：使用 FormData 时不要设置 Content-Type，让浏览器自动设置
+                const headers = {};
+                if (userId) {
+                    headers['X-User-Id'] = userId;
+                }
+                
+                const response = await fetch(`${apiPrefix}/properties/${propertyId}/media/upload`, {
+                    method: 'POST',
+                    headers: headers, // 浏览器会自动设置 Content-Type: multipart/form-data
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    showFlash('上传成功！');
+                    // 清空表单
+                    document.getElementById('mediaTitle').value = '';
+                    document.getElementById('mediaDescription').value = '';
+                    document.getElementById('mediaIsCover').checked = false;
+                    fileInput.value = '';
+                    // 刷新列表
+                    loadMediaList();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.detail || '上传失败');
+                }
+            } catch (error) {
+                showFlash('上传失败：' + error.message, true);
+            }
+        });
+        
+        // 加载媒体列表
+        async function loadMediaList() {
+            try {
+                const userId = getUserId();
+                const response = await fetch(`${apiPrefix}/properties/${propertyId}/media`, {
+                    headers: {
+                        'X-User-Id': userId || ''
+                    }
+                });
+                const mediaList = await response.json();
+                
+                const container = document.getElementById('mediaList');
+                
+                if (mediaList.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 2rem;">暂无媒体文件，点击上方上传</p>';
+                    return;
+                }
+                
+                container.innerHTML = mediaList.map(media => `
+                    <div class="media-item">
+                        ${media.media_type === 'video' 
+                            ? `<video class="media-preview" controls><source src="${media.public_url}">您的浏览器不支持视频</video>`
+                            : `<img class="media-preview" src="${media.public_url}" alt="${media.title || '媒体文件'}">`
+                        }
+                        <div class="media-info">
+                            ${media.is_cover ? '<span class="media-badge badge-cover">📸 封面</span>' : ''}
+                            <span class="media-badge badge-${media.media_type}">${media.media_type === 'image' ? '🖼️ 图片' : '🎬 视频'}</span>
+                            <h3 class="media-title">${media.title || '无标题'}</h3>
+                            <p class="media-description">${media.description || '无描述'}</p>
+                            <div class="media-meta">
+                                <span>${(media.file_size / 1024 / 1024).toFixed(2)} MB</span>
+                                <span>${new Date(media.created_at).toLocaleDateString('zh-CN')}</span>
+                            </div>
+                            <div class="media-item-actions">
+                                ${!media.is_cover ? `<button class="btn btn-sm" onclick="setCover(${media.id})">设为封面</button>` : ''}
+                                <button class="btn btn-sm" onclick="editMedia(${media.id}, '${escapeHtml(media.title || '')}', '${escapeHtml(media.description || '')}', ${media.is_cover})">编辑</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteMedia(${media.id})">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('mediaList').innerHTML = `<p style="text-align: center; color: var(--danger);">加载失败：${error.message}</p>`;
+            }
+        }
+        
+        // 设为封面
+        async function setCover(mediaId) {
+            const userId = getUserId();
+            try {
+                const response = await fetch(`${apiPrefix}/properties/${propertyId}/media/${mediaId}/set-cover`, {
+                    method: 'POST',
+                    headers: {
+                        'X-User-Id': userId || ''
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    showFlash('已设为封面');
+                    loadMediaList();
+                } else {
+                    throw new Error('操作失败');
+                }
+            } catch (error) {
+                showFlash('操作失败：' + error.message, true);
+            }
+        }
+        
+        // 删除媒体
+        async function deleteMedia(mediaId) {
+            if (!confirm('确定删除此媒体文件吗？此操作不可恢复。')) return;
+            
+            const userId = getUserId();
+            try {
+                const response = await fetch(`${apiPrefix}/media/${mediaId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-User-Id': userId || ''
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok || response.status === 204) {
+                    showFlash('已删除');
+                    loadMediaList();
+                } else {
+                    throw new Error('删除失败');
+                }
+            } catch (error) {
+                showFlash('删除失败：' + error.message, true);
+            }
+        }
+        
+        // 编辑媒体
+        function editMedia(mediaId, title, description, isCover) {
+            document.getElementById('editMediaId').value = mediaId;
+            document.getElementById('editTitle').value = title;
+            document.getElementById('editDescription').value = description;
+            document.getElementById('editIsCover').checked = isCover;
+            
+            document.getElementById('editModal').classList.add('active');
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+        
+        // 关闭模态框（点击背景）
+        document.getElementById('editModal').addEventListener('click', (e) => {
+            if (e.target.id === 'editModal') {
+                closeEditModal();
+            }
+        });
+        
+        // 保存编辑
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const mediaId = document.getElementById('editMediaId').value;
+            const payload = {
+                title: document.getElementById('editTitle').value || null,
+                description: document.getElementById('editDescription').value || null,
+                is_cover: document.getElementById('editIsCover').checked
+            };
+            
+            const userId = getUserId();
+            
+            try {
+                const response = await fetch(`${apiPrefix}/media/${mediaId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': userId || ''
+                    },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    showFlash('修改已保存');
+                    closeEditModal();
+                    loadMediaList();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.detail || '保存失败');
+                }
+            } catch (error) {
+                showFlash('保存失败：' + error.message, true);
+            }
+        });
+        
+        // HTML 转义辅助函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+        
+        // 初始化
+        loadMediaList();
+    </script>
+</body>
+</html>

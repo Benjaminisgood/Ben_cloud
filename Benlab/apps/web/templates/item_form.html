@@ -1,0 +1,690 @@
+{% extends "base.html" %}
+{% block content %}
+{% set existing_detail_refs = item.detail_refs if item else [] %}
+{% set allowed_features = ['公共','私人'] %}
+{% set form_id = 'itemForm' %}
+{% set add_item_url = (url_for('add_item') ~ '?loc_id=' ~ default_loc_id) if (not item and default_loc_id) else url_for('add_item') %}
+<h4 class="mb-3">{{ item and item.id and '编辑物品' or '新增物品' }}</h4>
+<form method="post" id="{{ form_id }}" enctype="multipart/form-data" action="{% if item %}{{ url_for('edit_item', item_id=item.id) }}{% else %}{{ add_item_url }}{% endif %}">
+  <div class="mb-3">
+    <label for="name" class="form-label">物品名称</label>
+    <input type="text" class="form-control" id="name" name="name" value="{{ item.name if item else '' }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="status">物品状态</label>
+    {% set item_status_choices = item_status_choices if item_status_choices is defined else ['正常','少量','用完','借出','舍弃'] %}
+    {% set selected_item_status = normalize_item_stock_status(item.status) if item else '正常' %}
+    <select name="status" id="status" class="form-select">
+      {% for opt in item_status_choices %}
+      <option value="{{ opt }}" {% if selected_item_status == opt %}selected{% endif %}>{{ opt }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  {% set ownership_value = item.features if item and item.features in allowed_features else '私人' %}
+  <div class="mb-3">
+    <label for="itemOwnershipSwitch" class="form-label">物品归属</label>
+    <input type="hidden" name="features" id="itemOwnershipValue" value="{{ ownership_value }}">
+    <div class="form-check form-switch mb-1">
+      <input class="form-check-input" type="checkbox" role="switch" id="itemOwnershipSwitch" name="is_public_feature" value="1"
+             aria-describedby="itemOwnershipCurrent"
+             {% if ownership_value == '公共' %}checked{% endif %}>
+      <label class="form-check-label" for="itemOwnershipSwitch">公共物品（关闭后为私人物品）</label>
+    </div>
+    <div class="small text-muted mb-1" id="itemOwnershipCurrent">
+      当前归属：
+      <span id="itemOwnershipLabel"
+            class="badge badge-item-feature {% if ownership_value == '公共' %}badge-item-feature-public{% else %}badge-item-feature-private{% endif %}">{{ ownership_value }}</span>
+    </div>
+    {% if item and item.features and item.features not in allowed_features %}
+    <div class="form-text text-warning">检测到历史值“{{ item.features }}”，保存后会按当前开关更新为“公共”或“私人”。</div>
+    {% endif %}
+    <div class="form-text text-muted">关闭为私人物品，开启为公共物品；私人物品仅负责人可编辑，请谨慎调整。</div>
+  </div>
+
+  <div class="mb-3">
+    <label for="value">价值（￥）</label>
+    <input type="number" step="0.01" class="form-control" name="value" value="{{ item.value if item else '' }}">
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">负责人</label>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <div id="itemResponsibleSummary" class="d-flex flex-wrap gap-2 border rounded-3 px-3 py-2 bg-body-secondary text-body">
+        {% if item and item.responsible_members %}
+          {% for member in item.responsible_members %}
+            <span class="badge bg-light text-dark border">{{ member.name or member.username }}</span>
+          {% endfor %}
+        {% else %}
+          <span class="badge bg-light text-muted border">未指定</span>
+        {% endif %}
+      </div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#itemResponsibleModal">
+        管理负责人
+      </button>
+    </div>
+    <div class="form-text text-muted">通过搜索快速定位成员；私人物品需要至少一位负责人，若未指定将默认由当前编辑者负责。</div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">存放位置（可多选）</label>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <div id="itemLocationsSummary" class="d-flex flex-wrap gap-2 border rounded-3 px-3 py-2 bg-body-secondary text-body"></div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#itemLocationsModal">
+        管理位置
+      </button>
+    </div>
+    <div class="form-text text-muted">通过弹窗批量选择地点，支持关键词搜索；关闭弹窗即可保存选择。</div>
+  </div>
+  <div class="mb-3">
+    <label for="purchase_link" class="form-label">购买链接</label>
+    <input type="url" class="form-control" id="purchase_link" name="purchase_link" value="{{ (item.purchase_link or '') if item else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="attachmentInput" class="form-label">物品媒体（图片 / 视频 / 音频，可多选）</label>
+    {% if item %}
+    <div class="d-flex flex-wrap gap-3 mb-2">
+      {% for attachment in item.attachments %}
+        {% set media_kind_value = media_kind(attachment.filename) %}
+        {% set media_url = uploaded_media_url(attachment.filename) %}
+        {% set media_name = media_display_name(attachment.filename) %}
+        <div class="media-card flex-column align-items-stretch" data-kind="{{ media_kind_value }}" data-ai-media-ref="{{ attachment.filename }}">
+          {% if media_kind_value == 'image' %}
+          <img src="{{ media_url }}" alt="已上传媒体" class="media-card-img">
+          {% elif media_kind_value == 'video' %}
+          <div class="media-placeholder" data-kind="video">
+            <div class="media-placeholder-header">
+              <span class="media-tag">{{ media_kind_labels.get('video', '视频') }}</span>
+              {% if media_name %}<span class="media-name" title="{{ media_name }}">{{ media_name }}</span>{% endif %}
+            </div>
+            <button type="button" class="btn btn-sm btn-primary media-play-btn" data-kind="video" data-src="{{ media_url }}">预览视频</button>
+          </div>
+          {% elif media_kind_value == 'audio' %}
+          <div class="media-placeholder" data-kind="audio">
+            <div class="media-placeholder-header">
+              <span class="media-tag">{{ media_kind_labels.get('audio', '音频') }}</span>
+              {% if media_name %}<span class="media-name" title="{{ media_name }}">{{ media_name }}</span>{% endif %}
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary media-play-btn" data-kind="audio" data-src="{{ media_url }}">预览音频</button>
+          </div>
+          {% else %}
+          <a href="{{ media_url }}" target="_blank" rel="noopener" class="media-file-link">
+            <span class="media-tag">{{ media_kind_labels.get(media_kind_value, '文件') }}</span>
+            <span class="media-name">{{ media_name or media_url }}</span>
+          </a>
+          {% endif %}
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="remove_attachment_ids" value="{{ attachment.id }}" id="removeItemMedia{{ attachment.id }}">
+            <label class="form-check-label" for="removeItemMedia{{ attachment.id }}">删除此媒资</label>
+          </div>
+        </div>
+      {% endfor %}
+      {% if not item.attachments %}
+      <p class="text-muted mb-0">暂无已上传媒体</p>
+      {% endif %}
+    </div>
+    {% endif %}
+    <input type="file" id="attachmentInput" name="attachments" accept="image/*,video/*,audio/*" class="form-control" multiple data-direct-upload="oss" data-remote-field="attachments_remote_keys">
+    <div class="form-text">支持多文件上传，单个文件建议小于 2500 MB。</div>
+    {% if direct_upload_config.enabled %}
+    <div class="form-text text-success">启用 OSS 时，文件会在提交前直接上传至 OSS 并只回传引用。</div>
+    {% endif %}
+    <div class="mt-3">
+      <label for="externalAttachmentUrls" class="form-label">外部媒体链接</label>
+      <textarea class="form-control" id="externalAttachmentUrls" name="external_attachment_urls" rows="2" placeholder="每行一个 http(s):// 链接"></textarea>
+      <div class="form-text">支持图床 / OSS / 视频或音频外链，提交后将与上传文件一同展示；已有媒资可在上方勾选删除。</div>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+      <button type="button" class="btn btn-outline-primary btn-sm" id="itemAiAutofillBtn">AI自动填写</button>
+      <span class="form-text m-0" id="itemAiAutofillHint">上传或拍照后，自动识别并补充物品信息。</span>
+    </div>
+    <img id="imgPreview" src="#" alt="预览" style="max-width: 120px; display: none; margin-top: 5px;">
+  </div>
+  <div class="mb-3">
+    <label for="notes" class="form-label">备注</label>
+    <textarea class="form-control" id="notes" name="notes" rows="3">{{ item.notes if item else '' }}</textarea>
+  </div>
+  {% set item_adv_open = item and ((existing_detail_refs and existing_detail_refs|length > 0) or item.category or item.quantity_desc or item.purchase_date) %}
+  <div class="accordion mb-3" id="itemAdvancedAccordion">
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="itemAdvancedHeader">
+        <button class="accordion-button {% if not item_adv_open %}collapsed{% endif %}" type="button"
+                data-bs-toggle="collapse" data-bs-target="#itemAdvancedSection"
+                aria-expanded="{{ 'true' if item_adv_open else 'false' }}" aria-controls="itemAdvancedSection">
+          更多属性（参考信息 / 类别 / 数量描述 / 购入时间）
+        </button>
+      </h2>
+      <div id="itemAdvancedSection" class="accordion-collapse collapse {% if item_adv_open %}show{% endif %}"
+           data-bs-parent="#itemAdvancedAccordion">
+        <div class="accordion-body">
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <label class="form-label mb-0">参考信息</label>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="addDetailRefBtn">新增条目</button>
+            </div>
+            <div id="detailRefsContainer" class="d-flex flex-column gap-2 mt-2">
+              {% if existing_detail_refs %}
+                {% for ref in existing_detail_refs %}
+                <div class="input-group detail-ref-row">
+                  <span class="input-group-text">说明</span>
+                  <input type="text" class="form-control" name="detail_ref_label" value="{{ ref.label }}" placeholder="例如：官网 / 规格 / 备注">
+                  <span class="input-group-text">内容</span>
+                  <input type="text" class="form-control" name="detail_ref_value" value="{{ ref.value }}" placeholder="编号 / 链接 / 任意文本">
+                  <button class="btn btn-outline-danger detail-ref-remove" type="button">&times;</button>
+                </div>
+                {% endfor %}
+              {% else %}
+                <div class="input-group detail-ref-row">
+                  <span class="input-group-text">说明</span>
+                  <input type="text" class="form-control" name="detail_ref_label" placeholder="例如：官网 / 规格 / 备注">
+                  <span class="input-group-text">内容</span>
+                  <input type="text" class="form-control" name="detail_ref_value" placeholder="编号 / 链接 / 任意文本">
+                  <button class="btn btn-outline-danger detail-ref-remove" type="button">&times;</button>
+                </div>
+              {% endif %}
+            </div>
+            <div class="form-text">可添加多个条目，用于编号、链接、说明等。为空则代表暂无。</div>
+          </div>
+          <div class="mb-3">
+            <label for="category" class="form-label">类别</label>
+            <input type="text" class="form-control" id="category" name="category"
+                   value="{{ item.category if item else '' }}" list="categorySuggestions" autocomplete="off">
+            <datalist id="categorySuggestions">
+              {% for cat in categories or [] %}
+              <option value="{{ cat }}"></option>
+              {% endfor %}
+            </datalist>
+          </div>
+          <div class="mb-3">
+            <label for="quantity_desc" class="form-label">数量描述</label>
+            <input type="text" class="form-control" id="quantity_desc" name="quantity_desc"
+                   value="{{ item.quantity_desc if item else '' }}"
+                   placeholder="例如：10瓶500g / 2箱(24瓶/箱) / 余量约300mL">
+            <div class="form-text">自由填写数量、包装和规格的组合描述，便于记录复杂情况。</div>
+          </div>
+          <div class="mb-0">
+            <label for="purchase_date" class="form-label">购入/生产时间</label>
+            <input type="date" name="purchase_date" class="form-control"
+                   value="{{ item.purchase_date.strftime('%Y-%m-%d') if item and item.purchase_date else '' }}">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="itemLocationsModal" tabindex="-1" aria-labelledby="itemLocationsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="itemLocationsModalLabel">选择存放位置</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+      <div class="modal-body">
+        <input type="search" class="form-control form-control-sm mb-3" id="itemLocationsSearch" placeholder="搜索位置名称">
+        <div class="selection-panel rounded-3 p-2" style="max-height: 320px; overflow-y: auto;">
+          {% for loc in locations %}
+          <div class="item-location-row mb-2" data-label="{{ loc.name|lower }}">
+            <input class="btn-check item-location-checkbox" type="checkbox" form="{{ form_id }}" name="location_ids" value="{{ loc.id }}"
+                   id="itemLocation{{ loc.id }}" data-label="{{ loc.name }}"
+                   {% if item and item.locations and (loc in item.locations) %}
+                     checked
+                   {% elif not item and default_loc_id and loc.id == default_loc_id %}
+                     checked
+                   {% endif %}>
+            <label class="card-select card-select-surface d-flex justify-content-between align-items-center w-100 p-3 border rounded-3 shadow-sm" for="itemLocation{{ loc.id }}">
+              <span class="fw-semibold">{{ loc.name }}</span>
+              <span class="text-muted small">
+                <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+                <span class="card-select-hint">点击选择</span>
+              </span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="itemLocationsClearBtn">清除全部</button>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">完成</button>
+      </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="itemResponsibleModal" tabindex="-1" aria-labelledby="itemResponsibleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="itemResponsibleModalLabel">选择负责人</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+      <div class="modal-body">
+        <input type="search" class="form-control form-control-sm mb-3" id="itemResponsibleSearch" placeholder="搜索姓名或用户名">
+        <div class="selection-panel rounded-3 p-2" style="max-height: 320px; overflow-y: auto;">
+          {% for m in members %}
+          <div class="item-responsible-row mb-2" data-label="{{ (m.name or m.username)|lower }}">
+            <input class="btn-check item-responsible-checkbox" type="checkbox" form="{{ form_id }}" name="responsible_ids" value="{{ m.id }}"
+                   id="itemResponsible{{ m.id }}"
+                   data-display="{{ m.name or m.username }}"
+                   {% if item and item.responsible_members and (m in item.responsible_members) %}checked{% endif %}>
+            <label class="card-select card-select-surface d-flex justify-content-between align-items-center w-100 p-3 border rounded-3 shadow-sm" for="itemResponsible{{ m.id }}">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-semibold">{{ m.name or m.username }}</span>
+                {% if m.username and m.name and m.username != m.name %}
+                  <span class="badge bg-light text-muted border">@{{ m.username }}</span>
+                {% endif %}
+              </div>
+              <span class="text-muted small">
+                <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+                <span class="card-select-hint">点击选择</span>
+              </span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="itemResponsibleClearBtn">清除全部</button>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">完成</button>
+      </div>
+      </div>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-success">{{ item and '保存修改' or '添加物品' }}</button>
+  <a href="{% if not item and default_loc_id %}{{ url_for('view_location', loc_id=default_loc_id) }}{% else %}{{ url_for('items') }}{% endif %}" class="btn btn-secondary">取消</a>
+</form>
+<script>
+  // 媒资预览脚本（仅预览首个图片文件）
+  const fileInput = document.getElementById('attachmentInput');
+  const previewImg = document.getElementById('imgPreview');
+  if(fileInput && previewImg) {
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if(file && file.type && file.type.startsWith('image/')) {
+        previewImg.src = URL.createObjectURL(file);
+        previewImg.style.display = 'block';
+      } else {
+        previewImg.style.display = 'none';
+      }
+    });
+  }
+  (function initItemAiAutofill() {
+    const form = document.getElementById('itemForm');
+    const triggerBtn = document.getElementById('itemAiAutofillBtn');
+    const hint = document.getElementById('itemAiAutofillHint');
+    const attachmentInput = document.getElementById('attachmentInput');
+    const externalUrlsInput = document.getElementById('externalAttachmentUrls');
+    const nameInput = document.getElementById('name');
+    const categoryInput = document.getElementById('category');
+    const statusInput = form ? form.querySelector('select[name="status"]') : null;
+    const quantityDescInput = form ? form.querySelector('input[name="quantity_desc"]') : null;
+    const purchaseLinkInput = document.getElementById('purchase_link');
+    const notesInput = document.getElementById('notes');
+    const detailRefsContainer = document.getElementById('detailRefsContainer');
+    const apiUrl = '{{ url_for("ai_form_autofill") }}';
+    if (!form || !triggerBtn || !attachmentInput || !apiUrl) {
+      return;
+    }
+    const setHint = function (message, tone) {
+      if (!hint) {
+        return;
+      }
+      hint.className = 'form-text m-0';
+      const classNameMap = {
+        success: 'text-success',
+        warning: 'text-warning',
+        danger: 'text-danger',
+        info: 'text-info'
+      };
+      hint.classList.add(classNameMap[tone] || 'text-muted');
+      hint.textContent = message;
+    };
+    const readRefs = function () {
+      const refs = [];
+      const seen = new Set();
+      Array.prototype.slice.call(form.querySelectorAll('input[name="attachments_remote_keys"]')).forEach(function (input) {
+        const val = (input.value || '').trim();
+        if (val && !seen.has(val)) {
+          refs.push(val);
+          seen.add(val);
+        }
+      });
+      Array.prototype.slice.call(form.querySelectorAll('[data-ai-media-ref]')).forEach(function (node) {
+        const val = (node.getAttribute('data-ai-media-ref') || '').trim();
+        if (val && !seen.has(val)) {
+          refs.push(val);
+          seen.add(val);
+        }
+      });
+      return refs;
+    };
+    const appendDetailRef = function (labelValue, refValue) {
+      if (!detailRefsContainer || !refValue) {
+        return false;
+      }
+      const existingValues = new Set(Array.prototype.slice.call(detailRefsContainer.querySelectorAll('input[name="detail_ref_value"]')).map(function (node) {
+        return (node.value || '').trim();
+      }).filter(Boolean));
+      if (existingValues.has(refValue)) {
+        return false;
+      }
+      const row = document.createElement('div');
+      row.className = 'input-group detail-ref-row';
+      row.innerHTML = `
+        <span class="input-group-text">说明</span>
+        <input type="text" class="form-control" name="detail_ref_label" placeholder="例如：官网 / 规格 / 备注">
+        <span class="input-group-text">内容</span>
+        <input type="text" class="form-control" name="detail_ref_value" placeholder="编号 / 链接 / 任意文本">
+        <button class="btn btn-outline-danger detail-ref-remove" type="button">&times;</button>
+      `;
+      const labelInput = row.querySelector('input[name="detail_ref_label"]');
+      const valueInput = row.querySelector('input[name="detail_ref_value"]');
+      if (labelValue) {
+        labelInput.value = labelValue;
+      }
+      valueInput.value = refValue;
+      const removeBtn = row.querySelector('.detail-ref-remove');
+      removeBtn.addEventListener('click', function () {
+        if (detailRefsContainer.children.length > 1) {
+          row.remove();
+        } else {
+          labelInput.value = '';
+          valueInput.value = '';
+        }
+      });
+      detailRefsContainer.appendChild(row);
+      return true;
+    };
+    const applySuggestion = function (suggestion) {
+      if (!suggestion || typeof suggestion !== 'object') {
+        return 0;
+      }
+      let updatedCount = 0;
+      if (nameInput && suggestion.name && !nameInput.value.trim()) {
+        nameInput.value = suggestion.name;
+        updatedCount += 1;
+      }
+      if (categoryInput && suggestion.category && !categoryInput.value.trim()) {
+        categoryInput.value = suggestion.category;
+        updatedCount += 1;
+      }
+      if (statusInput && suggestion.status && statusInput.value !== suggestion.status) {
+        statusInput.value = suggestion.status;
+        updatedCount += 1;
+      }
+      if (purchaseLinkInput && suggestion.purchase_link && !purchaseLinkInput.value.trim()) {
+        purchaseLinkInput.value = suggestion.purchase_link;
+        updatedCount += 1;
+      }
+      if (quantityDescInput && suggestion.quantity_desc && !quantityDescInput.value.trim()) {
+        quantityDescInput.value = suggestion.quantity_desc;
+        updatedCount += 1;
+      }
+      if (notesInput && suggestion.notes) {
+        const existing = notesInput.value.trim();
+        if (!existing) {
+          notesInput.value = suggestion.notes;
+          updatedCount += 1;
+        } else if (existing.indexOf(suggestion.notes) === -1) {
+          notesInput.value = existing + '\n\n' + suggestion.notes;
+          updatedCount += 1;
+        }
+      }
+      const refs = Array.isArray(suggestion.detail_refs) ? suggestion.detail_refs : [];
+      refs.forEach(function (ref) {
+        if (!ref || typeof ref !== 'object') {
+          return;
+        }
+        const label = (ref.label || '').trim();
+        const value = (ref.value || '').trim();
+        if (!value) {
+          return;
+        }
+        if (appendDetailRef(label, value)) {
+          updatedCount += 1;
+        }
+      });
+      return updatedCount;
+    };
+    triggerBtn.addEventListener('click', async function () {
+      if (attachmentInput.__directUploader && attachmentInput.__directUploader.uploading) {
+        setHint('文件仍在上传，请稍候再执行 AI 自动填写。', 'warning');
+        return;
+      }
+      const refs = readRefs();
+      const files = attachmentInput.files ? Array.from(attachmentInput.files) : [];
+      if (!files.length && !refs.length) {
+        setHint('请先拍照或上传至少一张图片。', 'warning');
+        return;
+      }
+      triggerBtn.disabled = true;
+      setHint('AI 识别中，请稍候…', 'info');
+      const formData = new FormData();
+      formData.append('form_type', 'item');
+      files.forEach(function (file) {
+        formData.append('attachments', file, file.name || 'upload.jpg');
+      });
+      refs.forEach(function (ref) {
+        formData.append('uploaded_refs', ref);
+      });
+      if (externalUrlsInput && externalUrlsInput.value.trim()) {
+        formData.append('external_attachment_urls', externalUrlsInput.value);
+      }
+      formData.append('context_json', JSON.stringify({
+        name: nameInput ? nameInput.value : '',
+        category: categoryInput ? categoryInput.value : '',
+        status: statusInput ? statusInput.value : '',
+        quantity_desc: quantityDescInput ? quantityDescInput.value : '',
+        notes: notesInput ? notesInput.value : '',
+        purchase_link: purchaseLinkInput ? purchaseLinkInput.value : ''
+      }));
+      try {
+        const resp = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: formData
+        });
+        let payload = {};
+        try {
+          payload = await resp.json();
+        } catch (e) {
+          payload = {};
+        }
+        if (!resp.ok) {
+          throw new Error(payload.message || 'AI 自动填写失败，请稍后再试。');
+        }
+        const changed = applySuggestion(payload.suggestion || {});
+        if (changed > 0) {
+          setHint('AI 已完成自动填写，请检查后保存。', 'success');
+        } else {
+          setHint('AI 已识别完成，但没有可更新的字段。', 'warning');
+        }
+      } catch (err) {
+        setHint((err && err.message) || 'AI 自动填写失败，请稍后再试。', 'danger');
+      } finally {
+        triggerBtn.disabled = false;
+      }
+    });
+  })();
+  (function registerDetailRefEditor() {
+    const container = document.getElementById('detailRefsContainer');
+    const addBtn = document.getElementById('addDetailRefBtn');
+    if (!container || !addBtn) {
+      return;
+    }
+    const createRow = function (labelValue, refValue) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'input-group detail-ref-row';
+      wrapper.innerHTML = `
+        <span class="input-group-text">说明</span>
+        <input type="text" class="form-control" name="detail_ref_label" placeholder="例如：官网 / 规格 / 备注">
+        <span class="input-group-text">内容</span>
+        <input type="text" class="form-control" name="detail_ref_value" placeholder="编号 / 链接 / 任意文本">
+        <button class="btn btn-outline-danger detail-ref-remove" type="button">&times;</button>
+      `;
+      const labelInput = wrapper.querySelector('input[name="detail_ref_label"]');
+      const valueInput = wrapper.querySelector('input[name="detail_ref_value"]');
+      if (labelValue) {
+        labelInput.value = labelValue;
+      }
+      if (refValue) {
+        valueInput.value = refValue;
+      }
+      wrapper.querySelector('.detail-ref-remove').addEventListener('click', function () {
+        if (container.children.length > 1) {
+          wrapper.remove();
+        } else {
+          labelInput.value = '';
+          valueInput.value = '';
+        }
+      });
+      return wrapper;
+    };
+    addBtn.addEventListener('click', function () {
+      container.appendChild(createRow('', ''));
+    });
+    Array.prototype.slice.call(container.querySelectorAll('.detail-ref-row')).forEach(function (row) {
+      row.querySelector('.detail-ref-remove').addEventListener('click', function () {
+        if (container.children.length > 1) {
+          row.remove();
+        } else {
+          row.querySelector('input[name="detail_ref_label"]').value = '';
+          row.querySelector('input[name="detail_ref_value"]').value = '';
+        }
+      });
+    });
+  })();
+  // 位置多选：弹窗选择并展示摘要
+  (function initItemLocationsModal() {
+    const summary = document.getElementById('itemLocationsSummary');
+    const modal = document.getElementById('itemLocationsModal');
+    if (!summary || !modal) {
+      if (summary) {
+        summary.innerHTML = '<span class="text-muted">未选择</span>';
+      }
+      return;
+    }
+    const searchInput = document.getElementById('itemLocationsSearch');
+    const clearBtn = document.getElementById('itemLocationsClearBtn');
+    const checkboxes = Array.prototype.slice.call(modal.querySelectorAll('.item-location-checkbox'));
+    const rows = Array.prototype.slice.call(modal.querySelectorAll('.item-location-row'));
+    const renderSummary = function () {
+      const selected = checkboxes.filter(function (cb) { return cb.checked; });
+      if (!selected.length) {
+        summary.innerHTML = '<span class="text-muted">未选择</span>';
+      } else {
+        summary.innerHTML = selected.map(function (cb) {
+          const label = cb.getAttribute('data-label') || cb.value;
+          return '<span class="badge bg-light text-dark border me-1">' + label + '</span>';
+        }).join('');
+      }
+    };
+    checkboxes.forEach(function (cb) {
+      cb.addEventListener('change', renderSummary);
+    });
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        const term = searchInput.value.trim().toLowerCase();
+        rows.forEach(function (row) {
+          const label = (row.getAttribute('data-label') || '').toLowerCase();
+          row.style.display = term ? (label.indexOf(term) !== -1 ? '' : 'none') : '';
+        });
+      });
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        checkboxes.forEach(function (cb) { cb.checked = false; });
+        renderSummary();
+      });
+    }
+    modal.addEventListener('hidden.bs.modal', function () {
+      if (searchInput) {
+        searchInput.value = '';
+      }
+      rows.forEach(function (row) { row.style.display = ''; });
+      renderSummary();
+    });
+    modal.addEventListener('shown.bs.modal', function () {
+      if (searchInput) {
+        searchInput.focus();
+      }
+    });
+    renderSummary();
+  })();
+
+  (function initItemResponsibleModal() {
+    const summary = document.getElementById('itemResponsibleSummary');
+    const modal = document.getElementById('itemResponsibleModal');
+    if (!summary || !modal) {
+      return;
+    }
+    const searchInput = document.getElementById('itemResponsibleSearch');
+    const clearBtn = document.getElementById('itemResponsibleClearBtn');
+    const checkboxes = Array.prototype.slice.call(modal.querySelectorAll('.item-responsible-checkbox'));
+    const rows = Array.prototype.slice.call(modal.querySelectorAll('.item-responsible-row'));
+    const renderSummary = function () {
+      const selected = checkboxes.filter(function (cb) { return cb.checked; });
+      if (!selected.length) {
+        summary.innerHTML = '<span class="badge bg-light text-muted border">未指定</span>';
+        return;
+      }
+      summary.innerHTML = selected.map(function (cb) {
+        const label = cb.getAttribute('data-display') || cb.getAttribute('data-label') || cb.value;
+        return '<span class="badge bg-light text-dark border me-1">' + label + '</span>';
+      }).join('');
+    };
+    checkboxes.forEach(function (cb) {
+      cb.addEventListener('change', renderSummary);
+    });
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        const term = this.value.trim().toLowerCase();
+        rows.forEach(function (row) {
+          const label = (row.getAttribute('data-label') || '').toLowerCase();
+          row.style.display = term ? (label.indexOf(term) !== -1 ? '' : 'none') : '';
+        });
+      });
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        checkboxes.forEach(function (cb) { cb.checked = false; });
+        renderSummary();
+      });
+    }
+    modal.addEventListener('hidden.bs.modal', function () {
+      if (searchInput) {
+        searchInput.value = '';
+        rows.forEach(function (row) { row.style.display = ''; });
+      }
+      renderSummary();
+    });
+    modal.addEventListener('shown.bs.modal', function () {
+      if (searchInput) {
+        searchInput.focus();
+      }
+    });
+    renderSummary();
+  })();
+
+  (function initItemOwnershipSwitch() {
+    const switchInput = document.getElementById('itemOwnershipSwitch');
+    const valueInput = document.getElementById('itemOwnershipValue');
+    const label = document.getElementById('itemOwnershipLabel');
+    if (!switchInput || !valueInput || !label) {
+      return;
+    }
+    const sync = function () {
+      const isPublic = switchInput.checked;
+      const value = isPublic ? '公共' : '私人';
+      valueInput.value = value;
+      label.textContent = value;
+      label.classList.remove('badge-item-feature-public', 'badge-item-feature-private');
+      if (isPublic) {
+        label.classList.add('badge-item-feature-public');
+      } else {
+        label.classList.add('badge-item-feature-private');
+      }
+    };
+    switchInput.addEventListener('change', sync);
+    sync();
+  })();
+</script>
+{% endblock %}

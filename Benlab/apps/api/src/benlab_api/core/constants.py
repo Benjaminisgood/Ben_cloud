@@ -1,0 +1,5 @@
+ITEM_STATUS_CHOICES = ["正常", "少量", "用完", "借出", "舍弃"]
+ITEM_FEATURE_CHOICES = ["公共", "私人"]
+LOCATION_STATUS_CHOICES = ["正常", "脏", "报修", "危险", "禁止"]
+EVENT_VISIBILITY_CHOICES = ["personal", "internal", "public"]
+LOCATION_USAGE_TAG_CHOICES = ["study", "leisure", "event", "public", "rental", "storage", "travel", "residence", "other"]

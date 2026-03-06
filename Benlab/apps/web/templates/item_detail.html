@@ -1,0 +1,492 @@
+{% extends "base.html" %}
+{% from "_media_gallery.html" import render_media_gallery %}
+{% block content %}
+<div class="detail-page-header mb-3">
+  <h4 class="mb-0">{{ item.name }}</h4>
+  <div class="detail-updated-hint">
+    上次更新时间：{{ item.last_modified|china_time if item.last_modified else '未知' }}
+  </div>
+</div>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 page-action-toolbar">
+  <button type="button" class="btn btn-outline-secondary" id="shareItemLinkBtn" data-url="{{ request.url }}">分享链接</button>
+  <button type="button"
+          class="btn btn-outline-primary"
+          data-bs-toggle="modal"
+          data-bs-target="#manageCategoryModal"
+          data-category="{{ item.category or '' }}">
+    管理类别
+  </button>
+  <a href="{{ url_for('edit_item', item_id=item.id) }}" class="btn btn-primary">编辑</a>
+  <form action="{{ url_for('delete_item', item_id=item.id) }}" method="post" onsubmit="return confirm('确定删除该物品吗？');">
+    <button type="submit" class="btn btn-outline-danger">删除</button>
+  </form>
+  <a href="{{ url_for('items') }}" class="btn btn-outline-secondary">返回列表</a>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <ul class="list-group mb-3">
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <strong>类别：</strong>
+            {% if item.category %}
+              <button type="button"
+                      class="btn btn-link p-0 align-baseline category-manage-trigger"
+                      data-bs-toggle="modal"
+                      data-bs-target="#manageCategoryModal"
+                      data-category="{{ item.category }}">
+                {{ item.category }}
+              </button>
+            {% else %}
+              <span class="text-muted">未分类</span>
+            {% endif %}
+          </div>
+        </div>
+      </li>
+      <li class="list-group-item"><strong>物品状态：</strong>{{ normalize_item_stock_status(item.status) or '未指定' }}</li>
+      <li class="list-group-item">
+        <strong>物品归属：</strong>
+        {% if item.features in ['公共','私人'] %}
+          {% set feature_tone = feature_intent(item.features) %}
+          <span class="badge badge-item-feature badge-item-feature-{{ feature_tone }}">{{ item.features }}</span>
+        {% else %}
+          未指定
+        {% endif %}
+      </li>
+      <li class="list-group-item"><strong>价值：</strong>{{ item.value if item.value is not none else '未指定' }}</li>
+      <li class="list-group-item"><strong>数量描述：</strong>{{ item.quantity_desc or '未指定' }}</li>
+      <li class="list-group-item"><strong>购入时间：</strong>{{ item.purchase_date.strftime('%Y-%m-%d') if item.purchase_date else '未指定' }}</li>
+      <li class="list-group-item">
+        <strong>参考信息：</strong>
+        {% if detail_refs %}
+        <ul class="list-unstyled mt-2 mb-0">
+          {% for ref in detail_refs %}
+          {% set value = ref.value %}
+          {% set display_label = ref.label or ref.value %}
+          {% set is_http = value and (value.startswith('http://') or value.startswith('https://')) %}
+          <li class="mb-2">
+            {% if is_http %}
+              <a href="{{ value }}" target="_blank" rel="noopener" class="d-inline-flex align-items-center gap-2 text-decoration-none">
+                <span class="badge bg-primary-subtle text-primary-emphasis border">{{ loop.index }}</span>
+                <span>{{ display_label }}</span>
+              </a>
+              {% if ref.label and ref.label != value %}
+              <div class="small text-muted">{{ value }}</div>
+              {% endif %}
+            {% else %}
+              <span class="badge bg-primary-subtle text-primary-emphasis border">{{ loop.index }}</span>
+              {% if ref.label %}
+                <span class="fw-semibold ms-2">{{ ref.label }}</span>
+                <span class="text-muted ms-2">{{ value }}</span>
+              {% else %}
+                <span class="text-muted ms-2">{{ value }}</span>
+              {% endif %}
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <span class="text-muted">未提供</span>
+        {% endif %}
+      </li>
+      <li class="list-group-item">
+        <strong>负责人：</strong>
+        {% if item.responsible_members %}
+          {% for member in item.responsible_members %}
+            <a href="{{ url_for('profile', member_id=member.id) }}">{{ member.name or member.username }}</a>{% if not loop.last %}，{% endif %}
+          {% endfor %}
+        {% else %}
+          无
+        {% endif %}
+      </li>
+      <li class="list-group-item">
+        <strong>存放位置：</strong>
+        {% if item.locations %}
+          {% for loc in item.locations %}
+            <a href="{{ url_for('view_location', loc_id=loc.id) }}">{{ loc.name }}</a>{% if not loop.last %}，{% endif %}
+          {% endfor %}
+        {% else %}
+          未指定
+        {% endif %}
+      </li>
+      {% if item.purchase_link %}
+      <li class="list-group-item"><strong>购买链接：</strong><a href="{{ item.purchase_link }}" target="_blank">点击打开</a></li>
+      {% endif %}
+      {% if item.notes %}
+      <li class="list-group-item"><strong>备注：</strong><br>{{ item.notes }}</li>
+      {% endif %}
+    </ul>
+  </div>
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">统计</div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <span class="badge bg-primary-subtle text-primary-emphasis border">活动 {{ event_summary.total }}</span>
+          <span class="badge bg-success-subtle text-success-emphasis border">进行中 {{ event_summary.ongoing }}</span>
+          <span class="badge bg-info-subtle text-info-emphasis border">将开始 {{ event_summary.upcoming }}</span>
+          <span class="badge bg-warning-subtle text-warning-emphasis border">待安排 {{ event_summary.unscheduled }}</span>
+          <span class="badge bg-secondary-subtle text-secondary-emphasis border">历史 {{ event_summary.past }}</span>
+          {% if event_summary.participants %}
+          <span class="badge bg-light text-dark border">参与 {{ event_summary.participants }}</span>
+          {% endif %}
+          <span class="badge bg-light text-dark border">负责人 {{ item.responsible_members|length }}</span>
+          <span class="badge bg-light text-dark border">关联位置 {{ item.locations|length }}</span>
+          <span class="badge bg-light text-dark border">兴趣关注 {{ interest_total }}</span>
+        </div>
+        {% if interest_summary %}
+        <hr class="my-3">
+        <div class="text-muted small mb-2">兴趣清单标签</div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for entry in interest_summary %}
+          <span class="badge bg-secondary-subtle text-secondary-emphasis border">{{ entry.label }} {{ entry.count }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% set media_entries = item_media_entries(item) %}
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>媒体</span>
+        <span class="badge bg-light text-dark border">{{ media_entries|length }}</span>
+      </div>
+      <div class="card-body">
+        {{ render_media_gallery(
+            media_entries,
+            'itemMediaGallery',
+            media_kind_labels,
+            '暂无图片或影音',
+            {
+              'layout': 'carousel'
+            }
+          )
+        }}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">二维码</div>
+      <div class="card-body">
+        <div id="itemQrBox" class="p-2 border rounded d-inline-block"></div>
+        <div class="mt-2">
+          <input type="text" id="itemPermalink" class="form-control form-control-sm" readonly value="{{ request.url }}">
+          <div class="form-text">可复制链接或扫描二维码分享。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="manageCategoryModal" tabindex="-1" aria-labelledby="manageCategoryLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('manage_item_category') }}" id="manageCategoryForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="manageCategoryLabel">管理物品类别</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <input type="hidden" name="category_name" id="categoryNameField">
+          <input type="hidden" name="origin_item_id" value="{{ item.id }}">
+          <div class="mb-3">
+            <label for="categorySelectorInput" class="form-label mb-1">选择或输入类别</label>
+            <input type="text" id="categorySelectorInput" class="form-control form-control-sm" list="categoryOptions" placeholder="直接输入或选择已有类别名称">
+            <datalist id="categoryOptions">
+              {% for cat in categories %}
+                <option value="{{ cat }}"></option>
+              {% endfor %}
+            </datalist>
+            <div class="form-text">可输入新类别名称，或从现有类别中选择。</div>
+          </div>
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">当前类别内的物品</h6>
+                <small id="currentCategoryCounter" class="text-muted">0 个</small>
+              </div>
+              <div class="border rounded p-2" style="max-height: 60vh; overflow-y: auto;" id="currentCategoryContainer">
+                <p class="text-muted mb-0">请选择类别查看现有物品。</p>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">可加入的未分类物品</h6>
+                <small id="availableCategoryCounter" class="text-muted">0 个</small>
+              </div>
+              <div class="border rounded p-2" style="max-height: 60vh; overflow-y: auto;" id="availableCategoryContainer">
+                {% if uncategorized_items %}
+                  {% for entry in uncategorized_items %}
+                    <div class="form-check form-check-sm py-1">
+                      <input class="form-check-input category-add-checkbox" type="checkbox" name="add_item_ids" value="{{ entry.id }}" id="addCategoryItem{{ entry.id }}">
+                      <label class="form-check-label" for="addCategoryItem{{ entry.id }}">{{ entry.name }}</label>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <p class="text-muted mb-0">暂无未分类物品。</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <span class="text-muted small me-auto" id="categoryChangeSummary">未选择变更</span>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-primary" id="categorySubmitBtn" disabled>保存变更</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+  try {
+    var url = document.getElementById('itemPermalink').value || window.location.href;
+    var box = document.getElementById('itemQrBox');
+    if (box && window.QRCode) {
+      new QRCode(box, { text: url, width: 160, height: 160 });
+    }
+  } catch (e) { console.warn('QR init failed', e); }
+  var shareBtn = document.getElementById('shareItemLinkBtn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function () {
+      var linkInput = document.getElementById('itemPermalink');
+      var shareUrl = linkInput ? linkInput.value : window.location.href;
+      if (navigator.share) {
+        navigator.share({
+          title: document.title || '社区物品',
+          url: shareUrl
+        }).catch(function (err) {
+          if (err && err.name === 'AbortError') {
+            return;
+          }
+          fallbackCopy(shareUrl);
+        });
+      } else {
+        fallbackCopy(shareUrl);
+      }
+    });
+  }
+  function fallbackCopy(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        showShareFeedback('链接已复制');
+      }).catch(function () {
+        legacyCopy(text);
+      });
+    } else {
+      legacyCopy(text);
+    }
+  }
+  function legacyCopy(text) {
+    var temp = document.createElement('textarea');
+    temp.value = text;
+    document.body.appendChild(temp);
+    temp.select();
+    temp.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+    showShareFeedback('链接已复制');
+  }
+  function showShareFeedback(msg) {
+    shareBtn.disabled = true;
+    var original = shareBtn.textContent;
+    shareBtn.textContent = msg;
+    setTimeout(function () {
+      shareBtn.disabled = false;
+      shareBtn.textContent = original;
+    }, 1500);
+  }
+})();
+</script>
+
+<script>
+(function () {
+  var modalEl = document.getElementById('manageCategoryModal');
+  if (!modalEl) {
+    return;
+  }
+  var categoryData = {{ category_payload|tojson }};
+  var categorySelector = document.getElementById('categorySelectorInput');
+  var hiddenField = document.getElementById('categoryNameField');
+  var currentContainer = document.getElementById('currentCategoryContainer');
+  var availableContainer = document.getElementById('availableCategoryContainer');
+  var currentCounter = document.getElementById('currentCategoryCounter');
+  var availableCounter = document.getElementById('availableCategoryCounter');
+  var summaryEl = document.getElementById('categoryChangeSummary');
+  var submitBtn = document.getElementById('categorySubmitBtn');
+  var addCheckboxes = Array.prototype.slice.call(document.querySelectorAll('.category-add-checkbox'));
+  var manageForm = document.getElementById('manageCategoryForm');
+
+  function getCategoryEntry(name) {
+    for (var i = 0; i < categoryData.length; i += 1) {
+      if (categoryData[i].name === name) {
+        return categoryData[i];
+      }
+    }
+    return null;
+  }
+
+  function rebuildCurrentList(name) {
+    if (!currentContainer) {
+      return;
+    }
+    currentContainer.innerHTML = '';
+    var entry = getCategoryEntry(name);
+    if (!entry || !entry.items.length) {
+      currentContainer.innerHTML = '<p class="text-muted mb-0">尚无物品属于该类别。</p>';
+      if (currentCounter) {
+        currentCounter.textContent = '0 个';
+      }
+      return;
+    }
+    entry.items.forEach(function (item) {
+      var wrapper = document.createElement('div');
+      wrapper.className = 'form-check form-check-sm py-1';
+      var checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'form-check-input category-remove-checkbox';
+      checkbox.name = 'remove_item_ids';
+      checkbox.value = item.id;
+      checkbox.id = 'removeCategoryItem' + item.id;
+      var label = document.createElement('label');
+      label.className = 'form-check-label';
+      label.setAttribute('for', checkbox.id);
+      label.textContent = item.name;
+      wrapper.appendChild(checkbox);
+      wrapper.appendChild(label);
+      currentContainer.appendChild(wrapper);
+    });
+    if (currentCounter) {
+      currentCounter.textContent = entry.items.length + ' 个';
+    }
+  }
+
+  function updateAvailableCounter() {
+    if (!availableCounter || !availableContainer) {
+      return;
+    }
+    var total = availableContainer.querySelectorAll('.category-add-checkbox').length;
+    availableCounter.textContent = total + ' 个';
+  }
+
+  function updateSummary() {
+    if (!summaryEl) {
+      return;
+    }
+    var selectedAdds = availableContainer ? availableContainer.querySelectorAll('.category-add-checkbox:checked').length : 0;
+    var selectedRemoves = currentContainer ? currentContainer.querySelectorAll('.category-remove-checkbox:checked').length : 0;
+    var categoryName = hiddenField ? hiddenField.value.trim() : '';
+    if (!categoryName) {
+      summaryEl.textContent = '请先选择或输入类别';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+      }
+      return;
+    }
+    if (selectedAdds === 0 && selectedRemoves === 0) {
+      summaryEl.textContent = '未选择变更';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+      }
+    } else {
+      summaryEl.textContent = '即将新增 ' + selectedAdds + ' / 取消 ' + selectedRemoves + ' 个物品';
+      if (submitBtn) {
+        submitBtn.disabled = false;
+      }
+    }
+  }
+
+  function resetModal() {
+    if (categorySelector) {
+      categorySelector.value = '';
+      categorySelector.removeAttribute('readonly');
+    }
+    if (hiddenField) {
+      hiddenField.value = '';
+    }
+    if (currentContainer) {
+      currentContainer.innerHTML = '<p class="text-muted mb-0">请选择类别查看现有物品。</p>';
+    }
+    if (currentCounter) {
+      currentCounter.textContent = '0 个';
+    }
+    if (summaryEl) {
+      summaryEl.textContent = '未选择变更';
+    }
+    if (submitBtn) {
+      submitBtn.disabled = true;
+    }
+    addCheckboxes.forEach(function (cb) { cb.checked = false; });
+  }
+
+  modalEl.addEventListener('hidden.bs.modal', resetModal);
+  modalEl.addEventListener('shown.bs.modal', function () {
+    if (categorySelector) {
+      categorySelector.focus();
+    }
+  });
+  modalEl.addEventListener('show.bs.modal', function (evt) {
+    var trigger = evt.relatedTarget || null;
+    var categoryName = '';
+    if (trigger && trigger.getAttribute('data-category')) {
+      categoryName = trigger.getAttribute('data-category');
+    }
+    if (categorySelector) {
+      categorySelector.value = categoryName;
+      if (categoryName) {
+        categorySelector.setAttribute('readonly', 'readonly');
+      } else {
+        categorySelector.removeAttribute('readonly');
+      }
+    }
+    if (hiddenField) {
+      hiddenField.value = categoryName;
+    }
+    rebuildCurrentList(categoryName);
+    updateSummary();
+  });
+
+  if (categorySelector) {
+    categorySelector.addEventListener('input', function () {
+      var name = (this.value || '').trim();
+      if (hiddenField) {
+        hiddenField.value = name;
+      }
+      rebuildCurrentList(name);
+      updateSummary();
+    });
+  }
+
+  if (availableContainer) {
+    availableContainer.addEventListener('change', function (evt) {
+      if (evt.target && evt.target.classList.contains('category-add-checkbox')) {
+        updateSummary();
+      }
+    });
+    updateAvailableCounter();
+  }
+  if (currentContainer) {
+    currentContainer.addEventListener('change', function (evt) {
+      if (evt.target && evt.target.classList.contains('category-remove-checkbox')) {
+        updateSummary();
+      }
+    });
+  }
+  if (manageForm) {
+    manageForm.addEventListener('submit', function (evt) {
+      var name = hiddenField ? hiddenField.value.trim() : '';
+      var addCount = availableContainer ? availableContainer.querySelectorAll('.category-add-checkbox:checked').length : 0;
+      var removeCount = currentContainer ? currentContainer.querySelectorAll('.category-remove-checkbox:checked').length : 0;
+      if (!name || (addCount === 0 && removeCount === 0)) {
+        evt.preventDefault();
+        updateSummary();
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

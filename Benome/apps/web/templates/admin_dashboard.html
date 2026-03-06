@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} · Benome</title>
+    <style>
+        :root {
+            --primary: #0f5a46;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .header nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+            opacity: 0.9;
+        }
+        .header nav a:hover { opacity: 1; }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .stat-card {
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .stat-card .label {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+        .admin-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .admin-link {
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text);
+            border-left: 4px solid var(--primary);
+            transition: transform 0.2s;
+        }
+        .admin-link:hover {
+            transform: translateX(5px);
+        }
+        .admin-link h3 {
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+        .admin-link p {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        .flash-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .flash-message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏠 ling居家 · 管理后台</h1>
+        <nav>
+            <a href="/admin/dashboard">管理控制台</a>
+            <a href="/dashboard">用户视图</a>
+            <a href="/">返回首页</a>
+            <a href="/logout">退出</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <script>
+            // Check for flash messages
+            try {
+                const flash = sessionStorage.getItem('benome_flash');
+                if (flash) {
+                    const msg = JSON.parse(flash);
+                    document.write('<div class="flash-message' + (msg.err ? ' error' : '') + '">' + msg.msg + '</div>');
+                    sessionStorage.removeItem('benome_flash');
+                }
+            } catch(e) {}
+        </script>
+
+        <div class="card">
+            <h2>管理控制台</h2>
+            <p>欢迎管理员 {{ current_user.username if current_user else '' }}！这里是房源管理平台的管理后台。</p>
+            
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card">
+                    <div class="number">加载中...</div>
+                    <div class="label">总房源数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">加载中...</div>
+                    <div class="label">待审核预订</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">加载中...</div>
+                    <div class="label">活跃用户</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">加载中...</div>
+                    <div class="label">本月收入</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>管理功能</h2>
+            <div class="admin-links">
+                <a href="/admin/statistics" class="admin-link">
+                    <h3>📊 数据统计</h3>
+                    <p>查看平台运营数据</p>
+                </a>
+                <a href="/admin/properties/create" class="admin-link">
+                    <h3>➕ 添加房源</h3>
+                    <p>创建新的房源信息</p>
+                </a>
+                <a href="/admin/calendar" class="admin-link">
+                    <h3>📅 房态日历</h3>
+                    <p>查看房源预订情况</p>
+                </a>
+                <a href="/admin/bookings" class="admin-link">
+                    <h3>📋 预订管理</h3>
+                    <p>审核和处理用户预订申请</p>
+                </a>
+                <a href="/admin/users" class="admin-link">
+                    <h3>👥 用户管理</h3>
+                    <p>管理用户账号和权限</p>
+                </a>
+                <a href="/admin/settings" class="admin-link">
+                    <h3>⚙️ 系统设置</h3>
+                    <p>配置平台参数和规则</p>
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📸 房间媒体管理</h2>
+            <p style="margin-bottom: 1rem; color: var(--text-light);">
+                为每个房间上传精美的图片和视频，提升房源吸引力
+            </p>
+            <div id="propertyList" style="margin-top: 1rem;">
+                <p>加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 加载统计数据
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/statistics/overview');
+                if (!response.ok) throw new Error('加载失败');
+                const stats = await response.json();
+                
+                // 更新统计卡片
+                const statsGrid = document.getElementById('stats-grid');
+                if (statsGrid) {
+                    statsGrid.innerHTML = `
+                        <div class="stat-card">
+                            <div class="number" style="color: var(--primary);">${stats.active_properties}/${stats.total_properties}</div>
+                            <div class="label">活跃房源 / 总房源</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="number" style="color: var(--warning);">${stats.pending_bookings}</div>
+                            <div class="label">待审核预订</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="number" style="color: var(--info);">${stats.active_users}</div>
+                            <div class="label">活跃用户（30 天）</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="number" style="color: var(--success);">¥${stats.revenue_this_month.toLocaleString()}</div>
+                            <div class="label">本月收入</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="number" style="color: var(--primary);">${stats.confirmed_bookings}</div>
+                            <div class="label">已确认预订</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="number" style="color: var(--info);">${stats.total_users}</div>
+                            <div class="label">总用户数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="number" style="color: var(--success);">¥${stats.total_revenue.toLocaleString()}</div>
+                            <div class="label">累计收入</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="number" style="color: var(--warning);">${stats.bookings_this_month}</div>
+                            <div class="label">本月预订</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+                document.getElementById('stats-grid').innerHTML = 
+                    '<p style="color: var(--danger); grid-column: 1/-1; text-align: center;">加载统计数据失败</p>';
+            }
+        }
+        
+        // 加载房源列表用于媒体管理
+        async function loadProperties() {
+            try {
+                const response = await fetch('/api/properties');
+                if (!response.ok) throw new Error('加载失败');
+                const properties = await response.json();
+                
+                const container = document.getElementById('propertyList');
+                if (properties.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-light);">暂无房源，请先添加房源</p>';
+                    return;
+                }
+                
+                container.innerHTML = '<div class="admin-links">' + properties.map(p => `
+                    <div style="position: relative;">
+                        <a href="/admin/properties/${p.id}/media" class="admin-link">
+                            <h3>🏠 ${p.title}</h3>
+                            <p>📍 ${p.city || '未设置位置'} · 💰 ¥${p.price_per_night}/晚</p>
+                            <p style="margin-top: 0.5rem; font-size: 0.85rem;">点击管理房间图片和视频</p>
+                        </a>
+                        <a href="/admin/properties/${p.id}/edit" class="btn btn-sm" style="position: absolute; top: 1rem; right: 1rem; background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none; font-size: 0.85rem;">✏️ 编辑</a>
+                    </div>
+                `).join('') + '</div>';
+            } catch (error) {
+                document.getElementById('propertyList').innerHTML = 
+                    '<p style="color: var(--danger);">加载失败：' + error.message + '</p>';
+            }
+        }
+        
+        loadStats();
+        loadProperties();
+    </script>
+    </div>
+</body>
+</html>

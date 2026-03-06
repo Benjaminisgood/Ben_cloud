@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="auth-wrap">
+  <article class="auth-card" data-reveal>
+    <h1>登录 Benoss</h1>
+    <p>记录你和朋友每一天的学习与创作。</p>
+    <form method="post" class="auth-form">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
+      <label>
+        用户名
+        <input type="text" name="username" required autocomplete="username">
+      </label>
+      <label>
+        密码
+        <input type="password" name="password" required autocomplete="current-password">
+      </label>
+      <label class="inline-switch inline-switch-sm auth-remember-switch">
+        <input type="checkbox" name="remember" checked>
+        <span class="inline-switch-ui" aria-hidden="true"><span class="inline-switch-knob"></span></span>
+        <span class="inline-switch-copy">
+          <span class="inline-switch-title">记住登录状态</span>
+          <span class="inline-switch-desc">仅在当前设备维持会话</span>
+        </span>
+      </label>
+      <button type="submit">登录</button>
+    </form>
+    <p class="muted">没有账号？<a href="/register">去注册</a></p>
+  </article>
+</section>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero-card accent-hero" data-reveal>
+  <div>
+    <p class="muted">Learning Feed</p>
+    <h1>学习记录流</h1>
+    <p class="muted">发布、评论、回顾都在同一条记录流里完成，整体学习脉络一屏可见。</p>
+  </div>
+  <div class="hero-metrics">
+    <article>
+      <span>公开记录</span>
+      <strong id="metric-public-count">0</strong>
+    </article>
+    <article>
+      <span>活跃用户</span>
+      <strong id="metric-user-count">0</strong>
+    </article>
+    <article>
+      <span>高频标签</span>
+      <strong id="metric-top-tags">-</strong>
+    </article>
+  </div>
+</section>
+
+<section class="card home-workbench" data-reveal="80">
+  <div class="home-workbench-head">
+    <h2>工作台</h2>
+    <p class="muted">在这里快速发布学习记录，并通过检索问答助手完成回顾与归纳。</p>
+  </div>
+
+  <div class="home-panels">
+    <article class="home-panel quick-publish-card">
+      <h2>快速发布</h2>
+      <form id="quick-publish-form" class="stack-form" enctype="multipart/form-data">
+        <div class="quick-visibility-field">
+          <p class="quick-visibility-title">可见性</p>
+          <div class="quick-visibility-switch" role="radiogroup" aria-label="发布可见性">
+            <input class="quick-visibility-input" type="radio" id="quick-visibility-private" name="visibility" value="private" checked>
+            <label class="quick-visibility-option" for="quick-visibility-private">私密</label>
+            <input class="quick-visibility-input" type="radio" id="quick-visibility-public" name="visibility" value="public">
+            <label class="quick-visibility-option" for="quick-visibility-public">公开</label>
+          </div>
+        </div>
+        <label>
+          标签（逗号分隔；文本里的 #标签 在空格/标点后自动补全）
+          <input type="text" name="tags" placeholder="math,python,reading">
+        </label>
+        <label>
+          文本内容（可选）
+          <textarea name="text" rows="5" placeholder="写下这次学习内容或想法..."></textarea>
+        </label>
+        <div class="quick-upload-wrap">
+          <div
+            id="quick-publish-dropzone"
+            class="quick-publish-dropzone"
+            role="button"
+            tabindex="0"
+            aria-label="拖拽文件到此处，或点击选择文件"
+          >
+            <p class="quick-publish-dropzone-title">拖拽文件到这里批量上传</p>
+            <p class="muted">支持拖拽文件夹（递归读取）/文件，也可以和文本一起发布。</p>
+            <div class="quick-publish-picker-row">
+              <button id="quick-publish-file-btn" type="button" class="secondary">选择文件</button>
+              <button id="quick-publish-folder-btn" type="button" class="secondary">选择文件夹</button>
+            </div>
+            <input id="quick-publish-file-input" type="file" name="file" multiple>
+            <input id="quick-publish-folder-input" type="file" webkitdirectory directory multiple>
+          </div>
+          <p id="quick-publish-file-hint" class="muted">未选择文件，可仅发布文本。</p>
+          <div id="quick-publish-progress-wrap" class="quick-publish-progress" hidden>
+            <div class="quick-publish-progress-head">
+              <p id="quick-publish-progress-text" class="muted">等待发布</p>
+              <button id="quick-publish-retry-failed-btn" type="button" class="secondary" hidden>重试失败项</button>
+            </div>
+            <div class="quick-publish-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span id="quick-publish-progress-fill" class="quick-publish-progress-fill"></span>
+            </div>
+          </div>
+          <ul id="quick-publish-file-list" class="quick-publish-file-list"></ul>
+        </div>
+        <button type="submit">发布记录（自动识别文本/文件）</button>
+        <p id="quick-publish-msg" class="muted"></p>
+      </form>
+    </article>
+
+    <article class="home-panel vector-chat-card">
+      <div class="section-head">
+        <h2>检索问答助手</h2>
+      </div>
+      <p class="muted" id="vector-status">向量索引未加载</p>
+      <form id="vector-chat-form" class="stack-form">
+        <label>
+          提问内容
+          <textarea name="query" rows="3" placeholder="例如：近期大家在学什么？哪些主题最热？"></textarea>
+        </label>
+        <div class="vector-ai-mode">
+          <label class="vector-ai-toggle">
+            <input type="checkbox" name="use_ai" checked>
+            <span class="vector-ai-switch" aria-hidden="true"><span class="vector-ai-switch-knob"></span></span>
+            <span class="vector-ai-copy">
+              <span class="vector-ai-title">AI 增强回答</span>
+              <span class="vector-ai-desc">关闭后仅返回检索直答</span>
+            </span>
+          </label>
+        </div>
+        <p class="muted">检索条数由管理台配置 <code>VECTOR_TOP_K</code> 控制。</p>
+        <button type="submit">开始问答</button>
+      </form>
+      <pre id="vector-chat-answer" class="ai-output" hidden></pre>
+      <div id="vector-chat-hits" class="notice-feed"></div>
+    </article>
+  </div>
+</section>
+
+{% endblock %}

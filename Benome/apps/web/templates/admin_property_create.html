@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加房源 · Benome</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        :root {
+            --primary: #0f5a46;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --success: #28a745;
+            --danger: #dc3545;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .header nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+            opacity: 0.9;
+        }
+        .header nav a:hover { opacity: 1; }
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .page-title {
+            margin-bottom: 2rem;
+            color: var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-success {
+            background: var(--success);
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-size: 1.25rem;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 0.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            font-weight: 600;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(15, 90, 70, 0.1);
+        }
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--bg);
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .help-text {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+            .header nav a {
+                margin-left: 0.5rem;
+                font-size: 0.9rem;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏠 ling 居家</h1>
+        <nav>
+            <a href="/admin/dashboard">管理后台</a>
+            <a href="/properties">浏览房源</a>
+            <a href="/logout">退出</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="page-title">
+            <h1>➕ 添加新房源</h1>
+            <a href="/admin/dashboard" class="btn btn-secondary">返回管理后台</a>
+        </div>
+
+        <div class="card">
+            <h2>房源基本信息</h2>
+            <form id="create-property-form">
+                <div class="form-group">
+                    <label for="title">房源标题 *</label>
+                    <input type="text" id="title" name="title" required maxlength="120" placeholder="例如：钱塘云湾中心双床房">
+                    <div class="help-text">简洁明了的房源名称，最多 120 个字符</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">房源描述 *</label>
+                    <textarea id="description" name="description" required placeholder="详细描述房源的特点、设施、周边环境等..."></textarea>
+                    <div class="help-text">详细介绍房源，帮助客人更好地了解</div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="city">所在城市 *</label>
+                        <input type="text" id="city" name="city" required maxlength="80" placeholder="例如：杭州海宁交界">
+                    </div>
+                    <div class="form-group">
+                        <label for="address">详细地址 *</label>
+                        <input type="text" id="address" name="address" required maxlength="255" placeholder="例如：钱塘云湾中心 3 栋 1001 室">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="price_per_night">每晚价格 (¥) *</label>
+                        <input type="number" id="price_per_night" name="price_per_night" required min="1" placeholder="380">
+                        <div class="help-text">人民币计价，最低 1 元</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="max_guests">最多入住人数 *</label>
+                        <input type="number" id="max_guests" name="max_guests" required min="1" max="20" placeholder="4">
+                        <div class="help-text">允许的最大入住人数，1-20 人</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="is_active" name="is_active" checked>
+                        <label for="is_active" style="margin: 0;">立即启用此房源</label>
+                    </div>
+                    <div class="help-text">取消勾选将创建但不显示，稍后手动启用</div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">✅ 创建房源</button>
+                    <a href="/admin/dashboard" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>💡 温馨提示</h2>
+            <div style="color: var(--text-light); line-height: 1.8;">
+                <p style="margin-bottom: 0.5rem;">1. <strong>房源标题</strong>要简洁明了，突出房源特色</p>
+                <p style="margin-bottom: 0.5rem;">2. <strong>房源描述</strong>要详细，包括：</p>
+                <ul style="margin-left: 2rem; margin-bottom: 0.5rem;">
+                    <li>房屋面积和户型</li>
+                    <li>装修风格和设施</li>
+                    <li>周边交通和配套</li>
+                    <li>入住须知和规则</li>
+                </ul>
+                <p style="margin-bottom: 0.5rem;">3. <strong>价格设置</strong>要合理，参考周边同类房源</p>
+                <p style="margin-bottom: 0.5rem;">4. 创建后可以随时编辑修改</p>
+                <p>5. 记得上传精美的图片，提升房源吸引力！</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function createProperty(event) {
+            event.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('title').value.trim(),
+                description: document.getElementById('description').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                address: document.getElementById('address').value.trim(),
+                price_per_night: parseInt(document.getElementById('price_per_night').value),
+                max_guests: parseInt(document.getElementById('max_guests').value),
+                is_active: document.getElementById('is_active').checked
+            };
+            
+            // 验证
+            if (!formData.title || !formData.description) {
+                alert('请填写必填字段');
+                return;
+            }
+            
+            if (formData.price_per_night < 1) {
+                alert('价格必须大于 0');
+                return;
+            }
+            
+            if (formData.max_guests < 1 || formData.max_guests > 20) {
+                alert('入住人数必须在 1-20 之间');
+                return;
+            }
+            
+            // 从 localStorage 获取用户信息
+            const sessionData = localStorage.getItem('benome_session_v1');
+            let userId = null;
+            if (sessionData) {
+                try {
+                    const session = JSON.parse(sessionData);
+                    userId = session.userId;
+                } catch (e) {}
+            }
+            
+            try {
+                const response = await fetch('/api/admin/properties', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': userId || ''
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    const property = await response.json();
+                    alert('✅ 房源创建成功！\n\n房源 ID: ' + property.id + '\n标题：' + property.title);
+                    
+                    // 询问是否上传照片
+                    if (confirm('是否现在上传房源照片？')) {
+                        window.location.href = '/admin/properties/' + property.id + '/media';
+                    } else {
+                        window.location.href = '/admin/dashboard';
+                    }
+                } else {
+                    const error = await response.json();
+                    alert('创建失败：' + (error.detail || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Failed to create property:', error);
+                alert('创建失败，请检查网络连接');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('create-property-form').addEventListener('submit', createProperty);
+        });
+    </script>
+</body>
+</html>

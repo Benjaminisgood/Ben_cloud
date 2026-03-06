@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的预订 · Benome</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        :root {
+            --primary: #0f5a46;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .header nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+            opacity: 0.9;
+        }
+        .header nav a:hover { opacity: 1; }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .page-title {
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+        .bookings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .booking-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .booking-info {
+            flex: 1;
+        }
+        .booking-property {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .booking-dates {
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+        .booking-guests {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+        .booking-status {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 1rem;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-light);
+        }
+        .empty-state h2 {
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+        .btn-primary {
+            background: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏠 ling 居家</h1>
+        <nav>
+            <a href="/dashboard">我的房源</a>
+            <a href="/properties">浏览房源</a>
+            <a href="/bookings">我的预订</a>
+            <a href="/profile">个人资料</a>
+            {% if current_user and current_user.role == 'admin' %}
+            <a href="/admin/dashboard">管理后台</a>
+            {% endif %}
+            <a href="/logout">退出</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h1 class="page-title">📅 我的预订</h1>
+        
+        <div class="bookings-list" id="bookings-list">
+            <!-- 预订列表将通过 JavaScript 动态加载 -->
+            <div class="empty-state">
+                <h2>加载中...</h2>
+                <p>正在获取您的预订记录</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadBookings() {
+            try {
+                const response = await fetch('/api/bookings/my');
+                
+                if (response.status === 404) {
+                    // API 可能不存在，显示空状态
+                    document.getElementById('bookings-list').innerHTML = `
+                        <div class="empty-state">
+                            <h2>暂无预订</h2>
+                            <p>您还没有任何预订记录</p>
+                            <a href="/properties" class="btn btn-primary" style="margin-top: 1rem;">去浏览房源</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const bookings = await response.json();
+                
+                const list = document.getElementById('bookings-list');
+                
+                if (!bookings || bookings.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <h2>暂无预订</h2>
+                            <p>您还没有任何预订记录</p>
+                            <a href="/properties" class="btn btn-primary" style="margin-top: 1rem;">去浏览房源</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const statusMap = {
+                    'pending': { text: '待审核', class: 'status-pending' },
+                    'confirmed': { text: '已确认', class: 'status-confirmed' },
+                    'cancelled': { text: '已取消', class: 'status-cancelled' },
+                    'completed': { text: '已完成', class: 'status-completed' }
+                };
+                
+                list.innerHTML = bookings.map(booking => {
+                    const status = statusMap[booking.status] || { text: booking.status, class: '' };
+                    return `
+                        <div class="booking-card">
+                            <div class="booking-info">
+                                <h3 class="booking-property">${booking.property_title || '房源'}</h3>
+                                <p class="booking-dates">
+                                    📅 ${booking.check_in_date || '未知日期'} 至 ${booking.check_out_date || '未知日期'}
+                                </p>
+                                <p class="booking-guests">
+                                    👥 ${booking.number_of_guests || 0} 位客人 · 💰 ¥${booking.total_price || 0}
+                                </p>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <span class="booking-status ${status.class}">${status.text}</span>
+                                <a href="/bookings/${booking.id}" class="btn btn-sm">查看详情</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Failed to load bookings:', error);
+                document.getElementById('bookings-list').innerHTML = `
+                    <div class="empty-state">
+                        <h2>加载失败</h2>
+                        <p>无法获取预订记录，请稍后重试</p>
+                        <a href="/properties" class="btn btn-primary" style="margin-top: 1rem;">去浏览房源</a>
+                    </div>
+                `;
+            }
+        }
+        
+        // 页面加载时获取预订列表
+        document.addEventListener('DOMContentLoaded', loadBookings);
+    </script>
+</body>
+</html>

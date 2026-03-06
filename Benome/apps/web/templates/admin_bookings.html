@@ -1,0 +1,502 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" data-reveal>
+  <div class="page-header">
+    <h2>预订管理</h2>
+    <div style="display: flex; gap: 0.5rem;">
+      <button class="btn" id="btn-refresh">🔄 刷新</button>
+      <button class="btn primary" id="btn-show-pending">仅看待审核</button>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table" id="bookings-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>房源</th>
+          <th>客户</th>
+          <th>入住日期</th>
+          <th>退房日期</th>
+          <th>晚数</th>
+          <th>客人</th>
+          <th>状态</th>
+          <th>创建时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="bookings-table-body">
+        <tr>
+          <td colspan="10" class="text-center muted">加载中...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 审核模态框 -->
+<div class="modal-backdrop" id="review-modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+    <header class="modal-header">
+      <h3 id="review-modal-title">审核预订</h3>
+      <button class="btn icon-btn" id="btn-close-modal" aria-label="关闭">×</button>
+    </header>
+    <form id="review-form" class="stack">
+      <input type="hidden" id="booking-id">
+      
+      <div class="booking-summary" id="booking-summary">
+        <!-- 预订摘要将动态加载 -->
+      </div>
+      
+      <label class="field">
+        <span>审核结果 *</span>
+        <select id="approve" required>
+          <option value="true">✓ 批准</option>
+          <option value="false">✗ 拒绝</option>
+        </select>
+      </label>
+      
+      <label class="field">
+        <span>已收款</span>
+        <select id="payment_received">
+          <option value="false">否</option>
+          <option value="true">是</option>
+        </select>
+      </label>
+      
+      <label class="field">
+        <span>审核备注</span>
+        <textarea id="review_note" rows="3" placeholder="输入审核备注..."></textarea>
+      </label>
+      
+      <div class="row" style="justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <button type="button" class="btn" id="btn-cancel">取消</button>
+        <button type="submit" class="btn primary">提交审核</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  const API_BASE = '';
+  const bookingsTableBody = document.getElementById('bookings-table-body');
+  const reviewModal = document.getElementById('review-modal');
+  const reviewForm = document.getElementById('review-form');
+  const btnRefresh = document.getElementById('btn-refresh');
+  const btnShowPending = document.getElementById('btn-show-pending');
+  const btnCloseModal = document.getElementById('btn-close-modal');
+  const btnCancel = document.getElementById('btn-cancel');
+  const bookingIdInput = document.getElementById('booking-id');
+  const approveSelect = document.getElementById('approve');
+  const paymentReceivedSelect = document.getElementById('payment_received');
+  const reviewNoteInput = document.getElementById('review_note');
+  const bookingSummary = document.getElementById('booking-summary');
+  const modalTitle = document.getElementById('review-modal-title');
+
+  let showPendingOnly = false;
+
+  // 加载预订列表
+  async function loadBookings() {
+    try {
+      const session = JSON.parse(localStorage.getItem('benome_session_v1') || '{}');
+      const userId = session.userId;
+      
+      let url = `${API_BASE}/api/admin/bookings/all`;
+      
+      const res = await fetch(url, {
+        headers: {
+          'X-User-Id': userId || '',
+        },
+      });
+      
+      if (!res.ok) {
+        if (res.status === 404) {
+          // API 不存在，尝试使用 pending 接口
+          const pendingRes = await fetch(`${API_BASE}/api/admin/bookings/pending`, {
+            headers: {
+              'X-User-Id': userId || '',
+            },
+          });
+          if (pendingRes.ok) {
+            const bookings = await pendingRes.json();
+            renderBookings(bookings);
+            return;
+          }
+        }
+        throw new Error('加载失败');
+      }
+      
+      const bookings = await res.json();
+      renderBookings(bookings);
+    } catch (err) {
+      bookingsTableBody.innerHTML = `
+        <tr>
+          <td colspan="10" class="text-center" style="color: var(--warning);">
+            加载失败：${err.message}
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  // 渲染预订列表
+  function renderBookings(bookings) {
+    if (!bookings || bookings.length === 0) {
+      bookingsTableBody.innerHTML = `
+        <tr>
+          <td colspan="10" class="text-center muted">暂无预订</td>
+        </tr>
+      `;
+      return;
+    }
+    
+    let filteredBookings = bookings;
+    if (showPendingOnly) {
+      filteredBookings = bookings.filter(b => b.status === 'pending');
+    }
+    
+    if (filteredBookings.length === 0) {
+      bookingsTableBody.innerHTML = `
+        <tr>
+          <td colspan="10" class="text-center muted">没有符合条件的预订</td>
+        </tr>
+      `;
+      return;
+    }
+    
+    bookingsTableBody.innerHTML = filteredBookings.map(booking => `
+      <tr>
+        <td>${booking.id}</td>
+        <td>${escapeHtml(booking.property_title || '未知房源')}</td>
+        <td>${escapeHtml(booking.guest_name || '未知')}</td>
+        <td>${booking.check_in_date || '-'}</td>
+        <td>${booking.check_out_date || '-'}</td>
+        <td>${booking.total_nights || 0}</td>
+        <td>${booking.guest_count || 0}人</td>
+        <td>
+          <span class="badge ${getStatusClass(booking.status)}">
+            ${getStatusText(booking.status)}
+          </span>
+        </td>
+        <td>${formatDate(booking.created_at)}</td>
+        <td>
+          <button class="btn small" onclick="viewBooking(${booking.id})">查看</button>
+          ${booking.status === 'pending' ? `<button class="btn small primary" onclick="reviewBooking(${booking.id})">审核</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // 获取状态样式
+  function getStatusClass(status) {
+    const map = {
+      'pending': 'warning',
+      'confirmed': 'success',
+      'cancelled': 'danger',
+      'completed': 'primary'
+    };
+    return map[status] || 'muted';
+  }
+
+  // 获取状态文本
+  function getStatusText(status) {
+    const map = {
+      'pending': '待审核',
+      'confirmed': '已确认',
+      'cancelled': '已取消',
+      'completed': '已完成'
+    };
+    return map[status] || status;
+  }
+
+  // 打开审核模态框
+  window.reviewBooking = async function(bookingId) {
+    try {
+      const session = JSON.parse(localStorage.getItem('benome_session_v1') || '{}');
+      const currentUserId = session.userId;
+      
+      const res = await fetch(`${API_BASE}/api/bookings/${bookingId}`, {
+        headers: {
+          'X-User-Id': currentUserId || '',
+        },
+      });
+      
+      if (!res.ok) {
+        throw new Error('获取预订信息失败');
+      }
+      
+      const booking = await res.json();
+      
+      bookingIdInput.value = booking.id;
+      bookingSummary.innerHTML = `
+        <div style="background: var(--surface-panel); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+          <p><strong>房源：</strong>${escapeHtml(booking.property_title || '未知')}</p>
+          <p><strong>客户：</strong>${escapeHtml(booking.guest_name || '未知')} (${escapeHtml(booking.guest_phone || '无')})</p>
+          <p><strong>日期：</strong>${booking.check_in_date} 至 ${booking.check_out_date} (${booking.total_nights}晚)</p>
+          <p><strong>客人：</strong>${booking.guest_count}人</p>
+          <p><strong>备注：</strong>${escapeHtml(booking.note || '无')}</p>
+        </div>
+      `;
+      
+      approveSelect.value = 'true';
+      paymentReceivedSelect.value = 'false';
+      reviewNoteInput.value = '';
+      
+      reviewModal.hidden = false;
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // 查看预订详情
+  window.viewBooking = function(bookingId) {
+    window.location.href = `/bookings/${bookingId}`;
+  };
+
+  // 关闭模态框
+  function closeModal() {
+    reviewModal.hidden = true;
+  }
+
+  btnCloseModal.addEventListener('click', closeModal);
+  btnCancel.addEventListener('click', closeModal);
+
+  // 提交审核
+  reviewForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const session = JSON.parse(localStorage.getItem('benome_session_v1') || '{}');
+    const userId = session.userId;
+    
+    const reviewData = {
+      approve: approveSelect.value === 'true',
+      payment_received: paymentReceivedSelect.value === 'true',
+      review_note: reviewNoteInput.value.trim() || null,
+    };
+    
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/bookings/${bookingIdInput.value}/review`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId || '',
+        },
+        body: JSON.stringify(reviewData),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.detail || '审核失败');
+      }
+      
+      closeModal();
+      loadBookings();
+      alert('审核已完成');
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  // 刷新按钮
+  btnRefresh.addEventListener('click', loadBookings);
+
+  // 仅看待审核按钮
+  btnShowPending.addEventListener('click', () => {
+    showPendingOnly = !showPendingOnly;
+    btnShowPending.textContent = showPendingOnly ? '显示全部' : '仅看待审核';
+    btnShowPending.classList.toggle('primary');
+    loadBookings();
+  });
+
+  // 初始化
+  loadBookings();
+})();
+</script>
+
+<style>
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.data-table th {
+  background: var(--surface-table-head);
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.data-table tbody tr:hover {
+  background: var(--surface-subtle);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge.primary {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.badge.muted {
+  background: var(--surface-panel);
+  color: var(--muted);
+}
+
+.badge.success {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badge.warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.badge.danger {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.btn.small {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  margin-right: 0.25rem;
+}
+
+.btn.danger {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.btn.danger:hover {
+  background: #ffcdd2;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: var(--card);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 0;
+  line-height: 1;
+}
+
+.icon-btn:hover {
+  color: var(--ink);
+}
+
+#review-form {
+  padding: 1.5rem;
+}
+
+.field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.booking-summary {
+  margin-bottom: 1rem;
+}
+</style>
+{% endblock %}

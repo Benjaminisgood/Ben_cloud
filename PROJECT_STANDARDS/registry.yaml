@@ -1,0 +1,68 @@
+version: 1
+purpose: new_project_standard_registry
+workspace_root: /Users/ben/Desktop/Ben_cloud
+
+notes:
+  - This registry is used to keep Ben_cloud project metadata and new-project onboarding consistency.
+  - It is not a per-task execution playbook for existing sub-projects.
+
+apps:
+  - id: benbot
+    name: Benbot
+    mission: unified portal and SSO hub
+    port: 80
+    workdir: /Users/ben/Desktop/Ben_cloud/Benbot
+    agent_instructions: /Users/ben/Desktop/Ben_cloud/Benbot/AGENTS.md
+  - id: benoss
+    name: Benoss
+    mission: collaborative study and work support
+    port: 8000
+    workdir: /Users/ben/Desktop/Ben_cloud/Benoss
+    agent_instructions: /Users/ben/Desktop/Ben_cloud/Benoss/AGENTS.md
+  - id: benusy
+    name: Benusy
+    mission: influencer operations and settlement support
+    port: 8100
+    workdir: /Users/ben/Desktop/Ben_cloud/Benusy
+    agent_instructions: /Users/ben/Desktop/Ben_cloud/Benusy/AGENTS.md
+  - id: benome
+    name: Benome
+    mission: lodging rental and booking operations
+    port: 8200
+    workdir: /Users/ben/Desktop/Ben_cloud/Benome
+    agent_instructions: /Users/ben/Desktop/Ben_cloud/Benome/AGENTS.md
+  - id: benlab
+    name: Benlab
+    mission: social and life management
+    port: 9000
+    workdir: /Users/ben/Desktop/Ben_cloud/Benlab
+    agent_instructions: /Users/ben/Desktop/Ben_cloud/Benlab/AGENTS.md
+  - id: bensci
+    name: Bensci
+    mission: document metadata extraction and aggregation
+    port: 8300
+    workdir: /Users/ben/Desktop/Ben_cloud/Bensci
+  - id: benfer
+    name: Benfer
+    mission: clipboard and file transfer utility
+    port: 8500
+    workdir: /Users/ben/Desktop/Ben_cloud/Benfer
+  - id: benben
+    name: Benben
+    mission: markdown editing and note authoring
+    port: 8600
+    workdir: /Users/ben/Desktop/Ben_cloud/Benben
+    agent_instructions: /Users/ben/Desktop/Ben_cloud/Benben/AGENTS.md
+
+new_app_onboarding_template:
+  required_fields:
+    - id
+    - name
+    - mission
+    - port
+    - workdir
+    - agent_instructions
+  recommended_fields:
+    - api_base_url
+    - sso_entry_path
+    - automation_assets

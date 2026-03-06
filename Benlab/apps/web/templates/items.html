@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 page-header-actions">
+  <h3 class="mb-0">社区物品总览</h3>
+  <a href="{{ url_for('add_item') }}" class="btn btn-primary">新增物品</a>
+</div>
+
+<div class="d-flex flex-column flex-md-row align-items-md-center gap-2 mb-3">
+  <div class="flex-grow-1 position-relative">
+    <input type="text" id="itemsFilterInput" class="form-control" placeholder="输入名称 / 备注 / 参考信息 / 类别等 立即筛选">
+    <div id="itemsSuggestions" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index: 20;"></div>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle table-inventory" id="itemsTable">
+    <thead class="table-light">
+      <tr>
+        <th class="col-item-name">名称</th>
+        <th class="col-item-location">存放位置</th>
+        <th class="col-item-responsible">负责人</th>
+        <th class="col-item-actions text-end">操作</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% set active_items = [] %}
+    {% set discarded_items = [] %}
+
+    {# 将物品分为普通和“舍弃” #}
+    {% for item in items %}
+      {% set normalized_status = normalize_item_stock_status(item.status) %}
+      {% if normalized_status == '舍弃' %}
+        {% set _ = discarded_items.append(item) %}
+      {% else %}
+        {% set _ = active_items.append(item) %}
+      {% endif %}
+    {% endfor %}
+
+    {% for item in active_items + discarded_items %}
+      {% set item_status = normalize_item_stock_status(item.status) %}
+      {% set status_intent = stock_status_intent(item_status) %}
+      {% set row_class = 'inventory-row' %}
+      {% if status_intent != 'neutral' %}
+        {% set row_class = row_class ~ ' inventory-row-' ~ status_intent %}
+      {% endif %}
+      {% set location_names = item.locations | map(attribute='name') | list %}
+      {% set detail_refs_blob = item.detail_refs | map(attribute='value') | list %}
+      {% set responsible_labels = [] %}
+      {% for member in item.responsible_members %}
+        {% set _ = responsible_labels.append(member.name or member.username) %}
+      {% endfor %}
+      {% set search_blob = (item.name ~ ' ' ~ (item.category or '-') ~ ' ' ~ (item_status or '-') ~ ' ' ~ (item.features or '-') ~ ' ' ~ (detail_refs_blob|join(' ')) ~ ' ' ~ (item.notes or '-') ~ ' ' ~ (responsible_labels|join(' ')) ~ ' ' ~ (location_names|join(' '))) %}
+
+      <tr class="{{ row_class }}" data-search="{{ search_blob|lower }}">
+        <td class="col-item-name">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{{ url_for('item_detail', item_id=item.id) }}">{{ item.name }}</a>
+            {% if item_status %}
+              <span class="badge badge-item-status badge-item-status-{{ status_intent }}">{{ item_status }}</span>
+            {% endif %}
+          </div>
+        </td>
+        <td class="col-item-location">
+          {% if item.locations and item.locations|length > 0 %}
+            {% for loc in item.locations %}
+              <a href="{{ url_for('view_location', loc_id=loc.id) }}" class="me-1">{{ loc.name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          {% else %}-{% endif %}
+        </td>
+        <td class="col-item-responsible">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            {% if item.features %}
+              {% set feature_tone = feature_intent(item.features) %}
+              <span class="badge badge-item-feature badge-item-feature-{{ feature_tone }}">{{ item.features }}</span>
+            {% endif %}
+            {% if item.responsible_members %}
+              <div class="d-flex flex-wrap align-items-center gap-1">
+                {% for member in item.responsible_members %}
+                  <a href="{{ url_for('profile', member_id=member.id) }}">{{ member.name or member.username }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </div>
+        </td>
+        <td class="col-item-actions text-nowrap text-end">
+          <a href="{{ url_for('edit_item', item_id=item.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+          <form action="{{ url_for('delete_item', item_id=item.id) }}" method="post" class="d-inline" onsubmit="return confirm('确定删除该物品吗？');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+
+      <tr id="itemsNoResultRow" class="text-center text-muted {% if items|length > 0 %}d-none{% endif %}">
+        <td colspan="4">没有找到物品</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+(function () {
+  var filterInput = document.getElementById('itemsFilterInput');
+  var suggestionBox = document.getElementById('itemsSuggestions');
+  var tableRows = Array.prototype.slice.call(document.querySelectorAll('#itemsTable tbody tr[data-search]'));
+  var emptyRow = document.getElementById('itemsNoResultRow');
+  var debounceTimer = null;
+  var activeAbort = null;
+
+  function applyFilter(value) {
+    var normalized = value.trim().toLowerCase();
+    var visibleCount = 0;
+    tableRows.forEach(function (row) {
+      if (!normalized) {
+        row.classList.remove('d-none');
+        visibleCount += 1;
+        return;
+      }
+      var haystack = row.getAttribute('data-search') || '';
+      if (haystack.indexOf(normalized) !== -1) {
+        row.classList.remove('d-none');
+        visibleCount += 1;
+      } else {
+        row.classList.add('d-none');
+      }
+    });
+    if (emptyRow) {
+      if (tableRows.length === 0) {
+        emptyRow.classList.remove('d-none');
+      } else {
+        emptyRow.classList.toggle('d-none', visibleCount > 0);
+      }
+    }
+  }
+
+  function renderSuggestions(items) {
+    if (!suggestionBox) {
+      return;
+    }
+    suggestionBox.innerHTML = '';
+    if (!items || !items.length) {
+      suggestionBox.classList.add('d-none');
+      return;
+    }
+    items.forEach(function (item) {
+      var row = document.createElement('a');
+      row.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+      row.href = item.detailUrl;
+      row.textContent = item.name;
+      if (item.category) {
+        var badge = document.createElement('span');
+        badge.className = 'badge bg-light text-dark border ms-3';
+        badge.textContent = item.category;
+        row.appendChild(badge);
+      }
+      suggestionBox.appendChild(row);
+    });
+    suggestionBox.classList.remove('d-none');
+  }
+
+  function fetchSuggestions(value) {
+    if (!suggestionBox) {
+      return;
+    }
+    if (activeAbort) {
+      activeAbort.abort();
+      activeAbort = null;
+    }
+    var term = value.trim();
+    if (!term) {
+      suggestionBox.classList.add('d-none');
+      suggestionBox.innerHTML = '';
+      return;
+    }
+    var controller = new AbortController();
+    activeAbort = controller;
+    fetch('{{ url_for("search_items") }}?q=' + encodeURIComponent(term), { signal: controller.signal })
+      .then(function (resp) {
+        if (!resp.ok) {
+          throw new Error('Search failed');
+        }
+        return resp.json();
+      })
+      .then(function (payload) {
+        renderSuggestions(payload);
+      })
+      .catch(function (err) {
+        if (err.name === 'AbortError') {
+          return;
+        }
+        suggestionBox.classList.add('d-none');
+      });
+  }
+
+  if (filterInput) {
+    filterInput.addEventListener('input', function () {
+      var value = this.value || '';
+      applyFilter(value);
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function () {
+        fetchSuggestions(value);
+      }, 180);
+    });
+    filterInput.addEventListener('focus', function () {
+      if (this.value && this.value.trim()) {
+        fetchSuggestions(this.value);
+      }
+    });
+    filterInput.addEventListener('blur', function () {
+      setTimeout(function () {
+        if (suggestionBox) {
+          suggestionBox.classList.add('d-none');
+        }
+      }, 200);
+    });
+  }
+})();
+</script>
+{% endblock %}

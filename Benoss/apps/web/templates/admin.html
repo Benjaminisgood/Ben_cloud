@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" data-reveal>
+  <h2>管理员配置中心</h2>
+  <p class="muted">
+    在这里可以集中配置 AI provider、参数与提示词。保存后立即生效，无需重启服务。
+  </p>
+  <div class="admin-logic-grid">
+    <article class="admin-logic-card">
+      <h3>生效优先级</h3>
+      <p class="muted">前端覆盖(AppSetting) &gt; 环境变量(.env) &gt; 系统默认。</p>
+    </article>
+    <article class="admin-logic-card">
+      <h3>模型路由</h3>
+      <p class="muted">聊天/向量/TTS/图片均使用各自 provider；TTS/图片在主选 provider 失败时再按后备顺序尝试。</p>
+    </article>
+    <article class="admin-logic-card">
+      <h3>命名规则</h3>
+      <p class="muted">每个 provider 使用独立模型键：<code>*_CHAT_MODEL</code> / <code>*_EMBEDDING_MODEL</code> / <code>*_TTS_MODEL</code> / <code>*_IMAGE_MODEL</code> / <code>*_TRANSCRIBE_MODEL</code>。</p>
+    </article>
+  </div>
+</section>
+
+<section class="card" data-reveal="80">
+  <div class="section-head">
+    <h3>运行时配置</h3>
+    <div class="action-line">
+      <button type="button" class="secondary" id="admin-refresh-btn">刷新</button>
+      <button type="button" id="admin-save-btn">保存全部</button>
+    </div>
+  </div>
+
+  <div class="admin-toolbar">
+    <label class="admin-filter">
+      <span>筛选</span>
+      <input
+        id="admin-filter-input"
+        type="search"
+        placeholder="按 key/名称/描述筛选，例如 embedding"
+        autocomplete="off"
+      >
+    </label>
+    <label class="inline-switch inline-switch-sm admin-only-overrides">
+      <input id="admin-only-overrides" type="checkbox">
+      <span class="inline-switch-ui" aria-hidden="true"><span class="inline-switch-knob"></span></span>
+      <span class="inline-switch-copy">
+        <span class="inline-switch-title">仅看前端覆盖</span>
+        <span class="inline-switch-desc">隐藏环境变量与默认值</span>
+      </span>
+    </label>
+  </div>
+
+  <p id="admin-settings-summary" class="muted admin-settings-summary"></p>
+  <p id="admin-settings-status" class="muted"></p>
+  <form id="admin-settings-form" class="admin-settings-grid"></form>
+</section>
+
+<section class="card" data-reveal="100">
+  <div class="section-head">
+    <h3>向量维护</h3>
+    <button type="button" class="secondary" id="admin-vector-rebuild-btn">手动重建向量索引</button>
+  </div>
+  <p class="muted">这是低频兜底入口；仅在迁移历史归档、修改 embedding 模型、或索引异常时使用。</p>
+  <p class="muted"><code>VECTOR_TOP_K</code> 与 <code>BOARD_DEFAULT_DAYS</code> 已统一在本页运行时配置中管理。</p>
+  <p id="admin-vector-status" class="muted"></p>
+</section>
+
+<section class="card" data-reveal="120">
+  <div class="section-head">
+    <h3>日报维护</h3>
+    <div class="admin-digest-controls">
+      <label for="admin-digest-day-input">
+        <span>日期</span>
+        <input type="date" id="admin-digest-day-input" aria-label="日报日期">
+      </label>
+      <button type="button" class="secondary" id="admin-digest-force-build-btn">按日期 force 重建日报</button>
+    </div>
+  </div>
+  <p class="muted">选择日期后执行；留空时默认按系统 <code>DIGEST_TIMEZONE</code> 的“昨天”。</p>
+  <p class="muted">该入口会调用 <code>/api/digest/daily</code>，并使用 <code>force=true</code> 强制重建该日资产。</p>
+  <p id="admin-digest-status" class="muted"></p>
+</section>
+{% endblock %}

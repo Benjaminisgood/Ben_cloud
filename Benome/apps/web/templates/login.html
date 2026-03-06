@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登录 · Benome</title>
+    <link rel="stylesheet" href="/static/css/main.css" />
+    <style>
+      .login-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+        padding: 2rem;
+      }
+
+      .login-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+      }
+
+      .login-card h1 {
+        text-align: center;
+        color: #0f5a46;
+        margin-bottom: 0.5rem;
+      }
+
+      .login-card .subtitle {
+        text-align: center;
+        color: #7f8c8d;
+        margin-bottom: 2rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+        font-weight: 500;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e4e8ec;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #0f5a46;
+      }
+
+      .login-btn {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #0f5a46 0%, #1a7f62 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(15, 90, 70, 0.3);
+      }
+
+      .login-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #7f8c8d;
+        text-decoration: none;
+      }
+
+      .back-link:hover {
+        color: #0f5a46;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+      }
+
+      .toast-ok {
+        background: #28a745;
+      }
+
+      .toast-err {
+        background: #dc3545;
+      }
+
+      .toast.hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-page">
+      <div class="login-card">
+        <h1>🔐 账号登录</h1>
+        <p class="subtitle">请输入您的账号信息</p>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label for="username">用户名</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              required
+              minlength="3"
+              maxlength="40"
+              placeholder="请输入用户名"
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password">密码</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              minlength="6"
+              placeholder="请输入密码"
+              autocomplete="current-password"
+            />
+          </div>
+
+          <button type="submit" class="login-btn" id="login-btn">登录</button>
+        </form>
+
+        <a href="/" class="back-link">← 返回首页</a>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script>
+      // 等待 DOM 加载完成
+      document.addEventListener("DOMContentLoaded", function () {
+        // 检查登录状态并自动跳转
+        function checkLoginAndRedirect() {
+          try {
+            const raw = localStorage.getItem("benome_session_v1");
+            if (!raw) return false;
+            const session = JSON.parse(raw);
+            if (!session || !session.userId || !session.role) return false;
+            
+            // 已登录，根据 URL 参数决定跳转
+            const urlParams = new URLSearchParams(window.location.search);
+            const role = urlParams.get("role");
+            
+            // 如果明确请求管理员视图，跳转到 admin dashboard
+            if (role === "admin") {
+              window.location.href = "/admin/dashboard";
+              return true;
+            }
+            
+            // 否则根据角色跳转
+            const redirectPath = session.role === "admin" ? "/admin/dashboard" : "/dashboard";
+            window.location.href = redirectPath;
+            return true;
+          } catch (_) {
+            return false;
+          }
+        }
+
+        // 如果已登录，直接跳转（不显示登录表单）
+        if (checkLoginAndRedirect()) {
+          return;
+        }
+
+        const form = document.getElementById("login-form");
+        const loginBtn = document.getElementById("login-btn");
+        const toast = document.getElementById("toast");
+        const titleEl = document.querySelector(".login-card h1");
+        const subtitleEl = document.querySelector(".subtitle");
+
+        // 根据 URL 参数调整页面标题
+        const urlParams = new URLSearchParams(window.location.search);
+        const role = urlParams.get("role");
+        if (role === "admin") {
+          titleEl.textContent = "🔐 管理员登录";
+          subtitleEl.textContent = "请输入管理员账号信息";
+        } else if (role === "user") {
+          titleEl.textContent = "👤 用户登录";
+          subtitleEl.textContent = "请输入您的账号信息";
+        }
+
+        function showToast(message, isError) {
+          toast.textContent = message;
+          toast.className = "toast " + (isError ? "toast-err" : "toast-ok");
+          setTimeout(function () {
+            toast.className = "toast hidden";
+          }, 3000);
+        }
+
+        async function request(path, options) {
+          const init = options ? Object.assign({}, options) : {};
+          init.headers = Object.assign({ "Content-Type": "application/json" }, init.headers || {});
+
+          const response = await fetch(path, init);
+          let payload = null;
+          try {
+            payload = await response.json();
+          } catch (_) {}
+
+          if (!response.ok) {
+            const detail = payload && payload.detail ? String(payload.detail) : response.status + " " + response.statusText;
+            const err = new Error(detail);
+            err.status = response.status;
+            throw err;
+          }
+          return payload;
+        }
+
+        form.addEventListener("submit", async function (event) {
+          event.preventDefault();
+
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value;
+
+          loginBtn.disabled = true;
+          loginBtn.textContent = "登录中...";
+
+          try {
+            const payload = await request("/api/auth/login", {
+              method: "POST",
+              body: JSON.stringify({ username: username, password: password }),
+            });
+
+            // 保存会话
+            localStorage.setItem(
+              "benome_session_v1",
+              JSON.stringify({
+                userId: payload.user_id,
+                username: payload.username,
+                role: payload.role,
+              })
+            );
+
+            showToast("登录成功，正在跳转...", false);
+
+            // 根据角色跳转
+            const redirectPath = payload.role === "admin" ? "/admin/dashboard" : "/dashboard";
+            setTimeout(function () {
+              window.location.href = redirectPath;
+            }, 800);
+          } catch (err) {
+            showToast("登录失败：" + err.message, true);
+            loginBtn.disabled = false;
+            loginBtn.textContent = "登录";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

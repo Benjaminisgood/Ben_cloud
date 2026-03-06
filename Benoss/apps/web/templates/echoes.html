@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero-card echoes-hero" data-reveal>
+  <div>
+    <p class="muted">Timeline</p>
+    <h1>Echoes 记录流</h1>
+    <p class="muted">统一浏览学习记录与生成资产，默认展示公开与我的私密，支持类型筛选和连续加载。</p>
+  </div>
+</section>
+
+<section class="card echoes-shell" data-reveal="80">
+  <div class="section-head echoes-head">
+    <div>
+      <h2>筛选与连续浏览</h2>
+      <p class="muted echoes-subtitle">筛选条件变更后自动刷新，向下滚动可继续加载更多内容。</p>
+    </div>
+    <div class="echoes-meta">
+      <strong id="echoes-count">已显示 0 条</strong>
+      <span id="echoes-status" class="muted">准备加载</span>
+    </div>
+  </div>
+
+  <div class="echoes-toolbar">
+    <div id="echoes-type-chips" class="echoes-type-chips" role="group" aria-label="文件类型筛选">
+      <button class="echoes-chip active" type="button" data-file-type="" aria-pressed="true">全部</button>
+      <button class="echoes-chip" type="button" data-file-type="text" aria-pressed="false">文本</button>
+      <button class="echoes-chip" type="button" data-file-type="web" aria-pressed="false">网页</button>
+      <button class="echoes-chip" type="button" data-file-type="image" aria-pressed="false">图片</button>
+      <button class="echoes-chip" type="button" data-file-type="video" aria-pressed="false">视频</button>
+      <button class="echoes-chip" type="button" data-file-type="audio" aria-pressed="false">音频</button>
+      <button class="echoes-chip" type="button" data-file-type="log" aria-pressed="false">日志</button>
+      <button class="echoes-chip" type="button" data-file-type="database" aria-pressed="false">数据库</button>
+      <button class="echoes-chip" type="button" data-file-type="archive" aria-pressed="false">压缩包</button>
+      <button class="echoes-chip" type="button" data-file-type="document" aria-pressed="false">文档</button>
+      <button class="echoes-chip" type="button" data-file-type="file" aria-pressed="false">文件</button>
+    </div>
+    <div class="echoes-toolbar-actions">
+      <button id="echoes-refresh-btn" class="secondary" type="button">刷新</button>
+    </div>
+  </div>
+
+  <div id="echoes-grid" class="echoes-grid"></div>
+  <p id="echoes-loading" class="echoes-loading muted" hidden>正在加载更多条目...</p>
+  <p id="echoes-empty" class="echoes-empty muted" hidden>暂无匹配内容，试试调整筛选条件。</p>
+  <p id="echoes-end" class="echoes-end muted" hidden>已加载全部条目</p>
+  <div id="echoes-sentinel" class="echoes-sentinel" aria-hidden="true"></div>
+</section>
+{% endblock %}

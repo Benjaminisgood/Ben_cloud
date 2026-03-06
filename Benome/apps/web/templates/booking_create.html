@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预订房源 · Benome</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        :root {
+            --primary: #0f5a46;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .header nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+            opacity: 0.9;
+        }
+        .header nav a:hover { opacity: 1; }
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .page-title {
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-success {
+            background: var(--success);
+        }
+        .btn-block {
+            width: 100%;
+            text-align: center;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-size: 1.25rem;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 0.5rem;
+        }
+        .property-summary {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .property-image {
+            width: 300px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #e0e0e0;
+        }
+        .property-info {
+            flex: 1;
+        }
+        .property-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .property-meta {
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+        .property-price {
+            font-size: 1.25rem;
+            color: var(--success);
+            font-weight: bold;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            font-weight: 600;
+        }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(15, 90, 70, 0.1);
+        }
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .date-picker-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .price-summary {
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+        }
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            color: var(--text-light);
+        }
+        .price-row.total {
+            border-top: 2px solid var(--primary);
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+            color: var(--text);
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .help-text {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+        .unavailable-notice {
+            background: var(--warning);
+            color: #856404;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: bold;
+        }
+        .loading-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+        }
+        @media (max-width: 768px) {
+            .property-summary {
+                flex-direction: column;
+            }
+            .property-image {
+                width: 100%;
+                height: 200px;
+            }
+            .header {
+                padding: 1rem;
+            }
+            .header nav a {
+                margin-left: 0.5rem;
+                font-size: 0.9rem;
+            }
+            .form-row,
+            .date-picker-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏠 ling 居家</h1>
+        <nav>
+            <a href="/dashboard">我的房源</a>
+            <a href="/properties">浏览房源</a>
+            <a href="/bookings">我的预订</a>
+            <a href="/profile">个人资料</a>
+            <a href="/logout">退出</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="page-title">
+            <h1>📅 预订房源</h1>
+        </div>
+
+        <div id="booking-form-container">
+            <div class="loading-state">
+                <h2>加载中...</h2>
+                <p>正在获取房源信息</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let property = null;
+        let propertyId = null;
+
+        // 日期工具函数
+        function formatDate(date) {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseDate(dateStr) {
+            return new Date(dateStr + 'T00:00:00');
+        }
+
+        function calculateNights(checkIn, checkOut) {
+            const start = parseDate(checkIn);
+            const end = parseDate(checkOut);
+            const diffTime = end - start;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays > 0 ? diffDays : 0;
+        }
+
+        function calculatePrice(nights, pricePerNight) {
+            return nights * pricePerNight;
+        }
+
+        // 加载房源信息
+        async function loadProperty() {
+            const pathParts = window.location.pathname.split('/');
+            propertyId = pathParts[pathParts.length - 2];
+            
+            try {
+                const response = await fetch(`/api/properties/${propertyId}`);
+                if (response.status === 404) {
+                    renderNotFound();
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error('加载失败');
+                }
+                
+                property = await response.json();
+                renderProperty();
+                renderForm();
+            } catch (error) {
+                console.error('Failed to load property:', error);
+                renderError('加载房源信息失败，请稍后重试');
+            }
+        }
+
+        function renderProperty() {
+            const coverImage = property.media && property.media.length > 0 
+                ? property.media.find(m => m.is_cover)?.oss_url || property.media[0].oss_url 
+                : '/static/images/placeholder.svg';
+            
+            const html = `
+                <div class="card">
+                    <h2>房源信息</h2>
+                    <div class="property-summary">
+                        <img src="${coverImage}" alt="${property.title}" class="property-image"
+                             onerror="this.src='/static/images/placeholder.svg'">
+                        <div class="property-info">
+                            <h3 class="property-title">${property.title}</h3>
+                            <p class="property-meta">📍 ${property.address || '未知地址'}</p>
+                            <p class="property-meta">👥 最多入住 ${property.max_guests} 人</p>
+                            <p class="property-price">💰 ¥${property.price_per_night}/晚</p>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>温馨提示：</strong> 提交预订后需要等待房东审核，审核通过后您将收到通知。
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('booking-form-container').innerHTML = html;
+        }
+
+        function renderForm() {
+            const today = formatDate(new Date());
+            const tomorrow = formatDate(new Date(Date.now() + 86400000));
+            
+            const html = `
+                <div class="card">
+                    <h2>入住信息</h2>
+                    <form id="booking-form">
+                        <div class="form-group">
+                            <label>入住日期 *</label>
+                            <div class="date-picker-group">
+                                <div>
+                                    <input type="date" id="check_in_date" name="check_in_date" 
+                                           required min="${today}" value="${tomorrow}">
+                                    <div class="help-text">选择入住日期</div>
+                                </div>
+                                <div>
+                                    <input type="date" id="check_out_date" name="check_out_date" 
+                                           required min="${tomorrow}" value="${formatDate(new Date(Date.now() + 172800000))}">
+                                    <div class="help-text">选择退房日期</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="guest_count">入住人数 *</label>
+                                <input type="number" id="guest_count" name="guest_count" 
+                                       required min="1" max="${property.max_guests}" value="1">
+                                <div class="help-text">最多 ${property.max_guests} 人</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="guest_name">入住人姓名 *</label>
+                            <input type="text" id="guest_name" name="guest_name" 
+                                   required maxlength="80" placeholder="请输入真实姓名">
+                            <div class="help-text">办理入住时需要核对身份信息</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="guest_phone">联系电话 *</label>
+                            <input type="tel" id="guest_phone" name="guest_phone" 
+                                   required maxlength="40" placeholder="请输入手机号码">
+                            <div class="help-text">用于接收预订通知和紧急联系</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="note">备注信息</label>
+                            <textarea id="note" name="note" maxlength="500" 
+                                      placeholder="如有特殊需求请备注（如：需要婴儿床、延迟退房等）"></textarea>
+                            <div class="help-text">选填，最多 500 字</div>
+                        </div>
+
+                        <div class="price-summary" id="price-summary">
+                            <div class="price-row">
+                                <span>房价</span>
+                                <span>¥${property.price_per_night} × <span id="nights-display">1</span> 晚</span>
+                            </div>
+                            <div class="price-row">
+                                <span>清洁费</span>
+                                <span>¥0</span>
+                            </div>
+                            <div class="price-row">
+                                <span>服务费</span>
+                                <span>¥0</span>
+                            </div>
+                            <div class="price-row total">
+                                <span>总计</span>
+                                <span>¥<span id="total-price">${property.price_per_night}</span></span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 2rem;">
+                            <button type="submit" class="btn btn-success btn-block">
+                                ✅ 提交预订申请
+                            </button>
+                            <p style="text-align: center; margin-top: 1rem; color: var(--text-light); font-size: 0.9rem;">
+                                提交后需要等待房东审核，审核通过后即可入住
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            document.getElementById('booking-form-container').innerHTML += html;
+            
+            // 添加日期变更监听
+            document.getElementById('check_in_date').addEventListener('change', updatePrice);
+            document.getElementById('check_out_date').addEventListener('change', updatePrice);
+            document.getElementById('guest_count').addEventListener('change', validateGuestCount);
+            
+            // 初始化价格计算
+            updatePrice();
+        }
+
+        function updatePrice() {
+            const checkIn = document.getElementById('check_in_date').value;
+            const checkOut = document.getElementById('check_out_date').value;
+            
+            if (!checkIn || !checkOut) return;
+            
+            // 验证日期
+            if (new Date(checkIn) >= new Date(checkOut)) {
+                document.getElementById('check_out_date').setCustomValidity('退房日期必须晚于入住日期');
+                return;
+            } else {
+                document.getElementById('check_out_date').setCustomValidity('');
+            }
+            
+            const nights = calculateNights(checkIn, checkOut);
+            const totalPrice = calculatePrice(nights, property.price_per_night);
+            
+            document.getElementById('nights-display').textContent = nights;
+            document.getElementById('total-price').textContent = totalPrice;
+        }
+
+        function validateGuestCount() {
+            const guestCount = parseInt(document.getElementById('guest_count').value);
+            if (guestCount > property.max_guests) {
+                alert(`入住人数不能超过 ${property.max_guests} 人`);
+                document.getElementById('guest_count').value = property.max_guests;
+            }
+        }
+
+        async function submitBooking(event) {
+            event.preventDefault();
+            
+            const checkIn = document.getElementById('check_in_date').value;
+            const checkOut = document.getElementById('check_out_date').value;
+            
+            if (new Date(checkIn) >= new Date(checkOut)) {
+                alert('退房日期必须晚于入住日期');
+                return;
+            }
+            
+            const formData = {
+                property_id: propertyId,
+                check_in_date: checkIn,
+                check_out_date: checkOut,
+                guest_count: parseInt(document.getElementById('guest_count').value),
+                guest_name: document.getElementById('guest_name').value.trim(),
+                guest_phone: document.getElementById('guest_phone').value.trim(),
+                note: document.getElementById('note').value.trim()
+            };
+            
+            // 验证
+            if (!formData.guest_name || !formData.guest_phone) {
+                alert('请填写入住人姓名和联系电话');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    const booking = await response.json();
+                    alert('✅ 预订申请已提交！\n\n预订 ID: ' + booking.id + '\n状态：待审核\n\n房东审核通过后您将收到通知。');
+                    window.location.href = '/bookings/' + booking.id;
+                } else {
+                    const error = await response.json();
+                    alert('提交失败：' + (error.detail || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Failed to submit booking:', error);
+                alert('提交失败，请检查网络连接');
+            }
+        }
+
+        function renderNotFound() {
+            document.getElementById('booking-form-container').innerHTML = `
+                <div class="card">
+                    <div style="text-align: center; padding: 3rem;">
+                        <h2 style="color: var(--text); margin-bottom: 1rem;">房源不存在</h2>
+                        <p style="color: var(--text-light); margin-bottom: 2rem;">
+                            该房源可能已被删除或下架
+                        </p>
+                        <a href="/properties" class="btn">浏览其他房源</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderError(message) {
+            document.getElementById('booking-form-container').innerHTML = `
+                <div class="card">
+                    <div style="text-align: center; padding: 3rem;">
+                        <h2 style="color: var(--danger); margin-bottom: 1rem;">加载失败</h2>
+                        <p style="color: var(--text-light); margin-bottom: 2rem;">${message}</p>
+                        <button onclick="location.reload()" class="btn btn-secondary">重新加载</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProperty();
+            
+            // 绑定表单提交事件（延迟绑定，等待表单渲染）
+            setTimeout(() => {
+                const form = document.getElementById('booking-form');
+                if (form) {
+                    form.addEventListener('submit', submitBooking);
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

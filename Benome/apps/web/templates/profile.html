@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人资料 · Benome</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        :root {
+            --primary: #0f5a46;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --success: #28a745;
+            --danger: #dc3545;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .header nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+            opacity: 0.9;
+        }
+        .header nav a:hover { opacity: 1; }
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .page-title {
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .form-group input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover { opacity: 0.9; }
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .user-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .info-item {
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 6px;
+        }
+        .info-item .label {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        .info-item .value {
+            color: var(--text);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏠 ling 居家</h1>
+        <nav>
+            <a href="/dashboard">我的房源</a>
+            <a href="/properties">浏览房源</a>
+            <a href="/bookings">我的预订</a>
+            <a href="/profile">个人资料</a>
+            {% if current_user and current_user.role == 'admin' %}
+            <a href="/admin/dashboard">管理后台</a>
+            {% endif %}
+            <a href="/logout">退出</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h1 class="page-title">👤 个人资料</h1>
+        
+        <div id="profile-content">
+            <div class="card">
+                <h2>账户信息</h2>
+                <div class="user-info" id="user-info">
+                    <div class="info-item">
+                        <div class="label">用户名</div>
+                        <div class="value" id="username">加载中...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">角色</div>
+                        <div class="value" id="role">加载中...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">用户 ID</div>
+                        <div class="value" id="user-id">加载中...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>修改个人信息</h2>
+                <div id="alert-container"></div>
+                <form id="profile-form">
+                    <div class="form-group">
+                        <label for="full_name">姓名</label>
+                        <input type="text" id="full_name" name="full_name" placeholder="请输入您的姓名">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">手机号</label>
+                        <input type="tel" id="phone" name="phone" placeholder="请输入您的手机号">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">邮箱</label>
+                        <input type="email" id="email" name="email" placeholder="请输入您的邮箱">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn">保存修改</button>
+                        <a href="/dashboard" class="btn btn-secondary">返回</a>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h2>🔐 账户安全</h2>
+                <p style="color: var(--text-light); margin-bottom: 1rem;">
+                    定期修改密码可以提高账户安全性
+                </p>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 500; margin-bottom: 0.25rem;">修改登录密码</div>
+                        <div style="font-size: 0.9rem; color: var(--text-light);">
+                            设置一个强密码保护您的账户
+                        </div>
+                    </div>
+                    <a href="/change-password" class="btn">修改密码</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        
+        // 加载用户信息
+        async function loadUserProfile() {
+            try {
+                // 从 localStorage 获取用户信息
+                const raw = localStorage.getItem('benome_session_v1');
+                if (!raw) {
+                    window.location.href = '/';
+                    return;
+                }
+                
+                currentUser = JSON.parse(raw);
+                
+                // 显示用户信息
+                document.getElementById('username').textContent = currentUser.username || '未知';
+                document.getElementById('role').textContent = currentUser.role === 'admin' ? '管理员' : '用户';
+                document.getElementById('user-id').textContent = currentUser.userId || '未知';
+                
+                // 加载详细信息（如果 API 可用）
+                try {
+                    const response = await fetch('/api/users/me');
+                    if (response.ok) {
+                        const user = await response.json();
+                        document.getElementById('full_name').value = user.full_name || '';
+                        document.getElementById('phone').value = user.phone || '';
+                        document.getElementById('email').value = user.email || '';
+                    }
+                } catch (e) {
+                    // API 可能不存在，使用 localStorage 的信息
+                    console.log('Using localStorage user info');
+                }
+            } catch (error) {
+                console.error('Failed to load user profile:', error);
+                window.location.href = '/';
+            }
+        }
+        
+        // 显示提示信息
+        function showAlert(message, isError) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `
+                <div class="alert ${isError ? 'alert-error' : 'alert-success'}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 3000);
+        }
+        
+        // 保存个人资料
+        async function saveProfile(event) {
+            event.preventDefault();
+            
+            const formData = {
+                full_name: document.getElementById('full_name').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value
+            };
+            
+            try {
+                const response = await fetch('/api/users/me', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    showAlert('个人资料已更新', false);
+                } else {
+                    const error = await response.json();
+                    showAlert('更新失败：' + (error.detail || '未知错误'), true);
+                }
+            } catch (error) {
+                showAlert('更新失败：' + error.message, true);
+            }
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserProfile();
+            document.getElementById('profile-form').addEventListener('submit', saveProfile);
+        });
+    </script>
+</body>
+</html>

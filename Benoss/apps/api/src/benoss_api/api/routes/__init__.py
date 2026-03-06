@@ -1,0 +1,43 @@
+"""API route modules."""
+
+from . import (
+    account,
+    admin,
+    assets_generated,
+    assets_jobs,
+    board_details,
+    board_summary,
+    digest,
+    echoes,
+    home,
+    notice_queries,
+    notice_render,
+    records_comments,
+    records_content,
+    records_feed,
+    records_mutations,
+    records_tags,
+    records_uploads,
+    vector,
+)
+
+__all__ = [
+    "account",
+    "admin",
+    "assets_generated",
+    "assets_jobs",
+    "board_summary",
+    "board_details",
+    "digest",
+    "echoes",
+    "home",
+    "notice_queries",
+    "notice_render",
+    "records_comments",
+    "records_content",
+    "records_feed",
+    "records_mutations",
+    "records_tags",
+    "records_uploads",
+    "vector",
+]

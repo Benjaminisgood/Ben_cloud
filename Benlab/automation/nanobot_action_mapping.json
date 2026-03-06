@@ -1,0 +1,285 @@
+{
+  "format": "nanobot-http-action-map.v1",
+  "service": {
+    "name": "benlab",
+    "base_url": "http://127.0.0.1:9000",
+    "openapi": "automation/openapi.json",
+    "index": "automation/api_index.json"
+  },
+  "auth": {
+    "mode": "session_cookie",
+    "cookie_name": "session",
+    "login_action": "auth_login",
+    "logout_action": "auth_logout",
+    "reauth_on_status": [401],
+    "defaults": {
+      "next": "/"
+    }
+  },
+  "variables": {
+    "username": "Benlab username",
+    "password": "Benlab password",
+    "text": "post text content",
+    "visibility": "public|private",
+    "tags": "array of tags",
+    "receiver_id": "target member id",
+    "record_id": "target record id",
+    "content_id": "target content id",
+    "comment_body": "comment text",
+    "limit": "pagination limit",
+    "before_id": "pagination cursor",
+    "day": "YYYY-MM-DD",
+    "tag": "tag filter",
+    "user_id": "member id filter",
+    "q": "tag keyword prefix",
+    "order": "asc|desc"
+  },
+  "actions": [
+    {
+      "id": "auth_login",
+      "description": "Login and establish session cookie.",
+      "request": {
+        "method": "POST",
+        "path": "/login",
+        "content_type": "application/x-www-form-urlencoded",
+        "body_form": {
+          "username": "{{username}}",
+          "password": "{{password}}",
+          "next": "{{next|default:/}}"
+        }
+      },
+      "expect": {
+        "status_any_of": [303]
+      }
+    },
+    {
+      "id": "auth_logout",
+      "description": "Logout current session.",
+      "request": {
+        "method": "GET",
+        "path": "/logout"
+      },
+      "expect": {
+        "status_any_of": [303]
+      }
+    },
+    {
+      "id": "health_check",
+      "description": "Check API liveness.",
+      "request": {
+        "method": "GET",
+        "path": "/health"
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    },
+    {
+      "id": "account_me",
+      "description": "Verify current login and fetch current account info.",
+      "request": {
+        "method": "GET",
+        "path": "/api/account"
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    },
+    {
+      "id": "create_post_text",
+      "description": "Create a text record (post).",
+      "request": {
+        "method": "POST",
+        "path": "/api/records",
+        "content_type": "application/json",
+        "body_json": {
+          "text": "{{text}}",
+          "visibility": "{{visibility|default:private}}",
+          "tags": "{{tags|default:[\"nanobot\"]}}",
+          "receiver_id": "{{receiver_id|optional}}"
+        }
+      },
+      "expect": {
+        "status_any_of": [201]
+      }
+    },
+    {
+      "id": "list_posts",
+      "description": "List records with cursor pagination.",
+      "request": {
+        "method": "GET",
+        "path": "/api/records",
+        "query": {
+          "limit": "{{limit|default:20}}",
+          "before_id": "{{before_id|optional}}"
+        }
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    },
+    {
+      "id": "get_post",
+      "description": "Get a single record by id.",
+      "request": {
+        "method": "GET",
+        "path": "/api/records/{{record_id}}"
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    },
+    {
+      "id": "update_post",
+      "description": "Patch record fields.",
+      "request": {
+        "method": "PATCH",
+        "path": "/api/records/{{record_id}}",
+        "content_type": "application/json",
+        "body_json": {
+          "text": "{{text|optional}}",
+          "tags": "{{tags|optional}}"
+        }
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    },
+    {
+      "id": "delete_post",
+      "description": "Delete record by id.",
+      "request": {
+        "method": "DELETE",
+        "path": "/api/records/{{record_id}}"
+      },
+      "expect": {
+        "status_any_of": [204]
+      }
+    },
+    {
+      "id": "create_comment",
+      "description": "Create comment under record.",
+      "request": {
+        "method": "POST",
+        "path": "/api/records/{{record_id}}/comments",
+        "content_type": "application/json",
+        "body_json": {
+          "body": "{{comment_body}}"
+        }
+      },
+      "expect": {
+        "status_any_of": [201]
+      }
+    },
+    {
+      "id": "list_comments",
+      "description": "List comments of record.",
+      "request": {
+        "method": "GET",
+        "path": "/api/records/{{record_id}}/comments"
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    },
+    {
+      "id": "list_tags",
+      "description": "Query tag suggestions.",
+      "request": {
+        "method": "GET",
+        "path": "/api/tags",
+        "query": {
+          "q": "{{q|optional}}",
+          "limit": "{{limit|default:20}}"
+        }
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    },
+    {
+      "id": "home_today",
+      "description": "Read home dashboard API payload.",
+      "request": {
+        "method": "GET",
+        "path": "/api/home/today"
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    },
+    {
+      "id": "notice_records",
+      "description": "List records for notice generation.",
+      "request": {
+        "method": "GET",
+        "path": "/api/notice/records",
+        "query": {
+          "user_id": "{{user_id|optional}}",
+          "tag": "{{tag|optional}}",
+          "day": "{{day|optional}}",
+          "before_id": "{{before_id|optional}}",
+          "limit": "{{limit|default:200}}"
+        }
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    },
+    {
+      "id": "notice_render",
+      "description": "Render notice HTML from filtered records.",
+      "request": {
+        "method": "GET",
+        "path": "/api/notice/render",
+        "query": {
+          "user_id": "{{user_id|optional}}",
+          "tag": "{{tag|optional}}",
+          "day": "{{day|optional}}",
+          "order": "{{order|default:desc}}"
+        }
+      },
+      "expect": {
+        "status_any_of": [200]
+      }
+    }
+  ],
+  "recipes": [
+    {
+      "id": "publish_post_flow",
+      "steps": [
+        "health_check",
+        "auth_login",
+        "account_me",
+        "create_post_text",
+        "list_posts"
+      ]
+    },
+    {
+      "id": "comment_flow",
+      "steps": [
+        "health_check",
+        "auth_login",
+        "account_me",
+        "create_comment",
+        "list_comments"
+      ]
+    },
+    {
+      "id": "notice_flow",
+      "steps": [
+        "health_check",
+        "auth_login",
+        "account_me",
+        "notice_records",
+        "notice_render"
+      ]
+    }
+  ],
+  "notes": [
+    "auth_login returns 303 for both success and failure pages; always verify with account_me.",
+    "If an action returns 401, call auth_login again and retry once.",
+    "For list endpoints, iterate with before_id until has_more=false.",
+    "Use private visibility unless explicit public publishing is intended."
+  ]
+}

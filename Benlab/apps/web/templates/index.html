@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  #graph-canvas {
+    width: 100%;
+    height: 72vh;
+    background: var(--graph-canvas-bg);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--benlab-shadow-md);
+  }
+  .graph-inline-legend {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    font-size: 0.85rem;
+    background: var(--graph-legend-bg);
+    padding: 0.4rem 0.65rem;
+    border-radius: 999px;
+    color: var(--graph-legend-text);
+    border: 1px solid var(--graph-legend-border);
+    box-shadow: var(--graph-legend-shadow);
+    backdrop-filter: blur(8px);
+  }
+  .graph-inline-legend .legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .graph-inline-legend .badge {
+    margin-right: 0;
+  }
+</style>
+
+<div class="row g-4">
+  <div class="col-lg-9">
+    <div id="graph-canvas">
+      <div class="graph-inline-legend">
+        <span class="legend-chip"><span class="badge" style="background: var(--graph-node-member-color);">&nbsp;</span>成员</span>
+        <span class="legend-chip"><span class="badge" style="background: var(--graph-node-item-color);">&nbsp;</span>物品</span>
+        <span class="legend-chip"><span class="badge" style="background: var(--graph-node-event-color);">&nbsp;</span>活动</span>
+        <span class="legend-chip"><span class="badge" style="background: var(--graph-node-location-color);">&nbsp;</span>地点</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3">
+    <div class="card">
+      <div class="card-header">提示</div>
+      <div class="card-body">
+        <ul class="mb-0">
+          <li>欢迎加入五天八小时社区，希望各位摆脱内卷，高效工作八小时，快乐每一周</li>
+          <li>该下班下班，该玩玩，该吃吃，该喝喝，该蹦迪蹦迪，该放松放松，绝不内耗</li>
+          <li>欢迎分享给你在上海（尤其是浦东张江）的朋友们一起玩，年龄岁数不限哈</li>
+          <li>查看上方的事项看看有没有感兴趣的活动吧，当你无聊了就来看看呐</li>
+          <li>成员都是各位社区的小伙伴，先留言或邮件，注意边界，不要打扰</li>
+          <li>如果你有闲置愿意出借的开展活动的物品，或者想要出售的二手物品，欢迎添加</li>
+          <li>地点包含所有活动可能举办的地方，当然，如果你有闲置房屋，也能在这里出租</li>
+          <li>人人平等（无管理员），数据公开（GitHub公开），互相尊重（做守法公民）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+  const graphData = {{ graph_json|safe }};
+  const container = document.getElementById('graph-canvas');
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  const svg = d3.select(container)
+    .append('svg')
+    .attr('width', width)
+    .attr('height', height);
+
+  const colorMap = {
+    member: 'var(--graph-node-member-color)',
+    item: 'var(--graph-node-item-color)',
+    event: 'var(--graph-node-event-color)',
+    location: 'var(--graph-node-location-color)'
+  };
+
+  const simulation = d3.forceSimulation(graphData.nodes)
+    .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(90).strength(0.5))
+    .force('charge', d3.forceManyBody().strength(-260))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(d => d.type === 'member' && d.meta?.isCenter ? 44 : 28));
+
+  const zoom = d3.zoom().scaleExtent([0.3, 2.6]).on('zoom', event => {
+    svgGroup.attr('transform', event.transform);
+  });
+  svg.call(zoom);
+
+  const svgGroup = svg.append('g');
+
+  const link = svgGroup.append('g')
+    .attr('stroke', 'var(--graph-link-color)')
+    .attr('stroke-opacity', 0.5)
+    .selectAll('line')
+    .data(graphData.links)
+    .enter()
+    .append('line')
+    .attr('stroke-width', 1.2);
+
+  const node = svgGroup.append('g')
+    .selectAll('g')
+    .data(graphData.nodes)
+    .enter()
+    .append('g')
+    .call(d3.drag()
+      .on('start', dragStarted)
+      .on('drag', dragged)
+      .on('end', dragEnded));
+
+  node.append('circle')
+    .attr('r', d => {
+      if (d.type === 'member') {
+        return d.meta?.isCenter ? 20 : 14;
+      }
+      if (d.type === 'event') return 12;
+      if (d.type === 'item') return 11;
+      return 10;
+    })
+    .attr('fill', d => colorMap[d.type] || 'var(--graph-node-fallback-color)')
+    .attr('stroke', d => d.meta?.isCenter ? 'var(--graph-node-center-stroke)' : 'var(--graph-node-default-stroke)')
+    .attr('stroke-width', d => d.meta?.isCenter ? 3 : 1.5)
+    .attr('opacity', d => d.meta?.isCenter ? 1 : 0.92);
+
+  node.append('text')
+    .text(d => d.label)
+    .attr('x', d => (d.type === 'member' && d.meta?.isCenter) ? 24 : 18)
+    .attr('y', 4)
+    .attr('fill', 'var(--graph-node-label-color)')
+    .attr('font-size', '0.8rem');
+
+  node.append('title')
+    .text(d => {
+      const info = [d.label];
+      if (d.type === 'member' && d.meta?.username) info.push(`用户名: ${d.meta.username}`);
+      if (d.type === 'member' && d.meta?.relation) info.push(`关系: ${d.meta.relation}`);
+      if (d.type === 'item' && d.meta?.category) info.push(`类别: ${d.meta.category}`);
+      if (d.type === 'item' && d.meta?.status) info.push(`状态: ${d.meta.status}`);
+      if (d.type === 'event' && d.meta?.startTime) info.push(`开始: ${d.meta.startTime}`);
+      if (d.type === 'event' && d.meta?.visibility) info.push(`可见性: ${d.meta.visibility}`);
+      return info.join('\n');
+    });
+
+  simulation.on('tick', () => {
+    link
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+
+  function dragStarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.2).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+
+  function dragEnded(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+</script>
+{% endblock %}

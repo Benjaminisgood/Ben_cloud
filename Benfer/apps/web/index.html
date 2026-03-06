@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benfer - 剪贴板与文件中转站</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 Benfer</h1>
+            <p class="subtitle">剪贴板与文件中转站</p>
+            <div id="user-info" class="user-info"></div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="clipboard">剪贴板</button>
+            <button class="tab-btn" data-tab="files">文件中转</button>
+        </nav>
+
+        <!-- Login Prompt -->
+        <div id="login-prompt" class="login-prompt" style="display: none;">
+            <p>请先登录以使用 Benfer 服务</p>
+        </div>
+
+        <!-- Clipboard Section -->
+        <section id="clipboard" class="tab-content active">
+            <div class="card">
+                <h2>新建剪贴板</h2>
+                <textarea id="clipboard-content" placeholder="粘贴或输入文本内容..."></textarea>
+                <div class="options">
+                    <label>
+                        <input type="checkbox" id="clipboard-public"> 公开分享
+                    </label>
+                    <label>
+                        过期时间 (小时): <input type="number" id="clipboard-expiry" value="24" min="1" max="720">
+                    </label>
+                </div>
+                <button id="save-clipboard" class="btn btn-primary">保存剪贴板</button>
+            </div>
+
+            <div class="card">
+                <h2>我的剪贴板</h2>
+                <div id="clipboard-list" class="list"></div>
+            </div>
+        </section>
+
+        <!-- Files Section -->
+        <section id="files" class="tab-content">
+            <div class="card">
+                <h2>上传文件</h2>
+                <div class="file-upload-area" id="drop-zone">
+                    <p>拖拽文件到此处，或点击选择文件</p>
+                    <input type="file" id="file-input" multiple style="display: none;">
+                </div>
+                <div class="options">
+                    <label>
+                        <input type="checkbox" id="file-public"> 公开分享
+                    </label>
+                    <label>
+                        过期时间 (小时): <input type="number" id="file-expiry" value="24" min="1" max="720">
+                    </label>
+                </div>
+                <div id="upload-progress" class="progress"></div>
+            </div>
+
+            <div class="card">
+                <h2>我的文件</h2>
+                <div id="file-list" class="list"></div>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/js/client.js"></script>
+</body>
+</html>

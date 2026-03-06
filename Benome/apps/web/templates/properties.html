@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>浏览房源 · Benome</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        :root {
+            --primary: #0f5a46;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .header nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+            opacity: 0.9;
+        }
+        .header nav a:hover { opacity: 1; }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .page-title {
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+        .properties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        .property-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .property-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .property-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #e0e0e0;
+        }
+        .property-content {
+            padding: 1.5rem;
+        }
+        .property-title {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .property-location {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .property-price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .property-price span {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        .property-guests {
+            margin-top: 0.5rem;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+            width: 100%;
+            text-align: center;
+        }
+        .btn:hover { opacity: 0.9; }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-light);
+        }
+        .empty-state h2 {
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏠 ling 居家</h1>
+        <nav>
+            <a href="/dashboard">我的房源</a>
+            <a href="/properties">浏览房源</a>
+            <a href="/bookings">我的预订</a>
+            <a href="/profile">个人资料</a>
+            {% if current_user and current_user.role == 'admin' %}
+            <a href="/admin/dashboard">管理后台</a>
+            {% endif %}
+            <a href="/logout">退出</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h1 class="page-title">🔍 浏览房源</h1>
+        
+        <!-- 搜索筛选栏 -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <form id="search-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+                <div>
+                    <label for="search" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">关键词</label>
+                    <input type="text" id="search" name="search" placeholder="搜索房源名称、地址..." style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div>
+                    <label for="city" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">城市</label>
+                    <input type="text" id="city" name="city" placeholder="例如：杭州" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div>
+                    <label for="min_price" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">最低价格</label>
+                    <input type="number" id="min_price" name="min_price" placeholder="¥0" min="0" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div>
+                    <label for="max_price" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">最高价格</label>
+                    <input type="number" id="max_price" name="max_price" placeholder="¥9999" min="0" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div>
+                    <label for="min_guests" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">最少人数</label>
+                    <input type="number" id="min_guests" name="min_guests" placeholder="1 人" min="1" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div>
+                    <button type="submit" class="btn" style="margin-top: 0;">🔍 搜索</button>
+                    <button type="button" id="reset-btn" class="btn btn-secondary" style="margin-top: 0; margin-left: 0.5rem; background: #6c757d;">重置</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="properties-grid" id="properties-grid">
+            <!-- 房源卡片将通过 JavaScript 动态加载 -->
+            <div class="empty-state">
+                <h2>加载中...</h2>
+                <p>正在获取房源列表</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentParams = new URLSearchParams();
+        
+        async function loadProperties(params = '') {
+            try {
+                const response = await fetch(`/api/properties${params}`);
+                const properties = await response.json();
+                
+                const grid = document.getElementById('properties-grid');
+                
+                if (!properties || properties.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <h2>暂无房源</h2>
+                            <p>没有找到符合条件的房源，请尝试其他筛选条件</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                grid.innerHTML = properties.map(property => `
+                    <div class="property-card">
+                        <img 
+                            src="${property.cover_image || '/static/images/placeholder.svg'}" 
+                            alt="${property.title}"
+                            class="property-image"
+                            onerror="this.src='/static/images/placeholder.svg'"
+                        >
+                        <div class="property-content">
+                            <h3 class="property-title">${property.title}</h3>
+                            <p class="property-location">📍 ${property.city || '未知城市'} - ${property.address || ''}</p>
+                            <div class="property-price">
+                                ¥${property.price_per_night || 0}<span>/晚</span>
+                            </div>
+                            <div class="property-guests">
+                                👥 最多入住 ${property.max_guests || 0} 人
+                            </div>
+                            <a href="/properties/${property.id}" class="btn">查看详情</a>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load properties:', error);
+                document.getElementById('properties-grid').innerHTML = `
+                    <div class="empty-state">
+                        <h2>加载失败</h2>
+                        <p>无法获取房源列表，请稍后重试</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function buildQueryParams() {
+            const params = new URLSearchParams();
+            
+            const search = document.getElementById('search').value.trim();
+            const city = document.getElementById('city').value.trim();
+            const minPrice = document.getElementById('min_price').value;
+            const maxPrice = document.getElementById('max_price').value;
+            const minGuests = document.getElementById('min_guests').value;
+            
+            if (search) params.set('search', search);
+            if (city) params.set('city', city);
+            if (minPrice) params.set('min_price', minPrice);
+            if (maxPrice) params.set('max_price', maxPrice);
+            if (minGuests) params.set('min_guests', minGuests);
+            
+            return params;
+        }
+        
+        function handleSearch(event) {
+            event.preventDefault();
+            const params = buildQueryParams();
+            currentParams = params;
+            const queryString = params.toString() ? '?' + params.toString() : '';
+            loadProperties(queryString);
+            
+            // 更新 URL（不刷新页面）
+            const newUrl = window.location.pathname + queryString;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+        }
+        
+        function resetSearch() {
+            document.getElementById('search-form').reset();
+            currentParams = new URLSearchParams();
+            loadProperties();
+            window.history.pushState({ path: window.location.pathname }, '', window.location.pathname);
+        }
+        
+        // 从 URL 加载筛选条件
+        function loadFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            
+            if (params.toString()) {
+                currentParams = params;
+                
+                // 填充表单
+                if (params.get('search')) document.getElementById('search').value = params.get('search');
+                if (params.get('city')) document.getElementById('city').value = params.get('city');
+                if (params.get('min_price')) document.getElementById('min_price').value = params.get('min_price');
+                if (params.get('max_price')) document.getElementById('max_price').value = params.get('max_price');
+                if (params.get('min_guests')) document.getElementById('min_guests').value = params.get('min_guests');
+                
+                loadProperties('?' + params.toString());
+            } else {
+                loadProperties();
+            }
+        }
+        
+        // 页面加载时获取房源列表
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('search-form').addEventListener('submit', handleSearch);
+            document.getElementById('reset-btn').addEventListener('click', resetSearch);
+            loadFromURL();
+        });
+    </script>
+</body>
+</html>

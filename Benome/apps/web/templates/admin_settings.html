@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} · Benome</title>
+    <style>
+        :root {
+            --primary: #0f5a46;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .header nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+            opacity: 0.9;
+        }
+        .header nav a:hover { opacity: 1; }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .form-group small {
+            display: block;
+            margin-top: 0.25rem;
+            color: var(--text-light);
+            font-size: 0.85rem;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .flash-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .flash-message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .setting-item {
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 6px;
+        }
+        .setting-item h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+        .setting-item p {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>⚙️ 系统设置</h1>
+        <nav>
+            <a href="/admin/dashboard">管理控制台</a>
+            <a href="/">返回首页</a>
+            <a href="/logout">退出</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <script>
+            // Check for flash messages
+            try {
+                const flash = sessionStorage.getItem('benome_flash');
+                if (flash) {
+                    const msg = JSON.parse(flash);
+                    document.write('<div class="flash-message' + (msg.err ? ' error' : '') + '">' + msg.msg + '</div>');
+                    sessionStorage.removeItem('benome_flash');
+                }
+            } catch(e) {}
+        </script>
+
+        <div class="card">
+            <h2>平台基本设置</h2>
+            <form id="settings-form">
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <h3>🏠 平台名称</h3>
+                        <p>设置显示在首页和标题中的平台名称</p>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <input type="text" id="platform-name" value="ling居家" placeholder="平台名称">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>💰 默认货币</h3>
+                        <p>设置平台显示的货币单位</p>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <select id="currency">
+                                <option value="CNY" selected>人民币 (¥)</option>
+                                <option value="USD">美元 ($)</option>
+                                <option value="EUR">欧元 (€)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>📅 预订提前天数</h3>
+                        <p>用户最多可以提前多少天预订</p>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <input type="number" id="max-advance-days" value="90" min="1" max="365">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>⏰ 最短预订天数</h3>
+                        <p>用户最少需要预订多少晚</p>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <input type="number" id="min-nights" value="1" min="1" max="30">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>🕐 入住时间</h3>
+                        <p>标准入住时间</p>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <input type="time" id="check-in-time" value="14:00">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>🕐 退房时间</h3>
+                        <p>标准退房时间</p>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <input type="time" id="check-out-time" value="12:00">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem; text-align: right;">
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='/admin/dashboard'">取消</button>
+                    <button type="submit" class="btn">💾 保存设置</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>通知设置</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <h3>📧 邮件通知</h3>
+                    <p>启用邮件通知功能</p>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <select id="email-notifications">
+                            <option value="enabled">启用</option>
+                            <option value="disabled">禁用</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="setting-item">
+                    <h3>📱 短信通知</h3>
+                    <p>启用短信通知功能</p>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <select id="sms-notifications">
+                            <option value="enabled">启用</option>
+                            <option value="disabled">禁用</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>系统信息</h2>
+            <div id="system-info">
+                <p>加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load system info
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch('/api/system/info');
+                if (!response.ok) throw new Error('加载失败');
+                const info = await response.json();
+                
+                const container = document.getElementById('system-info');
+                container.innerHTML = `
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <h3>📦 系统版本</h3>
+                            <p>${info.version || '未知'}</p>
+                        </div>
+                        <div class="setting-item">
+                            <h3>🐍 Python 版本</h3>
+                            <p>${info.python_version || '未知'}</p>
+                        </div>
+                        <div class="setting-item">
+                            <h3>📊 数据库</h3>
+                            <p>${info.database || '未知'}</p>
+                        </div>
+                        <div class="setting-item">
+                            <h3>⏰ 服务器时间</h3>
+                            <p>${info.server_time || '未知'}</p>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('system-info').innerHTML = 
+                    '<p style="color: var(--danger);">加载系统信息失败</p>';
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('settings-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const settings = {
+                platform_name: document.getElementById('platform-name').value,
+                currency: document.getElementById('currency').value,
+                max_advance_days: parseInt(document.getElementById('max-advance-days').value),
+                min_nights: parseInt(document.getElementById('min-nights').value),
+                check_in_time: document.getElementById('check-in-time').value,
+                check_out_time: document.getElementById('check-out-time').value,
+                email_notifications: document.getElementById('email-notifications').value,
+                sms_notifications: document.getElementById('sms-notifications').value,
+            };
+            
+            try {
+                const response = await fetch('/api/admin/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(settings),
+                });
+                
+                if (!response.ok) throw new Error('保存失败');
+                
+                const result = await response.json();
+                sessionStorage.setItem('benome_flash', JSON.stringify({
+                    msg: '设置已保存',
+                    err: false
+                }));
+                window.location.reload();
+            } catch (error) {
+                sessionStorage.setItem('benome_flash', JSON.stringify({
+                    msg: '保存失败：' + error.message,
+                    err: true
+                }));
+                window.location.reload();
+            }
+        });
+        
+        loadSystemInfo();
+    </script>
+</body>
+</html>

@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预订详情 · Benome</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        :root {
+            --primary: #0f5a46;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .header nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+            opacity: 0.9;
+        }
+        .header nav a:hover { opacity: 1; }
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .page-title {
+            margin-bottom: 2rem;
+            color: var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-danger {
+            background: var(--danger);
+        }
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-size: 1.25rem;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 0.5rem;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .info-item {
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 6px;
+        }
+        .info-item .label {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        .info-item .value {
+            color: var(--text);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .status-pending_review { background: #fff3cd; color: #856404; }
+        .status-confirmed { background: #d4edda; color: #155724; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+        .status-completed { background: #d1ecf1; color: #0c5460; }
+        .status-checkedin { background: #cce5ff; color: #004085; }
+        .property-card {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            padding: 1.5rem;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .property-image {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #e0e0e0;
+        }
+        .property-info {
+            flex: 1;
+        }
+        .property-title {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .price-summary {
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+        }
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            color: var(--text-light);
+        }
+        .price-row.total {
+            border-top: 2px solid var(--primary);
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+            color: var(--text);
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin: 1.5rem 0;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--primary);
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2rem;
+            top: 0.25rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 2px solid white;
+        }
+        .timeline-date {
+            color: var(--text-light);
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+        .timeline-content {
+            color: var(--text);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        .empty-state h2 {
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+        .empty-state p {
+            color: var(--text-light);
+            margin-bottom: 2rem;
+        }
+        @media (max-width: 768px) {
+            .property-card {
+                flex-direction: column;
+            }
+            .property-image {
+                width: 100%;
+                height: 200px;
+            }
+            .header {
+                padding: 1rem;
+            }
+            .header nav a {
+                margin-left: 0.5rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏠 ling 居家</h1>
+        <nav>
+            <a href="/dashboard">我的房源</a>
+            <a href="/properties">浏览房源</a>
+            <a href="/bookings">我的预订</a>
+            <a href="/profile">个人资料</a>
+            <a href="/logout">退出</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="page-title">
+            <h1>📋 预订详情</h1>
+            <a href="/bookings" class="btn btn-secondary">返回列表</a>
+        </div>
+
+        <div id="booking-detail">
+            <div class="empty-state">
+                <h2>加载中...</h2>
+                <p>正在获取预订信息</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const statusMap = {
+            'pending_review': { text: '待审核', class: 'status-pending_review' },
+            'confirmed': { text: '已确认', class: 'status-confirmed' },
+            'cancelled': { text: '已取消', class: 'status-cancelled' },
+            'completed': { text: '已完成', class: 'status-completed' },
+            'checkedin': { text: '已入住', class: 'status-checkedin' }
+        };
+
+        async function loadBookingDetail() {
+            const bookingId = window.location.pathname.split('/').pop();
+            
+            try {
+                const response = await fetch(`/api/bookings/${bookingId}`);
+                
+                if (response.status === 404) {
+                    document.getElementById('booking-detail').innerHTML = `
+                        <div class="empty-state">
+                            <h2>预订不存在</h2>
+                            <p>该预订记录不存在或已被删除</p>
+                            <a href="/bookings" class="btn">返回预订列表</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                if (response.status === 403) {
+                    document.getElementById('booking-detail').innerHTML = `
+                        <div class="empty-state">
+                            <h2>无权访问</h2>
+                            <p>您无权查看此预订详情</p>
+                            <a href="/bookings" class="btn">返回预订列表</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const booking = await response.json();
+                renderBookingDetail(booking);
+            } catch (error) {
+                console.error('Failed to load booking detail:', error);
+                document.getElementById('booking-detail').innerHTML = `
+                    <div class="empty-state">
+                        <h2>加载失败</h2>
+                        <p>无法获取预订信息，请稍后重试</p>
+                        <a href="/bookings" class="btn btn-secondary">返回预订列表</a>
+                    </div>
+                `;
+            }
+        }
+
+        function renderBookingDetail(booking) {
+            const status = statusMap[booking.status] || { text: booking.status, class: '' };
+            const canCancel = booking.status === 'pending_review';
+            
+            const html = `
+                <div class="card">
+                    <h2>预订状态</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span class="status-badge ${status.class}" style="font-size: 1.1rem;">
+                            ${status.text}
+                        </span>
+                        ${canCancel ? `
+                            <button onclick="cancelBooking(${booking.id})" class="btn btn-danger btn-sm">
+                                取消预订
+                            </button>
+                        ` : ''}
+                    </div>
+                    
+                    ${booking.status === 'pending_review' ? `
+                        <div class="alert alert-info">
+                            <strong>温馨提示：</strong>您的预订正在等待房东审核，审核通过后您将收到通知。
+                        </div>
+                    ` : ''}
+                    
+                    ${booking.status === 'confirmed' ? `
+                        <div class="alert alert-success">
+                            <strong>预订已确认！</strong>请按时入住，如有问题请联系房东。
+                        </div>
+                    ` : ''}
+                    
+                    ${booking.status === 'cancelled' ? `
+                        <div class="alert alert-warning">
+                            <strong>预订已取消</strong>
+                            ${booking.review_note ? `<p style="margin-top: 0.5rem;">取消原因：${booking.review_note}</p>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="card">
+                    <h2>房源信息</h2>
+                    <div class="property-card">
+                        <img src="${booking.property_cover || '/static/images/placeholder.jpg'}" 
+                             alt="${booking.property_title}" 
+                             class="property-image"
+                             onerror="this.src='/static/images/placeholder.jpg'">
+                        <div class="property-info">
+                            <h3 class="property-title">${booking.property_title || '房源'}</h3>
+                            <p style="color: var(--text-light); margin-bottom: 0.5rem;">
+                                📍 ${booking.property_address || '未知地址'}
+                            </p>
+                            <p style="color: var(--text-light);">
+                                💰 ¥${booking.price_per_night || 0}/晚
+                            </p>
+                            <a href="/properties/${booking.property_id}" class="btn btn-sm" style="margin-top: 0.5rem;">
+                                查看房源
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>入住信息</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="label">入住日期</div>
+                            <div class="value">📅 ${booking.check_in_date || '未知'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">退房日期</div>
+                            <div class="value">📅 ${booking.check_out_date || '未知'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">入住晚数</div>
+                            <div class="value">🌙 ${booking.total_nights || 0} 晚</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">入住人数</div>
+                            <div class="value">👥 ${booking.guest_count || 0} 人</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">入住人姓名</div>
+                            <div class="value">👤 ${booking.guest_name || '未知'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">联系电话</div>
+                            <div class="value">📱 ${booking.guest_phone || '未知'}</div>
+                        </div>
+                    </div>
+                    
+                    ${booking.note ? `
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg); border-radius: 6px;">
+                            <div class="label" style="margin-bottom: 0.5rem;">备注信息</div>
+                            <div>${booking.note}</div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="card">
+                    <h2>价格明细</h2>
+                    <div class="price-summary">
+                        <div class="price-row">
+                            <span>房价</span>
+                            <span>¥${booking.price_per_night || 0} × ${booking.total_nights || 0} 晚</span>
+                        </div>
+                        <div class="price-row">
+                            <span>清洁费</span>
+                            <span>¥0</span>
+                        </div>
+                        <div class="price-row">
+                            <span>服务费</span>
+                            <span>¥0</span>
+                        </div>
+                        <div class="price-row total">
+                            <span>总计</span>
+                            <span>¥${booking.total_price || (booking.price_per_night * booking.total_nights) || 0}</span>
+                        </div>
+                        <div class="price-row" style="margin-top: 1rem; color: var(--success);">
+                            <span>支付状态</span>
+                            <span>${booking.payment_received ? '✅ 已支付' : '⏳ 待支付'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                ${booking.review_note && booking.status !== 'cancelled' ? `
+                    <div class="card">
+                        <h2>房东留言</h2>
+                        <div style="padding: 1rem; background: var(--bg); border-radius: 6px;">
+                            ${booking.review_note}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <div class="card">
+                    <h2>预订时间线</h2>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-date">${formatDate(booking.created_at)}</div>
+                            <div class="timeline-content">✅ 预订创建</div>
+                        </div>
+                        ${booking.payment_confirmed_at ? `
+                            <div class="timeline-item">
+                                <div class="timeline-date">${formatDate(booking.payment_confirmed_at)}</div>
+                                <div class="timeline-content">💰 支付确认</div>
+                            </div>
+                        ` : ''}
+                        ${booking.reviewed_at ? `
+                            <div class="timeline-item">
+                                <div class="timeline-date">${formatDate(booking.reviewed_at)}</div>
+                                <div class="timeline-content">
+                                    ${booking.status === 'cancelled' ? '❌ 预订取消' : '✅ 预订确认'}
+                                    ${booking.review_note ? `<br><small>${booking.review_note}</small>` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('booking-detail').innerHTML = html;
+        }
+
+        async function cancelBooking(bookingId) {
+            if (!confirm('确定要取消这个预订吗？取消后无法恢复。')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (response.ok) {
+                    alert('预订已取消');
+                    loadBookingDetail();
+                } else {
+                    const error = await response.json();
+                    alert('取消失败：' + (error.detail || '未知错误'));
+                }
+            } catch (error) {
+                alert('取消失败：' + error.message);
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '未知';
+            const date = new Date(dateStr);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadBookingDetail);
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+{% set redirect_next = next_url or '' %}
+<div class="row justify-content-center">
+  <div class="col-md-4">
+    <h3 class="mb-4">登录即可加入</h3>
+    <form method="post" action="{{ url_for('login_post') }}">
+      <input type="hidden" name="next" value="{{ redirect_next }}">
+      <div class="mb-3">
+        <label for="username" class="form-label">用户名</label>
+        <input type="text" class="form-control" id="username" name="username" required>
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">密码</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" value="1" id="rememberMe" name="remember" checked>
+        <label class="form-check-label" for="rememberMe">
+          记住我，下次30天内自动登录
+        </label>
+      </div>
+      <button type="submit" class="btn btn-primary">登录</button>
+      <a href="{{ url_for('register') }}{% if redirect_next %}?next={{ redirect_next|urlencode }}{% endif %}" class="btn btn-link">注册</a>
+      <p class="mt-3">没有账号？立即注册，无需验证，仅需几秒钟。担心消息泄漏？信息随便填填也行，出门在外身份是自己给的。</p>
+    </form>
+  </div>
+</div>
+{% endblock %}

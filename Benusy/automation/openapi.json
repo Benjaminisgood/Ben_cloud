@@ -1,0 +1,5737 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Influencer Promotion Platform",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/login": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login Page",
+        "operationId": "login_page_login_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login Post",
+        "operationId": "login_post_login_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register Page",
+        "operationId": "register_page_auth_register_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logout": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_logout_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Index",
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Dashboard Page",
+        "operationId": "dashboard_page_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Tasks Page",
+        "operationId": "tasks_page_tasks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assignments": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Assignments Page",
+        "operationId": "assignments_page_assignments_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Profile Page",
+        "operationId": "profile_page_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Admin Dashboard Page",
+        "operationId": "admin_dashboard_page_admin_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Admin Users Page",
+        "operationId": "admin_users_page_admin_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/settlements": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Admin Settlements Page",
+        "operationId": "admin_settlements_page_admin_settlements_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/reviews": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Admin Reviews Page",
+        "operationId": "admin_reviews_page_admin_reviews_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tasks": {
+      "get": {
+        "tags": [
+          "pages"
+        ],
+        "summary": "Admin Tasks Page",
+        "operationId": "admin_tasks_page_admin_tasks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sso": {
+      "get": {
+        "tags": [
+          "sso"
+        ],
+        "summary": "Sso Callback",
+        "operationId": "sso_callback_auth_sso_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register User",
+        "operationId": "register_user_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/token": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login For Access Token",
+        "operationId": "login_for_access_token_api_v1_auth_token_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_login_for_access_token_api_v1_auth_token_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Read Current User",
+        "operationId": "read_current_user_api_v1_users_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/profile": {
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update Current User Profile",
+        "operationId": "update_current_user_profile_api_v1_users_me_profile_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/accounts/{platform}": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Add Platform Account",
+        "operationId": "add_platform_account_api_v1_users_me_accounts__platform__post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SocialPlatform"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformAccountCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformAccountRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/accounts/{platform}/{account_id}": {
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update Platform Account",
+        "operationId": "update_platform_account_api_v1_users_me_accounts__platform___account_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SocialPlatform"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformAccountUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformAccountRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Delete Platform Account",
+        "operationId": "delete_platform_account_api_v1_users_me_accounts__platform___account_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SocialPlatform"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/social-accounts": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List My Social Accounts",
+        "operationId": "list_my_social_accounts_api_v1_users_me_social_accounts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SocialAccountRead"
+                  },
+                  "type": "array",
+                  "title": "Response List My Social Accounts Api V1 Users Me Social Accounts Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/change-password": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Change Password",
+        "operationId": "change_password_api_v1_users_me_change_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPasswordUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/payout-info": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get My Payout Info",
+        "operationId": "get_my_payout_info_api_v1_users_me_payout_info_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PayoutInfoRead"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get My Payout Info Api V1 Users Me Payout Info Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Upsert My Payout Info",
+        "operationId": "upsert_my_payout_info_api_v1_users_me_payout_info_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayoutInfoUpsert"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutInfoRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/payout-info/qrcode": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Upload My Payout Qr Code",
+        "operationId": "upload_my_payout_qr_code_api_v1_users_me_payout_info_qrcode_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "method",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PayoutMethod",
+              "description": "仅支持 wechat_pay 或 alipay"
+            },
+            "description": "仅支持 wechat_pay 或 alipay"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_my_payout_qr_code_api_v1_users_me_payout_info_qrcode_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutQrUploadRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/history": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List My History",
+        "operationId": "list_my_history_api_v1_users_me_history_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserActivityRead"
+                  },
+                  "title": "Response List My History Api V1 Users Me History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "List Tasks",
+        "operationId": "list_tasks_api_v1_tasks__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Tasks Api V1 Tasks  Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{task_id}": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Get Task",
+        "operationId": "get_task_api_v1_tasks__task_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/accept": {
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Accept Task",
+        "operationId": "accept_task_api_v1_tasks__task_id__accept_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assignments/me": {
+      "get": {
+        "tags": [
+          "assignments"
+        ],
+        "summary": "List User Assignments",
+        "operationId": "list_user_assignments_api_v1_assignments_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssignmentRead"
+                  },
+                  "type": "array",
+                  "title": "Response List User Assignments Api V1 Assignments Me Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/assignments/{assignment_id}/submit": {
+      "post": {
+        "tags": [
+          "assignments"
+        ],
+        "summary": "Submit Assignment",
+        "operationId": "submit_assignment_api_v1_assignments__assignment_id__submit_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Assignment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentSubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assignments/{assignment_id}/manual-metrics": {
+      "post": {
+        "tags": [
+          "assignments"
+        ],
+        "summary": "Submit Manual Metrics",
+        "operationId": "submit_manual_metrics_api_v1_assignments__assignment_id__manual_metrics_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Assignment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualMetricSubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualMetricSubmissionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Admin Dashboard",
+        "operationId": "get_admin_dashboard_api_v1_admin_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDashboardRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Users",
+        "operationId": "list_users_api_v1_admin_users_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Role"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "name": "review_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ReviewStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Review Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserRead"
+                  },
+                  "title": "Response List Users Api V1 Admin Users Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/review-summary": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get User Review Summary",
+        "operationId": "get_user_review_summary_api_v1_admin_users_review_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserReviewSummaryRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/detail": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get User Detail",
+        "operationId": "get_user_detail_api_v1_admin_users__user_id__detail_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetailRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settlements/summary": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Settlement Summary",
+        "operationId": "get_settlement_summary_api_v1_admin_settlements_summary_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Keyword"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all",
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSettlementOverviewRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settlements/{user_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Settlement User Detail",
+        "operationId": "get_settlement_user_detail_api_v1_admin_settlements__user_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSettlementUserDetailRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settlements/{user_id}/records": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Settlement Record",
+        "operationId": "create_settlement_record_api_v1_admin_settlements__user_id__records_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettlementRecordCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementRecordRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{user_id}/review": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Review User",
+        "operationId": "review_user_api_v1_admin_users__user_id__review_patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserReviewUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{user_id}/weight": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update User Weight",
+        "operationId": "update_user_weight_api_v1_admin_users__user_id__weight_patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserWeightUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Tasks",
+        "operationId": "list_tasks_api_v1_admin_tasks_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/TaskStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskRead"
+                  },
+                  "title": "Response List Tasks Api V1 Admin Tasks Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Task",
+        "operationId": "create_task_api_v1_admin_tasks_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks/attachments/upload": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Upload Task Attachment File",
+        "operationId": "upload_task_attachment_file_api_v1_admin_tasks_attachments_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_task_attachment_file_api_v1_admin_tasks_attachments_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAttachmentUploadRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/{task_id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update Task",
+        "operationId": "update_task_api_v1_admin_tasks__task_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks/{task_id}/publish": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Publish Task",
+        "operationId": "publish_task_api_v1_admin_tasks__task_id__publish_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks/{task_id}/cancel": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Cancel Task",
+        "operationId": "cancel_task_api_v1_admin_tasks__task_id__cancel_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks/eligible-bloggers-estimate": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Estimate Task Eligible Bloggers",
+        "operationId": "estimate_task_eligible_bloggers_api_v1_admin_tasks_eligible_bloggers_estimate_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "douyin",
+              "title": "Platform"
+            }
+          },
+          {
+            "name": "accept_limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 50000,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Accept Limit"
+            }
+          },
+          {
+            "name": "preview_limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 12,
+              "title": "Preview Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskEligibleEstimateRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks/{task_id}/eligible-bloggers": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Task Eligible Bloggers",
+        "operationId": "list_task_eligible_bloggers_api_v1_admin_tasks__task_id__eligible_bloggers_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EligibleBloggerRead"
+                  },
+                  "title": "Response List Task Eligible Bloggers Api V1 Admin Tasks  Task Id  Eligible Bloggers Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks/{task_id}/eligible-bloggers-summary": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Task Eligible Bloggers Summary",
+        "operationId": "get_task_eligible_bloggers_summary_api_v1_admin_tasks__task_id__eligible_bloggers_summary_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "preview_limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 20,
+              "title": "Preview Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleBloggerSummaryRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks/{task_id}/distribute": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Distribute Task To Bloggers",
+        "operationId": "distribute_task_to_bloggers_api_v1_admin_tasks__task_id__distribute_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskDistributeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDistributeResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/assignments": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Assignments",
+        "operationId": "list_assignments_api_v1_admin_assignments_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AssignmentStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignmentRead"
+                  },
+                  "title": "Response List Assignments Api V1 Admin Assignments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/assignments/{assignment_id}/approve": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Approve Assignment",
+        "operationId": "approve_assignment_api_v1_admin_assignments__assignment_id__approve_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Assignment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/assignments/{assignment_id}/reject": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Reject Assignment",
+        "operationId": "reject_assignment_api_v1_admin_assignments__assignment_id__reject_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Assignment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentReject"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/manual-metrics/pending": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Pending Manual Metrics",
+        "operationId": "list_pending_manual_metrics_api_v1_admin_manual_metrics_pending_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ManualMetricSubmissionRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Pending Manual Metrics Api V1 Admin Manual Metrics Pending Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/manual-metrics/{submission_id}/review": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Review Manual Metric Submission",
+        "operationId": "review_manual_metric_submission_api_v1_admin_manual_metrics__submission_id__review_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Submission Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualMetricReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualMetricSubmissionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/platform-configs": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Platform Configs",
+        "operationId": "list_platform_configs_api_v1_admin_platform_configs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlatformMetricConfigRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Platform Configs Api V1 Admin Platform Configs Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/platform-configs/{platform}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Upsert Platform Config",
+        "operationId": "upsert_platform_config_api_v1_admin_platform_configs__platform__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Platform"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformMetricConfigUpsert"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMetricConfigRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/blogger": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Blogger Dashboard",
+        "operationId": "get_blogger_dashboard_api_v1_dashboard_blogger_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BloggerDashboardRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/public/config": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Get Public Config",
+        "operationId": "get_public_config_api_v1_public_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicConfigRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminAssignmentStatsRead": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "accepted": {
+            "type": "integer",
+            "title": "Accepted"
+          },
+          "in_review": {
+            "type": "integer",
+            "title": "In Review"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "rejected": {
+            "type": "integer",
+            "title": "Rejected"
+          },
+          "cancelled": {
+            "type": "integer",
+            "title": "Cancelled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "accepted",
+          "in_review",
+          "completed",
+          "rejected",
+          "cancelled"
+        ],
+        "title": "AdminAssignmentStatsRead"
+      },
+      "AdminDashboardRead": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "task_stats": {
+            "$ref": "#/components/schemas/AdminTaskStatsRead"
+          },
+          "assignment_stats": {
+            "$ref": "#/components/schemas/AdminAssignmentStatsRead"
+          },
+          "review_queue": {
+            "$ref": "#/components/schemas/AdminReviewQueueStatsRead"
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/AdminRevenueStatsRead"
+          },
+          "recent_activities": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardActivityRead"
+            },
+            "type": "array",
+            "title": "Recent Activities"
+          },
+          "formulas": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardMetricFormulaRead"
+            },
+            "type": "array",
+            "title": "Formulas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "generated_at",
+          "task_stats",
+          "assignment_stats",
+          "review_queue",
+          "revenue"
+        ],
+        "title": "AdminDashboardRead"
+      },
+      "AdminRevenueStatsRead": {
+        "properties": {
+          "total_revenue": {
+            "type": "number",
+            "title": "Total Revenue"
+          },
+          "completed_revenue": {
+            "type": "number",
+            "title": "Completed Revenue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_revenue",
+          "completed_revenue"
+        ],
+        "title": "AdminRevenueStatsRead"
+      },
+      "AdminReviewQueueStatsRead": {
+        "properties": {
+          "pending_users": {
+            "type": "integer",
+            "title": "Pending Users"
+          },
+          "under_review_users": {
+            "type": "integer",
+            "title": "Under Review Users"
+          },
+          "pending_assignment_reviews": {
+            "type": "integer",
+            "title": "Pending Assignment Reviews"
+          },
+          "pending_manual_metric_reviews": {
+            "type": "integer",
+            "title": "Pending Manual Metric Reviews"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pending_users",
+          "under_review_users",
+          "pending_assignment_reviews",
+          "pending_manual_metric_reviews"
+        ],
+        "title": "AdminReviewQueueStatsRead"
+      },
+      "AdminSettlementOverviewRead": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "blogger_count": {
+            "type": "integer",
+            "title": "Blogger Count"
+          },
+          "total_revenue": {
+            "type": "number",
+            "title": "Total Revenue"
+          },
+          "total_settled": {
+            "type": "number",
+            "title": "Total Settled"
+          },
+          "total_pending": {
+            "type": "number",
+            "title": "Total Pending"
+          },
+          "pending_blogger_count": {
+            "type": "integer",
+            "title": "Pending Blogger Count"
+          },
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/AdminSettlementUserSummaryRead"
+            },
+            "type": "array",
+            "title": "Users"
+          }
+        },
+        "type": "object",
+        "required": [
+          "generated_at",
+          "blogger_count",
+          "total_revenue",
+          "total_settled",
+          "total_pending",
+          "pending_blogger_count"
+        ],
+        "title": "AdminSettlementOverviewRead"
+      },
+      "AdminSettlementUserDetailRead": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserRead"
+          },
+          "payout_info": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayoutInfoRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AdminSettlementUserSummaryRead"
+          },
+          "recent_completed_assignments": {
+            "items": {
+              "$ref": "#/components/schemas/SettlementAssignmentRecordRead"
+            },
+            "type": "array",
+            "title": "Recent Completed Assignments"
+          },
+          "recent_records": {
+            "items": {
+              "$ref": "#/components/schemas/SettlementRecordRead"
+            },
+            "type": "array",
+            "title": "Recent Records"
+          },
+          "recent_activities": {
+            "items": {
+              "$ref": "#/components/schemas/UserActivityRead"
+            },
+            "type": "array",
+            "title": "Recent Activities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "summary"
+        ],
+        "title": "AdminSettlementUserDetailRead"
+      },
+      "AdminSettlementUserSummaryRead": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "review_status": {
+            "type": "string",
+            "title": "Review Status"
+          },
+          "preferred_method": {
+            "$ref": "#/components/schemas/PayoutMethod"
+          },
+          "has_valid_payout_info": {
+            "type": "boolean",
+            "title": "Has Valid Payout Info"
+          },
+          "total_revenue": {
+            "type": "number",
+            "title": "Total Revenue"
+          },
+          "total_settled": {
+            "type": "number",
+            "title": "Total Settled"
+          },
+          "pending_settlement": {
+            "type": "number",
+            "title": "Pending Settlement"
+          },
+          "settlement_status": {
+            "type": "string",
+            "title": "Settlement Status"
+          },
+          "last_paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Paid At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "display_name",
+          "username",
+          "review_status",
+          "preferred_method",
+          "has_valid_payout_info",
+          "total_revenue",
+          "total_settled",
+          "pending_settlement",
+          "settlement_status"
+        ],
+        "title": "AdminSettlementUserSummaryRead"
+      },
+      "AdminTaskStatsRead": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "draft": {
+            "type": "integer",
+            "title": "Draft"
+          },
+          "published": {
+            "type": "integer",
+            "title": "Published"
+          },
+          "cancelled": {
+            "type": "integer",
+            "title": "Cancelled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "draft",
+          "published",
+          "cancelled"
+        ],
+        "title": "AdminTaskStatsRead"
+      },
+      "AdminUserAssignmentSnapshotRead": {
+        "properties": {
+          "assignment_id": {
+            "type": "integer",
+            "title": "Assignment Id"
+          },
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id"
+          },
+          "task_title": {
+            "type": "string",
+            "title": "Task Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssignmentStatus"
+          },
+          "metric_sync_status": {
+            "$ref": "#/components/schemas/MetricSyncStatus"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue"
+          },
+          "post_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Post Link"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assignment_id",
+          "task_id",
+          "task_title",
+          "status",
+          "metric_sync_status",
+          "revenue",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminUserAssignmentSnapshotRead"
+      },
+      "AdminUserAssignmentStatsRead": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "accepted": {
+            "type": "integer",
+            "title": "Accepted"
+          },
+          "in_review": {
+            "type": "integer",
+            "title": "In Review"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "rejected": {
+            "type": "integer",
+            "title": "Rejected"
+          },
+          "cancelled": {
+            "type": "integer",
+            "title": "Cancelled"
+          },
+          "total_revenue": {
+            "type": "number",
+            "title": "Total Revenue"
+          },
+          "last_assignment_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Assignment At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "accepted",
+          "in_review",
+          "completed",
+          "rejected",
+          "cancelled",
+          "total_revenue"
+        ],
+        "title": "AdminUserAssignmentStatsRead"
+      },
+      "AdminUserDetailRead": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserRead"
+          },
+          "payout_info": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayoutInfoRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assignment_stats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminUserAssignmentStatsRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recent_assignments": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserAssignmentSnapshotRead"
+            },
+            "type": "array",
+            "title": "Recent Assignments"
+          },
+          "recent_activities": {
+            "items": {
+              "$ref": "#/components/schemas/UserActivityRead"
+            },
+            "type": "array",
+            "title": "Recent Activities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "title": "AdminUserDetailRead"
+      },
+      "AdminUserReviewSummaryRead": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "under_review": {
+            "type": "integer",
+            "title": "Under Review"
+          },
+          "approved": {
+            "type": "integer",
+            "title": "Approved"
+          },
+          "rejected": {
+            "type": "integer",
+            "title": "Rejected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "pending",
+          "under_review",
+          "approved",
+          "rejected"
+        ],
+        "title": "AdminUserReviewSummaryRead"
+      },
+      "AssignmentRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssignmentStatus"
+          },
+          "post_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Post Link"
+          },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reject Reason"
+          },
+          "metric_sync_status": {
+            "$ref": "#/components/schemas/MetricSyncStatus"
+          },
+          "last_sync_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync Error"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "task": {
+            "$ref": "#/components/schemas/TaskRead"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/MetricRead"
+            },
+            "type": "array",
+            "title": "Metrics"
+          },
+          "manual_metric_submissions": {
+            "items": {
+              "$ref": "#/components/schemas/ManualMetricSubmissionRead"
+            },
+            "type": "array",
+            "title": "Manual Metric Submissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "metric_sync_status",
+          "revenue",
+          "created_at",
+          "updated_at",
+          "task"
+        ],
+        "title": "AssignmentRead"
+      },
+      "AssignmentReject": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "AssignmentReject"
+      },
+      "AssignmentStatus": {
+        "type": "string",
+        "enum": [
+          "accepted",
+          "in_review",
+          "rejected",
+          "completed",
+          "cancelled"
+        ],
+        "title": "AssignmentStatus"
+      },
+      "AssignmentSubmit": {
+        "properties": {
+          "post_link": {
+            "type": "string",
+            "title": "Post Link"
+          }
+        },
+        "type": "object",
+        "required": [
+          "post_link"
+        ],
+        "title": "AssignmentSubmit"
+      },
+      "BloggerDashboardRead": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/BloggerDashboardStatsRead"
+          },
+          "recent_activities": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardActivityRead"
+            },
+            "type": "array",
+            "title": "Recent Activities"
+          },
+          "formulas": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardMetricFormulaRead"
+            },
+            "type": "array",
+            "title": "Formulas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "generated_at",
+          "stats"
+        ],
+        "title": "BloggerDashboardRead"
+      },
+      "BloggerDashboardStatsRead": {
+        "properties": {
+          "available_tasks": {
+            "type": "integer",
+            "title": "Available Tasks"
+          },
+          "in_progress_assignments": {
+            "type": "integer",
+            "title": "In Progress Assignments"
+          },
+          "completed_assignments": {
+            "type": "integer",
+            "title": "Completed Assignments"
+          },
+          "total_revenue": {
+            "type": "number",
+            "title": "Total Revenue"
+          },
+          "accepted_assignments": {
+            "type": "integer",
+            "title": "Accepted Assignments"
+          },
+          "in_review_assignments": {
+            "type": "integer",
+            "title": "In Review Assignments"
+          },
+          "rejected_assignments": {
+            "type": "integer",
+            "title": "Rejected Assignments"
+          },
+          "cancelled_assignments": {
+            "type": "integer",
+            "title": "Cancelled Assignments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available_tasks",
+          "in_progress_assignments",
+          "completed_assignments",
+          "total_revenue",
+          "accepted_assignments",
+          "in_review_assignments",
+          "rejected_assignments",
+          "cancelled_assignments"
+        ],
+        "title": "BloggerDashboardStatsRead"
+      },
+      "Body_login_for_access_token_api_v1_auth_token_post": {
+        "properties": {
+          "remember_me": {
+            "type": "boolean",
+            "title": "Remember Me",
+            "default": false
+          },
+          "grant_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^password$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Type"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "title": "Password"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": ""
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "format": "password",
+            "title": "Client Secret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_for_access_token_api_v1_auth_token_post"
+      },
+      "Body_upload_my_payout_qr_code_api_v1_users_me_payout_info_qrcode_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_my_payout_qr_code_api_v1_users_me_payout_info_qrcode_post"
+      },
+      "Body_upload_task_attachment_file_api_v1_admin_tasks_attachments_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_task_attachment_file_api_v1_admin_tasks_attachments_upload_post"
+      },
+      "DashboardActivityRead": {
+        "properties": {
+          "assignment_id": {
+            "type": "integer",
+            "title": "Assignment Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "task_title": {
+            "type": "string",
+            "title": "Task Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssignmentStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "user_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assignment_id",
+          "task_title",
+          "status",
+          "created_at"
+        ],
+        "title": "DashboardActivityRead"
+      },
+      "DashboardMetricFormulaRead": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "definition": {
+            "type": "string",
+            "title": "Definition"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "definition"
+        ],
+        "title": "DashboardMetricFormulaRead"
+      },
+      "EligibleBloggerRead": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "follower_total": {
+            "type": "integer",
+            "title": "Follower Total"
+          },
+          "avg_views": {
+            "type": "integer",
+            "title": "Avg Views"
+          },
+          "weight": {
+            "type": "number",
+            "title": "Weight"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "username",
+          "follower_total",
+          "avg_views",
+          "weight",
+          "platform"
+        ],
+        "title": "EligibleBloggerRead"
+      },
+      "EligibleBloggerSummaryRead": {
+        "properties": {
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "eligible_count": {
+            "type": "integer",
+            "title": "Eligible Count"
+          },
+          "preview_limit": {
+            "type": "integer",
+            "title": "Preview Limit"
+          },
+          "preview_bloggers": {
+            "items": {
+              "$ref": "#/components/schemas/EligibleBloggerRead"
+            },
+            "type": "array",
+            "title": "Preview Bloggers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "platform",
+          "eligible_count",
+          "preview_limit"
+        ],
+        "title": "EligibleBloggerSummaryRead"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HomepageConfigRead": {
+        "properties": {
+          "site_name": {
+            "type": "string",
+            "title": "Site Name"
+          },
+          "nav_brand": {
+            "type": "string",
+            "title": "Nav Brand"
+          },
+          "hero_title": {
+            "type": "string",
+            "title": "Hero Title"
+          },
+          "hero_subtitle": {
+            "type": "string",
+            "title": "Hero Subtitle"
+          },
+          "hero_image_url": {
+            "type": "string",
+            "title": "Hero Image Url"
+          },
+          "hero_primary_button_text": {
+            "type": "string",
+            "title": "Hero Primary Button Text"
+          },
+          "hero_primary_button_href": {
+            "type": "string",
+            "title": "Hero Primary Button Href"
+          },
+          "hero_secondary_button_text": {
+            "type": "string",
+            "title": "Hero Secondary Button Text"
+          },
+          "hero_secondary_button_href": {
+            "type": "string",
+            "title": "Hero Secondary Button Href"
+          },
+          "merchant_notice_title": {
+            "type": "string",
+            "title": "Merchant Notice Title"
+          },
+          "merchant_notice_text": {
+            "type": "string",
+            "title": "Merchant Notice Text"
+          },
+          "merchant_service_publish_text": {
+            "type": "string",
+            "title": "Merchant Service Publish Text"
+          },
+          "merchant_service_account_text": {
+            "type": "string",
+            "title": "Merchant Service Account Text"
+          },
+          "merchant_service_no_register_text": {
+            "type": "string",
+            "title": "Merchant Service No Register Text"
+          },
+          "merchant_contact_phone": {
+            "type": "string",
+            "title": "Merchant Contact Phone"
+          },
+          "merchant_contact_wechat": {
+            "type": "string",
+            "title": "Merchant Contact Wechat"
+          },
+          "merchant_contact_email": {
+            "type": "string",
+            "title": "Merchant Contact Email"
+          },
+          "contact_section_title": {
+            "type": "string",
+            "title": "Contact Section Title"
+          },
+          "contact_section_subtitle": {
+            "type": "string",
+            "title": "Contact Section Subtitle"
+          },
+          "contact_address": {
+            "type": "string",
+            "title": "Contact Address"
+          },
+          "contact_phone": {
+            "type": "string",
+            "title": "Contact Phone"
+          },
+          "contact_email": {
+            "type": "string",
+            "title": "Contact Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "site_name",
+          "nav_brand",
+          "hero_title",
+          "hero_subtitle",
+          "hero_image_url",
+          "hero_primary_button_text",
+          "hero_primary_button_href",
+          "hero_secondary_button_text",
+          "hero_secondary_button_href",
+          "merchant_notice_title",
+          "merchant_notice_text",
+          "merchant_service_publish_text",
+          "merchant_service_account_text",
+          "merchant_service_no_register_text",
+          "merchant_contact_phone",
+          "merchant_contact_wechat",
+          "merchant_contact_email",
+          "contact_section_title",
+          "contact_section_subtitle",
+          "contact_address",
+          "contact_phone",
+          "contact_email"
+        ],
+        "title": "HomepageConfigRead"
+      },
+      "ManualMetricReview": {
+        "properties": {
+          "approved": {
+            "type": "boolean",
+            "title": "Approved"
+          },
+          "review_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "approved"
+        ],
+        "title": "ManualMetricReview"
+      },
+      "ManualMetricReviewStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "approved",
+          "rejected"
+        ],
+        "title": "ManualMetricReviewStatus"
+      },
+      "ManualMetricSubmissionRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "assignment_id": {
+            "type": "integer",
+            "title": "Assignment Id"
+          },
+          "likes": {
+            "type": "integer",
+            "title": "Likes"
+          },
+          "favorites": {
+            "type": "integer",
+            "title": "Favorites"
+          },
+          "shares": {
+            "type": "integer",
+            "title": "Shares"
+          },
+          "views": {
+            "type": "integer",
+            "title": "Views"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "review_status": {
+            "$ref": "#/components/schemas/ManualMetricReviewStatus"
+          },
+          "review_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reason"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Submitted At"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "assignment_id",
+          "likes",
+          "favorites",
+          "shares",
+          "views",
+          "review_status",
+          "submitted_at"
+        ],
+        "title": "ManualMetricSubmissionRead"
+      },
+      "ManualMetricSubmit": {
+        "properties": {
+          "likes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Likes",
+            "default": 0
+          },
+          "favorites": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Favorites",
+            "default": 0
+          },
+          "shares": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Shares",
+            "default": 0
+          },
+          "views": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Views",
+            "default": 0
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "ManualMetricSubmit"
+      },
+      "MetricRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "likes": {
+            "type": "integer",
+            "title": "Likes"
+          },
+          "favorites": {
+            "type": "integer",
+            "title": "Favorites"
+          },
+          "shares": {
+            "type": "integer",
+            "title": "Shares"
+          },
+          "views": {
+            "type": "integer",
+            "title": "Views"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MetricSource"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "timestamp",
+          "likes",
+          "favorites",
+          "shares",
+          "views",
+          "source"
+        ],
+        "title": "MetricRead"
+      },
+      "MetricSource": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "manual"
+        ],
+        "title": "MetricSource"
+      },
+      "MetricSyncStatus": {
+        "type": "string",
+        "enum": [
+          "normal",
+          "manual_required",
+          "manual_pending_review",
+          "manual_approved",
+          "manual_rejected"
+        ],
+        "title": "MetricSyncStatus"
+      },
+      "OSSPublicConfigRead": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "endpoint": {
+            "type": "string",
+            "title": "Endpoint"
+          },
+          "bucket": {
+            "type": "string",
+            "title": "Bucket"
+          },
+          "prefix": {
+            "type": "string",
+            "title": "Prefix"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "endpoint",
+          "bucket",
+          "prefix"
+        ],
+        "title": "OSSPublicConfigRead"
+      },
+      "PayoutInfoRead": {
+        "properties": {
+          "payout_method": {
+            "$ref": "#/components/schemas/PayoutMethod",
+            "default": "bank_card"
+          },
+          "bank_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Description"
+          },
+          "wechat_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wechat Id"
+          },
+          "wechat_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wechat Phone"
+          },
+          "wechat_qr_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wechat Qr Url"
+          },
+          "alipay_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alipay Phone"
+          },
+          "alipay_account_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alipay Account Name"
+          },
+          "alipay_qr_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alipay Qr Url"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "account_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Name"
+          },
+          "account_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account No"
+          },
+          "account_qr_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Qr Url"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PayoutInfoRead"
+      },
+      "PayoutInfoUpsert": {
+        "properties": {
+          "payout_method": {
+            "$ref": "#/components/schemas/PayoutMethod",
+            "default": "bank_card"
+          },
+          "bank_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Description"
+          },
+          "wechat_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wechat Id"
+          },
+          "wechat_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wechat Phone"
+          },
+          "wechat_qr_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wechat Qr Url"
+          },
+          "alipay_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alipay Phone"
+          },
+          "alipay_account_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alipay Account Name"
+          },
+          "alipay_qr_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alipay Qr Url"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "PayoutInfoUpsert"
+      },
+      "PayoutMethod": {
+        "type": "string",
+        "enum": [
+          "bank_card",
+          "alipay",
+          "wechat_pay",
+          "paypal",
+          "other"
+        ],
+        "title": "PayoutMethod"
+      },
+      "PayoutQrUploadRead": {
+        "properties": {
+          "method": {
+            "$ref": "#/components/schemas/PayoutMethod"
+          },
+          "object_key": {
+            "type": "string",
+            "title": "Object Key"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "object_key",
+          "url"
+        ],
+        "title": "PayoutQrUploadRead"
+      },
+      "PlatformAccountCreate": {
+        "properties": {
+          "account_name": {
+            "type": "string",
+            "title": "Account Name"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "profile_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Url"
+          },
+          "follower_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Follower Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_name",
+          "account_id"
+        ],
+        "title": "PlatformAccountCreate"
+      },
+      "PlatformAccountCreateRequest": {
+        "properties": {
+          "account_name": {
+            "type": "string",
+            "title": "Account Name"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "profile_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Url"
+          },
+          "follower_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Follower Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_name",
+          "account_id"
+        ],
+        "title": "PlatformAccountCreateRequest"
+      },
+      "PlatformAccountRead": {
+        "properties": {
+          "account_name": {
+            "type": "string",
+            "title": "Account Name"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "profile_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Url"
+          },
+          "follower_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Follower Count",
+            "default": 0
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_name",
+          "account_id",
+          "id"
+        ],
+        "title": "PlatformAccountRead"
+      },
+      "PlatformAccountUpdateRequest": {
+        "properties": {
+          "account_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Name"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "profile_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Url"
+          },
+          "follower_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follower Count"
+          }
+        },
+        "type": "object",
+        "title": "PlatformAccountUpdateRequest"
+      },
+      "PlatformMetricConfigRead": {
+        "properties": {
+          "platform_coef": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Platform Coef",
+            "default": 1.0
+          },
+          "like_weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Like Weight",
+            "default": 1.0
+          },
+          "favorite_weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Favorite Weight",
+            "default": 2.0
+          },
+          "share_weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Share Weight",
+            "default": 3.0
+          },
+          "view_weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "View Weight",
+            "default": 0.01
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "platform",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PlatformMetricConfigRead"
+      },
+      "PlatformMetricConfigUpsert": {
+        "properties": {
+          "platform_coef": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Platform Coef",
+            "default": 1.0
+          },
+          "like_weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Like Weight",
+            "default": 1.0
+          },
+          "favorite_weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Favorite Weight",
+            "default": 2.0
+          },
+          "share_weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Share Weight",
+            "default": 3.0
+          },
+          "view_weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "View Weight",
+            "default": 0.01
+          }
+        },
+        "type": "object",
+        "title": "PlatformMetricConfigUpsert"
+      },
+      "PublicConfigRead": {
+        "properties": {
+          "homepage": {
+            "$ref": "#/components/schemas/HomepageConfigRead"
+          },
+          "oss": {
+            "$ref": "#/components/schemas/OSSPublicConfigRead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "homepage",
+          "oss"
+        ],
+        "title": "PublicConfigRead"
+      },
+      "ReviewStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "under_review",
+          "approved",
+          "rejected"
+        ],
+        "title": "ReviewStatus"
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "blogger"
+        ],
+        "title": "Role"
+      },
+      "SettlementAssignmentRecordRead": {
+        "properties": {
+          "assignment_id": {
+            "type": "integer",
+            "title": "Assignment Id"
+          },
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id"
+          },
+          "task_title": {
+            "type": "string",
+            "title": "Task Title"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssignmentStatus"
+          },
+          "metric_sync_status": {
+            "$ref": "#/components/schemas/MetricSyncStatus"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue"
+          },
+          "post_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Post Link"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assignment_id",
+          "task_id",
+          "task_title",
+          "platform",
+          "status",
+          "metric_sync_status",
+          "revenue",
+          "completed_at"
+        ],
+        "title": "SettlementAssignmentRecordRead"
+      },
+      "SettlementRecordCreate": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "title": "SettlementRecordCreate"
+      },
+      "SettlementRecordRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "admin_id": {
+            "type": "integer",
+            "title": "Admin Id"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Paid At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "admin_id",
+          "amount",
+          "paid_at",
+          "created_at"
+        ],
+        "title": "SettlementRecordRead"
+      },
+      "SocialAccountRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "account_name": {
+            "type": "string",
+            "title": "Account Name"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "profile_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Url"
+          },
+          "follower_count": {
+            "type": "integer",
+            "title": "Follower Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "platform",
+          "account_name",
+          "account_id",
+          "follower_count"
+        ],
+        "title": "SocialAccountRead"
+      },
+      "SocialPlatform": {
+        "type": "string",
+        "enum": [
+          "douyin",
+          "xiaohongshu",
+          "weibo"
+        ],
+        "title": "SocialPlatform"
+      },
+      "TaskAttachmentUploadRead": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "object_key": {
+            "type": "string",
+            "title": "Object Key"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "object_key",
+          "url"
+        ],
+        "title": "TaskAttachmentUploadRead"
+      },
+      "TaskCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "base_reward": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Base Reward"
+          },
+          "accept_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept Limit"
+          },
+          "instructions": {
+            "type": "string",
+            "title": "Instructions"
+          },
+          "attachments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Attachments"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus",
+            "default": "draft"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "platform",
+          "base_reward",
+          "instructions"
+        ],
+        "title": "TaskCreate"
+      },
+      "TaskDistributeRequest": {
+        "properties": {
+          "user_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "User Ids"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 20
+          }
+        },
+        "type": "object",
+        "title": "TaskDistributeRequest"
+      },
+      "TaskDistributeResult": {
+        "properties": {
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id"
+          },
+          "created_count": {
+            "type": "integer",
+            "title": "Created Count"
+          },
+          "skipped_existing_count": {
+            "type": "integer",
+            "title": "Skipped Existing Count"
+          },
+          "target_user_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Target User Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "created_count",
+          "skipped_existing_count",
+          "target_user_ids"
+        ],
+        "title": "TaskDistributeResult"
+      },
+      "TaskEligibleEstimateRead": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "eligible_count": {
+            "type": "integer",
+            "title": "Eligible Count"
+          },
+          "preview_limit": {
+            "type": "integer",
+            "title": "Preview Limit"
+          },
+          "input_accept_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Accept Limit"
+          },
+          "estimated_accept_count": {
+            "type": "integer",
+            "title": "Estimated Accept Count"
+          },
+          "saturation_rate": {
+            "type": "number",
+            "title": "Saturation Rate",
+            "default": 0.0
+          },
+          "saturation_label": {
+            "type": "string",
+            "title": "Saturation Label",
+            "default": ""
+          },
+          "recommended_scale_min": {
+            "type": "integer",
+            "title": "Recommended Scale Min",
+            "default": 0
+          },
+          "recommended_scale_max": {
+            "type": "integer",
+            "title": "Recommended Scale Max",
+            "default": 0
+          },
+          "preview_bloggers": {
+            "items": {
+              "$ref": "#/components/schemas/EligibleBloggerRead"
+            },
+            "type": "array",
+            "title": "Preview Bloggers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "eligible_count",
+          "preview_limit",
+          "estimated_accept_count"
+        ],
+        "title": "TaskEligibleEstimateRead"
+      },
+      "TaskRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "base_reward": {
+            "type": "number",
+            "title": "Base Reward"
+          },
+          "accept_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept Limit"
+          },
+          "instructions": {
+            "type": "string",
+            "title": "Instructions"
+          },
+          "attachments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Attachments"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "accepted_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted Count"
+          },
+          "remaining_slots": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Slots"
+          },
+          "is_full": {
+            "type": "boolean",
+            "title": "Is Full",
+            "default": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "platform",
+          "base_reward",
+          "instructions",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TaskRead"
+      },
+      "TaskStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "published",
+          "cancelled"
+        ],
+        "title": "TaskStatus"
+      },
+      "TaskUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform"
+          },
+          "base_reward": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Reward"
+          },
+          "accept_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept Limit"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions"
+          },
+          "attachments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "TaskUpdate"
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type"
+        ],
+        "title": "Token"
+      },
+      "UserActivityRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "action_type": {
+            "type": "string",
+            "title": "Action Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "action_type",
+          "title",
+          "created_at"
+        ],
+        "title": "UserActivityRead"
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "real_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Name"
+          },
+          "id_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id No"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "follower_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Follower Total",
+            "default": 0
+          },
+          "avg_views": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Avg Views",
+            "default": 0
+          },
+          "douyin_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformAccountCreate"
+            },
+            "type": "array",
+            "title": "Douyin Accounts"
+          },
+          "xiaohongshu_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformAccountCreate"
+            },
+            "type": "array",
+            "title": "Xiaohongshu Accounts"
+          },
+          "weibo_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformAccountCreate"
+            },
+            "type": "array",
+            "title": "Weibo Accounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "username",
+          "password"
+        ],
+        "title": "UserCreate"
+      },
+      "UserPasswordUpdate": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "title": "Current Password"
+          },
+          "new_password": {
+            "type": "string",
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "UserPasswordUpdate"
+      },
+      "UserProfileUpdate": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "real_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Name"
+          },
+          "id_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id No"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "follower_total": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follower Total"
+          },
+          "avg_views": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Views"
+          }
+        },
+        "type": "object",
+        "title": "UserProfileUpdate"
+      },
+      "UserRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "real_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Name"
+          },
+          "id_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id No"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "follower_total": {
+            "type": "integer",
+            "title": "Follower Total"
+          },
+          "avg_views": {
+            "type": "integer",
+            "title": "Avg Views"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "review_status": {
+            "$ref": "#/components/schemas/ReviewStatus"
+          },
+          "review_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reason"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "weight": {
+            "type": "number",
+            "title": "Weight"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "douyin_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformAccountRead"
+            },
+            "type": "array",
+            "title": "Douyin Accounts"
+          },
+          "xiaohongshu_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformAccountRead"
+            },
+            "type": "array",
+            "title": "Xiaohongshu Accounts"
+          },
+          "weibo_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformAccountRead"
+            },
+            "type": "array",
+            "title": "Weibo Accounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "username",
+          "follower_total",
+          "avg_views",
+          "is_active",
+          "review_status",
+          "role",
+          "weight",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "UserRead"
+      },
+      "UserReviewUpdate": {
+        "properties": {
+          "review_status": {
+            "$ref": "#/components/schemas/ReviewStatus"
+          },
+          "review_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "review_status"
+        ],
+        "title": "UserReviewUpdate"
+      },
+      "UserWeightUpdate": {
+        "properties": {
+          "weight": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Weight"
+          }
+        },
+        "type": "object",
+        "required": [
+          "weight"
+        ],
+        "title": "UserWeightUpdate"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/v1/auth/token"
+          }
+        }
+      }
+    }
+  }
+}

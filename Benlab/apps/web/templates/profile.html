@@ -1,0 +1,779 @@
+{% extends "base.html" %}
+{% from "_media_gallery.html" import render_media_gallery %}
+{% macro render_resource_entry(entry, kind) -%}
+  {% if kind == 'item' %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <a href="{{ url_for('item_detail', item_id=entry.id) }}" class="fw-semibold text-decoration-none">{{ entry.name }}</a>
+          {% set detail_refs = entry.detail_refs %}
+          {% if detail_refs %}
+            {% set first_ref = detail_refs[0] %}
+            {% set is_http = first_ref.value and (first_ref.value.startswith('http://') or first_ref.value.startswith('https://')) %}
+            <div class="small mt-1">
+              {% if is_http %}
+                <a href="{{ first_ref.value }}" target="_blank" rel="noopener" class="text-decoration-none text-muted">
+                  {{ first_ref.label or '查看详情' }}
+                </a>
+              {% else %}
+                <span class="text-muted">
+                  {% if first_ref.label %}
+                    {{ first_ref.label }}：{{ first_ref.value }}
+                  {% else %}
+                    {{ first_ref.value }}
+                  {% endif %}
+                </span>
+              {% endif %}
+              {% if detail_refs|length > 1 %}
+                <span class="text-muted">等 {{ detail_refs|length }} 条</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="text-end">
+          {% set item_status = normalize_item_stock_status(entry.status) %}
+          <div class="d-flex flex-wrap justify-content-end gap-1">
+            {% if item_status %}
+              {% set status_intent = stock_status_intent(item_status) %}
+              <span class="badge badge-item-status badge-item-status-{{ status_intent }}">{{ item_status }}</span>
+            {% endif %}
+            {% if entry.features %}
+              {% set feature_tone = feature_intent(entry.features) %}
+              <span class="badge badge-item-feature badge-item-feature-{{ feature_tone }}">{{ entry.features }}</span>
+            {% endif %}
+          </div>
+          {% if item_status and is_item_alert_status(item_status) %}
+            {% set action_label = item_alert_action_label(item_status) %}
+            {% set action_tone = item_alert_level(item_status) %}
+            <a href="{{ url_for('edit_item', item_id=entry.id) }}" class="btn btn-outline-{{ action_tone }} btn-sm mt-2">{{ action_label }}</a>
+          {% endif %}
+        </div>
+      </div>
+    </li>
+  {% else %}
+    {% set status = normalize_location_status(entry.status) or '未评估' %}
+    {% set is_dirty = is_location_dirty(status) %}
+    {% set status_intent = location_status_intent(status) %}
+    {% set lead_members = entry.responsible_members[:2] if entry.responsible_members else [] %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <a href="{{ url_for('view_location', loc_id=entry.id) }}" class="fw-semibold text-decoration-none">{{ entry.name }}</a>
+        </div>
+        <div class="text-end">
+          <div class="d-flex flex-wrap justify-content-end gap-1">
+            <span class="badge {% if status_intent == 'critical' %}bg-danger{% elif status_intent == 'warning' %}bg-warning text-dark{% elif status_intent == 'positive' %}bg-success{% else %}bg-secondary{% endif %}">{{ status }}</span>
+            {% for member in lead_members %}
+              <a class="badge bg-light text-dark border text-decoration-none" href="{{ url_for('profile', member_id=member.id) }}">{{ member.name or member.username }}</a>
+            {% endfor %}
+            {% if entry.responsible_members and entry.responsible_members|length > 2 %}
+              <span class="badge bg-light text-muted border text-decoration-none">+{{ entry.responsible_members|length - 2 }}</span>
+            {% endif %}
+          </div>
+          {% if is_dirty %}
+            <a href="{{ url_for('edit_location', loc_id=entry.id) }}" class="btn btn-outline-danger btn-sm mt-2">去处理</a>
+          {% endif %}
+        </div>
+      </div>
+    </li>
+  {% endif %}
+{%- endmacro %}
+{% macro render_notification_entry(log) -%}
+  {% set verb = '进行了操作' %}
+  {% if log.action_type %}
+    {% if '新增' in log.action_type %}
+      {% set verb = '添加了' %}
+    {% elif '修改' in log.action_type %}
+      {% set verb = '修改了' %}
+    {% elif '删除' in log.action_type %}
+      {% set verb = '删除了' %}
+    {% endif %}
+  {% endif %}
+  {% set actor_name = '某人' %}
+  {% if log.user %}
+    {% set actor_name = log.user.name or log.user.username %}
+  {% endif %}
+  <li class="list-group-item">
+    <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+      <div>
+        <span class="text-muted">你的{% if log.item_id %}物品{% elif log.location_id %}位置{% elif log.event_id %}活动{% else %}事项{% endif %}</span>
+        {% if log.item %}
+          <a href="{{ url_for('item_detail', item_id=log.item.id) }}" class="fw-semibold text-decoration-none ms-1">{{ log.item.name }}</a>
+        {% elif log.location %}
+          <a href="{{ url_for('view_location', loc_id=log.location.id) }}" class="fw-semibold text-decoration-none ms-1">{{ log.location.name }}</a>
+        {% elif log.event %}
+          <a href="{{ url_for('event_detail', event_id=log.event.id) }}" class="fw-semibold text-decoration-none ms-1">{{ log.event.title }}</a>
+        {% endif %}
+        <span class="text-muted">被 {{ actor_name }} {{ verb }}</span>
+      </div>
+      <small class="text-muted">{{ log.timestamp.strftime("%Y-%m-%d %H:%M") }}</small>
+    </div>
+  </li>
+{%- endmacro %}
+{% macro render_user_log_entry(log) -%}
+  <li class="list-group-item">
+    <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+      <div>
+        <span class="text-muted">{{ log.action_type or '操作' }}</span>
+        {% if log.item %}
+          ：<a href="{{ url_for('item_detail', item_id=log.item.id) }}" class="text-decoration-none">{{ log.item.name }}</a>
+        {% elif log.location %}
+          ：<a href="{{ url_for('view_location', loc_id=log.location.id) }}" class="text-decoration-none">{{ log.location.name }}</a>
+        {% elif log.event %}
+          ：<a href="{{ url_for('event_detail', event_id=log.event.id) }}" class="text-decoration-none">{{ log.event.title }}</a>
+        {% elif log.details %}
+          ：<span class="text-muted">{{ log.details }}</span>
+        {% endif %}
+      </div>
+      <small class="text-muted">{{ log.timestamp.strftime("%Y-%m-%d %H:%M") }}</small>
+    </div>
+  </li>
+{%- endmacro %}
+{% block content %}
+<style>
+  .profile-header-card {
+    border: none;
+    background: var(--bs-body-bg);
+    box-shadow: 0 0.75rem 1.75rem rgba(33, 37, 41, 0.08);
+  }
+  .profile-avatar-gallery .media-gallery-grid {
+    display: flex;
+    justify-content: center;
+  }
+  .profile-avatar-gallery .media-card {
+    border: none;
+    padding: 0;
+    min-height: auto;
+    background: transparent;
+    box-shadow: none;
+    transition: none;
+  }
+  .profile-avatar-gallery .media-card:hover {
+    box-shadow: none;
+    transform: none;
+  }
+  .profile-avatar-gallery .media-card-figure {
+    padding: 0;
+  }
+  .profile-avatar-gallery .media-card-img {
+    width: 220px;
+    height: 220px;
+    max-width: none;
+    max-height: none;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: transparent;
+    box-shadow: 0 1rem 2.5rem rgba(33, 37, 41, 0.18);
+  }
+  .profile-avatar-gallery .media-actions,
+  .profile-avatar-gallery .media-description {
+    display: none;
+  }
+  .profile-avatar-placeholder {
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    margin: 0 auto 1.5rem;
+    background: var(--bs-secondary-bg-subtle, rgba(108, 117, 125, 0.12));
+    color: rgba(73, 80, 87, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1rem 2.5rem rgba(33, 37, 41, 0.12);
+  }
+  .profile-avatar-icon {
+    font-size: 4.5rem;
+    line-height: 1;
+  }
+  .profile-contact,
+  .profile-social-links {
+    display: flex;
+    justify-content: center;
+  }
+  .profile-social-links {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+</style>
+<div class="card profile-header-card mb-4">
+  <div class="card-body text-center">
+    <div class="profile-avatar mb-3">
+      {% if profile_user.photo %}
+        {% set avatar_entries = [{
+          'url': uploaded_attachment_url(profile_user.photo),
+          'kind': 'image',
+          'display_name': (profile_user.name or profile_user.username) ~ '的头像'
+        }] %}
+        {{ render_media_gallery(
+            avatar_entries,
+            'profileAvatarGallery',
+            media_kind_labels,
+            '尚未上传头像',
+            {
+              'gallery_class': 'media-gallery profile-avatar-gallery mx-auto',
+              'grid_class': 'media-gallery-grid justify-content-center',
+              'card_class': 'media-card profile-avatar-card border-0 shadow-none bg-transparent p-0',
+              'enable_fullscreen': true
+            }
+          )
+        }}
+      {% else %}
+      <div class="profile-avatar-placeholder">
+        <span class="profile-avatar-icon">&#128100;</span>
+      </div>
+      {% endif %}
+    </div>
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mb-3">
+      <h4 class="mb-0">{{ profile_user.name or profile_user.username }}</h4>
+      {% if current_user.id == profile_user.id %}
+        <a href="{{ url_for('edit_profile', member_id=profile_user.id) }}" class="btn btn-sm btn-outline-primary">编辑个人主页</a>
+      {% else %}
+        <button type="button"
+                class="btn btn-sm {% if is_following %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}"
+                id="profileFollowBtn"
+                data-url="{{ url_for('toggle_follow', member_id=profile_user.id) }}"
+                data-followed="{{ '1' if is_following else '0' }}">
+          {% if is_following %}取消关注{% else %}关注 TA{% endif %}
+        </button>
+      {% endif %}
+    </div>
+    <div class="d-flex justify-content-center mb-2">
+      <span class="detail-updated-hint">
+        资料上次更新：{{ profile_user.last_modified|china_time if profile_user.last_modified else '未知' }}
+      </span>
+    </div>
+    {% if profile_user.contact %}
+    <div class="profile-contact mt-2">
+      <span>📞 <a href="tel:{{ profile_user.contact|replace(' ', '') }}">{{ profile_user.contact }}</a></span>
+    </div>
+    {% endif %}
+    {% if profile_social_links %}
+    <div class="profile-social-links mt-3">
+      {% for link in profile_social_links %}
+        <a href="{{ link.url }}" target="_blank" rel="noopener" class="badge bg-light text-dark border text-decoration-none">
+          {{ link.label or link.url }}
+        </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% if is_self and item_alerts %}
+  {% for alert in item_alerts %}
+  <div class="alert alert-{{ alert.level }}">
+    <div class="fw-semibold">{{ alert.message }}</div>
+    <div class="small mt-1 text-muted">建议动作：{{ alert.action_label }}</div>
+    {% if alert.sample_items %}
+      <div class="small mt-1">
+        涉及：
+        {% for item in alert.sample_items %}
+          <a href="{{ url_for('item_detail', item_id=item.id) }}" class="text-decoration-none">{{ item.name }}</a>{% if not loop.last %}、{% endif %}
+        {% endfor %}
+        {% if alert.count > alert.sample_items|length %}
+          等 {{ alert.count }} 个
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endif %}
+{% if is_self and location_alerts %}
+  {% for alert in location_alerts %}
+  <div class="alert alert-{{ alert.level }}">
+    <div class="fw-semibold">{{ alert.message }}</div>
+    <div class="small mt-1 text-muted">建议动作：{{ alert.action_label }}</div>
+    {% if alert.sample_locations %}
+      <div class="small mt-1">
+        涉及：
+        {% for location in alert.sample_locations %}
+          <a href="{{ url_for('view_location', loc_id=location.id) }}" class="text-decoration-none">{{ location.name }}</a>{% if not loop.last %}、{% endif %}
+        {% endfor %}
+        {% if alert.count > alert.sample_locations|length %}
+          等 {{ alert.count }} 个
+        {% endif %}
+      </div>
+      <div class="mt-2">
+        <a href="{{ url_for('edit_location', loc_id=alert.sample_locations[0].id) }}" class="btn btn-outline-{{ alert.level }} btn-sm">{{ alert.action_label }}</a>
+      </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endif %}
+<div class="card mb-4">
+  <div class="card-header fw-semibold">个人展示 / 备注</div>
+  <div class="card-body">
+    {% if profile_notes_html %}
+      <div class="rich-text-content">{{ profile_notes_html|safe }}</div>
+    {% elif profile_meta.bio %}
+      <p class="mb-0 text-muted" style="white-space: pre-wrap;">{{ profile_meta.bio }}</p>
+    {% else %}
+      <p class="mb-0 text-muted">尚未填写个人展示，点击“编辑个人主页”补充介绍。</p>
+    {% endif %}
+  </div>
+</div>
+{% if is_self %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">地点关联（仅自己可见）</span>
+    <span class="badge bg-light text-dark border">{{ profile_affiliations|length }}</span>
+  </div>
+  {% if profile_affiliations %}
+  {% set affiliation_preview = profile_affiliations[:5] %}
+  {% set affiliation_extra = profile_affiliations[5:] %}
+  <ul class="list-group list-group-flush">
+    {% for entry in affiliation_preview %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <a href="{{ url_for('view_location', loc_id=entry.location.id) }}" class="fw-semibold text-decoration-none">{{ entry.location.name }}</a>
+          <span class="badge bg-info-subtle text-info-emphasis border ms-2">{{ entry.relation_label }}</span>
+          {% if entry.note %}
+            <div class="text-muted small mt-1">{{ entry.note }}</div>
+          {% endif %}
+        </div>
+        <div class="text-end text-muted small">
+          {% set affiliation_status = normalize_location_status(entry.location.status) %}
+          {% if affiliation_status %}
+            状态：{{ affiliation_status }}
+          {% endif %}
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if affiliation_extra %}
+  <div class="collapse" id="profileAffiliationsMore">
+    <ul class="list-group list-group-flush">
+      {% for entry in affiliation_extra %}
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <a href="{{ url_for('view_location', loc_id=entry.location.id) }}" class="fw-semibold text-decoration-none">{{ entry.location.name }}</a>
+            <span class="badge bg-info-subtle text-info-emphasis border ms-2">{{ entry.relation_label }}</span>
+            {% if entry.note %}
+              <div class="text-muted small mt-1">{{ entry.note }}</div>
+            {% endif %}
+          </div>
+          <div class="text-end text-muted small">
+            {% set affiliation_status = normalize_location_status(entry.location.status) %}
+            {% if affiliation_status %}
+              状态：{{ affiliation_status }}
+            {% endif %}
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card-footer text-center">
+    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#profileAffiliationsMore" aria-expanded="false" aria-controls="profileAffiliationsMore">
+      展开剩余 {{ affiliation_extra|length }} 个
+    </button>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="card-body">
+    <p class="mb-0 text-muted">尚未记录地点关联。</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if is_self %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">兴趣清单（仅自己可见）</span>
+    <span class="badge bg-light text-dark border">{{ profile_interests|length }}</span>
+  </div>
+  {% if profile_interests %}
+  {% set interest_preview = profile_interests[:5] %}
+  {% set interest_extra = profile_interests[5:] %}
+  <ul class="list-group list-group-flush">
+    {% for entry in interest_preview %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <a href="{{ url_for('item_detail', item_id=entry.item.id) }}" class="fw-semibold text-decoration-none">{{ entry.item.name }}</a>
+          <span class="badge bg-primary-subtle text-primary-emphasis border ms-2">{{ entry.relation_label }}</span>
+          {% if entry.note %}
+            <div class="text-muted small mt-1">{{ entry.note }}</div>
+          {% endif %}
+        </div>
+        <div class="text-end text-muted small">
+          {% set interest_stock_status = normalize_item_stock_status(entry.item.status) %}
+          {% if interest_stock_status %}
+            库存：{{ interest_stock_status }}
+          {% endif %}
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if interest_extra %}
+  <div class="collapse" id="profileInterestsMore">
+    <ul class="list-group list-group-flush">
+      {% for entry in interest_extra %}
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <a href="{{ url_for('item_detail', item_id=entry.item.id) }}" class="fw-semibold text-decoration-none">{{ entry.item.name }}</a>
+            <span class="badge bg-primary-subtle text-primary-emphasis border ms-2">{{ entry.relation_label }}</span>
+            {% if entry.note %}
+              <div class="text-muted small mt-1">{{ entry.note }}</div>
+            {% endif %}
+          </div>
+          <div class="text-end text-muted small">
+            {% set interest_stock_status = normalize_item_stock_status(entry.item.status) %}
+            {% if interest_stock_status %}
+              库存：{{ interest_stock_status }}
+            {% endif %}
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card-footer text-center">
+    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#profileInterestsMore" aria-expanded="false" aria-controls="profileInterestsMore">
+      展开剩余 {{ interest_extra|length }} 个
+    </button>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="card-body">
+    <p class="mb-0 text-muted">还没有关注任何物品，去物品页看看吧。</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if is_self %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">活动关联（仅自己可见）</span>
+    <span class="badge bg-light text-dark border">{{ profile_events|length }}</span>
+  </div>
+  {% if profile_events %}
+  {% set event_preview = profile_events[:5] %}
+  {% set event_extra = profile_events[5:] %}
+  <ul class="list-group list-group-flush">
+    {% for entry in event_preview %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <a href="{{ url_for('event_detail', event_id=entry.event.id) }}" class="fw-semibold text-decoration-none">{{ entry.event.title }}</a>
+          <span class="badge bg-secondary-subtle text-secondary-emphasis border ms-2">{{ entry.relation_label }}</span>
+          {% if entry.note %}
+            <div class="text-muted small mt-1">{{ entry.note }}</div>
+          {% endif %}
+        </div>
+        <div class="text-end text-muted small">
+          {% if entry.event.start_time %}
+            {{ entry.event.start_time.strftime('%Y-%m-%d') }}
+          {% endif %}
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if event_extra %}
+  <div class="collapse" id="profileEventsMore">
+    <ul class="list-group list-group-flush">
+      {% for entry in event_extra %}
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <a href="{{ url_for('event_detail', event_id=entry.event.id) }}" class="fw-semibold text-decoration-none">{{ entry.event.title }}</a>
+            <span class="badge bg-secondary-subtle text-secondary-emphasis border ms-2">{{ entry.relation_label }}</span>
+            {% if entry.note %}
+              <div class="text-muted small mt-1">{{ entry.note }}</div>
+            {% endif %}
+          </div>
+          <div class="text-end text-muted small">
+            {% if entry.event.start_time %}
+              {{ entry.event.start_time.strftime('%Y-%m-%d') }}
+            {% endif %}
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card-footer text-center">
+    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#profileEventsMore" aria-expanded="false" aria-controls="profileEventsMore">
+      展开剩余 {{ event_extra|length }} 个
+    </button>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="card-body">
+    <p class="mb-0 text-muted">尚未记录活动关联。</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% set preview_items = items_preview if items_preview is defined else items_resp[:5] %}
+{% set extra_items = items_extra if items_extra is defined else (items_resp[5:] if items_resp|length > 5 else []) %}
+{% set preview_locations = locations_preview if locations_preview is defined else locations_resp[:5] %}
+{% set extra_locations = locations_extra if locations_extra is defined else (locations_resp[5:] if locations_resp|length > 5 else []) %}
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-4 h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">负责的物品</span>
+        <span class="badge bg-light text-dark border">{{ items_resp|length }}</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for it in preview_items %}
+          {{ render_resource_entry(it, 'item') }}
+        {% else %}
+          <li class="list-group-item text-muted">无负责物品</li>
+        {% endfor %}
+      </ul>
+      {% if extra_items %}
+      <div class="collapse" id="profileItemsMore">
+        <ul class="list-group list-group-flush">
+          {% for it in extra_items %}
+            {{ render_resource_entry(it, 'item') }}
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="card-footer text-center">
+        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#profileItemsMore" aria-expanded="false" aria-controls="profileItemsMore">
+          展开剩余 {{ extra_items|length }} 个
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card mb-4 h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">负责的位置</span>
+        <span class="badge bg-light text-dark border">{{ locations_resp|length }}</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for loc in preview_locations %}
+          {{ render_resource_entry(loc, 'location') }}
+        {% else %}
+          <li class="list-group-item text-muted">无负责位置</li>
+        {% endfor %}
+      </ul>
+      {% if extra_locations %}
+      <div class="collapse" id="profileLocationsMore">
+        <ul class="list-group list-group-flush">
+          {% for loc in extra_locations %}
+            {{ render_resource_entry(loc, 'location') }}
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="card-footer text-center">
+        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#profileLocationsMore" aria-expanded="false" aria-controls="profileLocationsMore">
+          展开剩余 {{ extra_locations|length }} 个
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="mb-4">
+  <h5>相关事项</h5>
+  {% if events_upcoming or events_past %}
+  <div class="list-group mb-2">
+    {% for evt in events_upcoming %}
+    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{{ url_for('event_detail', event_id=evt.id) }}">
+      <div>
+        <strong>{{ evt.title }}</strong>
+        <div class="small text-muted">
+          {% if evt.start_time %}
+            {{ evt.start_time.strftime('%Y-%m-%d %H:%M') }}
+          {% else %}
+            时间待定
+          {% endif %}
+          · {% if evt.visibility == 'public' %}公开{% elif evt.visibility == 'internal' %}内部{% else %}个人{% endif %}
+        </div>
+      </div>
+      <span class="badge bg-secondary">{{ evt.participant_count() }}</span>
+    </a>
+    {% else %}
+      <span class="list-group-item text-muted">暂无进行中的事项</span>
+    {% endfor %}
+  </div>
+  {% if events_past and is_self %}
+    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#memberPastEvents" aria-expanded="false" aria-controls="memberPastEvents">
+      查看历史事项 ({{ events_past|length }})
+    </button>
+    <div class="collapse mt-2" id="memberPastEvents">
+      <ul class="list-group small">
+        {% for evt in events_past %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <a href="{{ url_for('event_detail', event_id=evt.id) }}">{{ evt.title }}</a>
+          <span class="text-muted">{{ evt.start_time.strftime('%Y-%m-%d') if evt.start_time else '时间待定' }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  {% else %}
+  <div class="text-muted">暂无相关事项。</div>
+  {% endif %}
+</div>
+
+{% if is_self %}
+{% set notif_total = notifications|length %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">通知（仅自己可见）</span>
+    <span class="badge bg-light text-dark border">{{ notif_total }}</span>
+  </div>
+  {% if notif_total %}
+  {% set notif_limit = 5 %}
+  <ul class="list-group list-group-flush">
+    {% for log in notifications[:notif_limit] %}
+      {{ render_notification_entry(log) }}
+    {% endfor %}
+  </ul>
+  {% if notif_total > notif_limit %}
+  <div class="collapse" id="notifMore">
+    <ul class="list-group list-group-flush">
+      {% for log in notifications[notif_limit:] %}
+        {{ render_notification_entry(log) }}
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card-footer text-center">
+    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#notifMore" aria-expanded="false" aria-controls="notifMore">
+      展开剩余 {{ notif_total - notif_limit }} 条
+    </button>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="card-body">
+    <p class="mb-0 text-muted">暂无通知。</p>
+  </div>
+  {% endif %}
+</div>
+{% set logs_total = user_logs|length %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">我的操作记录（仅自己可见）</span>
+    <span class="badge bg-light text-dark border">{{ logs_total }}</span>
+  </div>
+  {% if logs_total %}
+  {% set logs_limit = 5 %}
+  <ul class="list-group list-group-flush">
+    {% for log in user_logs[:logs_limit] %}
+      {{ render_user_log_entry(log) }}
+    {% endfor %}
+  </ul>
+  {% if logs_total > logs_limit %}
+  <div class="collapse" id="logsMore">
+    <ul class="list-group list-group-flush">
+      {% for log in user_logs[logs_limit:] %}
+        {{ render_user_log_entry(log) }}
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card-footer text-center">
+    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#logsMore" aria-expanded="false" aria-controls="logsMore">
+      展开剩余 {{ logs_total - logs_limit }} 条
+    </button>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="card-body">
+    <p class="mb-0 text-muted">暂无操作记录。</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">他人评价 / 留言</span>
+    <span class="badge bg-light text-dark border">{{ (feedback_entries|default([]))|length }}</span>
+  </div>
+  <div class="list-group list-group-flush">
+    {% for fb in feedback_entries|default([]) %}
+      <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            {% if fb.sender_url %}
+              <a href="{{ fb.sender_url }}" class="fw-semibold text-decoration-none">{{ fb.sender_name }}</a>
+            {% else %}
+              <span class="fw-semibold">{{ fb.sender_name }}</span>
+            {% endif %}
+            {% if fb.sentiment == 'positive' %}
+              <span class="badge badge-sentiment-positive ms-2">好评</span>
+            {% elif fb.sentiment == 'doubt' %}
+              <span class="badge badge-sentiment-doubt ms-2">需关注</span>
+            {% endif %}
+          </div>
+          <small class="text-muted">{{ fb.timestamp_display }}</small>
+        </div>
+        <div class="mt-2 rich-text-content">{{ fb.html|safe }}</div>
+      </div>
+    {% else %}
+      <div class="list-group-item text-muted">暂无留言</div>
+    {% endfor %}
+  </div>
+  <div class="card-footer">
+    <form method="post" action="{{ url_for('post_message', member_id=profile_user.id) }}">
+      <div class="mb-3">
+        <label for="newMessage" class="form-label">留下你的评价</label>
+        <textarea id="newMessage" name="content" class="form-control" rows="2" required placeholder="写下看法，支持链接、#标签、@提及、!!好评、??质疑等语法"></textarea>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted">留言发送后无法编辑或删除，请谨慎发布。</small>
+        <button type="submit" class="btn btn-primary">发布留言</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% if current_user.id != profile_user.id %}
+<script>
+(function () {
+  var btn = document.getElementById('profileFollowBtn');
+  if (!btn) {
+    return;
+  }
+  var url = btn.getAttribute('data-url');
+  if (!url) {
+    btn.disabled = true;
+    return;
+  }
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function (resp) {
+      if (!resp.ok) {
+        return resp.json().catch(function () { return {}; }).then(function (data) {
+          if (data.error) {
+            alert(data.error);
+          }
+          throw new Error('Toggle failed');
+        });
+      }
+      return resp.json();
+    }).then(function (data) {
+      if (!data) {
+        return;
+      }
+      btn.classList.toggle('btn-outline-primary', !data.followed);
+      btn.classList.toggle('btn-outline-secondary', !!data.followed);
+      btn.textContent = data.followed ? '取消关注' : '关注 TA';
+      btn.dataset.followed = data.followed ? '1' : '0';
+      btn.disabled = false;
+    }).catch(function () {
+      btn.disabled = false;
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

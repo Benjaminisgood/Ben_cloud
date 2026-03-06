@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CATAPEDIA 元数据管理</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+
+    <main class="container">
+      <header class="hero">
+        <p class="kicker">CATAPEDIA · Metadata Hub</p>
+        <h1>化学文献元数据提取与处理</h1>
+        <p>聚合多源接口，按 DOI 去重，支持标签化管理、检索、筛选与人工维护。</p>
+      </header>
+
+      <section class="panel ingest-panel">
+        <h2>1. 拉取并入库</h2>
+        <div class="grid grid-2">
+          <label>
+            检索词
+            <textarea
+              id="ingestQuery"
+              rows="3"
+              placeholder="支持自然语言或标准检索式。例如：帮我找近五年 TAP 催化和 microkinetic 相关文献，排除 review"
+            ></textarea>
+          </label>
+          <label>
+            最大条数
+            <input id="ingestMaxResults" type="number" min="1" max="5000" value="200" />
+          </label>
+        </div>
+        <p class="hint-line">系统会先尝试 AI 解析并翻译到各数据源语法，失败时自动回退为原词直接检索；返回结果可再按你选择的 query 复核模式逐篇判断。</p>
+        <p class="hint-line">建议写法：检索词尽量宽容（提高召回），把“严格标签判定”写到“仅复核提示”里让 LLM 只在复核阶段执行。</p>
+
+        <div class="provider-wrap">
+          <p>数据源</p>
+          <div id="providerList" class="provider-list"></div>
+        </div>
+
+        <label>
+          入库附加标签（逗号分隔）
+          <input id="ingestTags" type="text" placeholder="tap, catalysis, energy" />
+        </label>
+
+        <details class="advanced-section">
+          <summary>高级约束（默认折叠）</summary>
+          <div class="advanced-content">
+            <div class="grid grid-2">
+              <label>
+                Query 复核模式
+                <select id="queryFilterMode">
+                  <option value="embedding" selected>Embedding 相似度</option>
+                  <option value="boolean">硬布尔过滤（阈值=1）</option>
+                  <option value="llm">LLM 逐篇打分</option>
+                  <option value="none">不复核（阈值=0）</option>
+                </select>
+              </label>
+              <label>
+                关联度阈值
+                <input id="querySimilarityThreshold" type="number" min="0" max="1" step="0.01" value="0.35" />
+              </label>
+            </div>
+            <div class="grid grid-2">
+              <label class="inline-check">
+                <input id="llmReviewExistingArticles" type="checkbox" />
+                <span>已入库 DOI 二次复核（LLM）</span>
+              </label>
+              <label class="inline-check">
+                <input id="llmReviewDroppedArticles" type="checkbox" />
+                <span>已 drop DOI 二次复核（LLM）</span>
+              </label>
+            </div>
+            <div class="grid grid-2">
+              <label>
+                发布时间从
+                <input id="publishedFrom" type="text" placeholder="YYYY 或 YYYY-MM-DD" />
+              </label>
+              <label>
+                发布时间到
+                <input id="publishedTo" type="text" placeholder="YYYY 或 YYYY-MM-DD" />
+              </label>
+            </div>
+            <div class="grid grid-2">
+              <label>
+                最少被引次数
+                <input id="minCitationCount" type="number" min="0" placeholder="例如 20" />
+              </label>
+              <label>
+                最小文章影响因子
+                <input id="minImpactFactor" type="number" min="0" step="0.1" placeholder="例如 10.5" />
+              </label>
+            </div>
+            <label>
+              仅复核提示（仅 `llm` 模式生效）
+              <textarea
+                id="llmScoringPrompt"
+                rows="3"
+                placeholder="示例：复核时严格检查标签是否成立；若只提到 TAP 但无实质催化/动力学内容则打低分。"
+              ></textarea>
+            </label>
+            <div class="grid grid-2">
+              <label>
+                手动必须包含关键词（可选，全部命中）
+                <input id="requiredKeywords" type="text" placeholder="tap, microkinetic, catalysis" />
+              </label>
+              <label>
+                手动至少包含一个关键词（可选，命中任一即可）
+                <input id="optionalKeywords" type="text" placeholder="co2, hydrogen, methane" />
+              </label>
+            </div>
+            <label>
+              手动排除关键词（可选）
+              <input id="excludedKeywords" type="text" placeholder="review, perspective" />
+            </label>
+            <div class="grid grid-2">
+              <label>
+                期刊黑名单（逗号分隔）
+                <input id="journalBlacklist" type="text" placeholder="mdpi, hindawi" />
+              </label>
+              <label>
+                期刊白名单（逗号分隔，命中任意一个）
+                <input id="journalWhitelist" type="text" placeholder="applied catalysis, nature catalysis, joule" />
+              </label>
+            </div>
+            <p class="hint-line">文章影响因子过滤只按当前文章记录里的 `impact_factor` 字段判断，不再按期刊映射表回填。</p>
+            <p class="hint-line">`embedding` 会先对 AI 提取出的 `must_terms` 做硬校验，过了再计算与 query 的余弦相似度，并把已入库 DOI 的向量缓存到 SQLite；`boolean` 按 AND / OR / NOT 严格过滤，前端会自动锁定阈值为 `1`；`llm` 会逐篇给出 0 到 1 的关联度分并按阈值保留，默认按当前 query 本身及其解析出的检索意图判断相关度；`none` 不做 query 复核，前端会自动锁定阈值为 `0`。</p>
+            <p class="hint-line">关键词约束是额外高级约束；即使 query 复核模式关闭，手动填写的必须/至少一个/排除关键词仍然生效。</p>
+            <p class="hint-line">若关闭“已入库 DOI 二次复核”，命中已入库文献时会直接入库更新标签；若关闭“已 drop DOI 二次复核”，命中历史 drop 文献时会直接跳过。</p>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button id="runIngest" class="btn btn-primary">执行拉取</button>
+          <button id="pauseIngest" class="btn" disabled>暂停任务</button>
+          <button id="resumeIngest" class="btn" disabled>继续任务</button>
+          <button id="cancelIngest" class="btn" disabled>停止任务</button>
+          <button id="applyIngestProviders" class="btn" disabled>新数据源</button>
+        </div>
+        <p id="ingestStatus" class="hint-line">当前空闲</p>
+        <pre id="ingestResult" class="result-box"></pre>
+      </section>
+
+      <section class="panel form-panel">
+        <h2>2. 快速录入 / AI补全</h2>
+        <div class="grid grid-3 quick-single-grid">
+          <label>
+            DOI *
+            <input id="quickDoi" type="text" placeholder="10.xxxx/xxxx" />
+          </label>
+          <label>
+            标签（可选，逗号分隔）
+            <input id="quickTags" type="text" placeholder="tap, catalysis, energy" />
+          </label>
+          <label>
+            备注（可选）
+            <textarea id="quickNote" rows="2" placeholder="记录这条文献的补充说明"></textarea>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="quickCreate" class="btn btn-primary">录入并自动补全</button>
+          <button id="quickCreateInsertOnly" class="btn">仅录入</button>
+        </div>
+        <div class="divider-line"></div>
+        <p class="subhead">CSV 批量录入（拖拽上传）</p>
+        <div id="quickCsvDropzone" class="csv-dropzone" role="button" tabindex="0" aria-label="拖拽上传 CSV">
+          <input id="quickCsvFile" type="file" accept=".csv,text/csv" hidden />
+          <p class="csv-dropzone-title">拖拽 CSV 到这里，或点击选择文件</p>
+          <p id="quickCsvFileHint" class="hint-line">未选择 CSV 文件。</p>
+        </div>
+        <label>
+          DOI 列（必选）
+          <select id="quickCsvDoiColumn" disabled>
+            <option value="">请先选择 CSV 文件</option>
+          </select>
+        </label>
+        <details class="advanced-section">
+          <summary>可选：补充信息策略（标签 + 备注）</summary>
+          <div class="advanced-content">
+            <div class="grid grid-2 supplement-grid">
+              <div class="supplement-block">
+                <label>
+                  固定附加标签（可选，逗号分隔）
+                  <input id="quickBatchTags" type="text" placeholder="tap, kinetics" />
+                </label>
+                <div class="csv-tag-source">
+                  <p class="subhead">从这些列补充标签（可选）</p>
+                  <div id="quickCsvTagColumnChips" class="csv-column-chip-list"></div>
+                </div>
+              </div>
+              <div class="supplement-block">
+                <label>
+                  固定备注（可选）
+                  <textarea
+                    id="quickBatchNote"
+                    rows="3"
+                    placeholder="例如：来自项目 A 第一轮筛选，需重点复核催化剂稳定性"
+                  ></textarea>
+                </label>
+                <div class="csv-tag-source">
+                  <p class="subhead">从这些列补充备注（可选）</p>
+                  <div id="quickCsvNoteColumnChips" class="csv-column-chip-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </details>
+        <div class="actions">
+          <button id="quickBatchCreate" class="btn btn-primary">开始批量录入并自动补全</button>
+          <button id="quickBatchCreateInsertOnly" class="btn">开始批量仅录入</button>
+        </div>
+        <p id="quickCsvSummary" class="hint-line">未选择 CSV 文件。</p>
+        <p class="hint-line">批量流程：上传 CSV → 选择 DOI 列 → 开始导入。默认仅按 DOI 录入；标签和备注策略为可选补充。</p>
+        <div class="actions auto-enrichment-actions">
+          <button id="toggleAutoEnrichment" class="btn">后台自动补全开关读取中...</button>
+        </div>
+        <p id="autoEnrichmentToggleHint" class="hint-line">后台自动补全开关读取中...</p>
+        <p id="enrichmentStatus" class="hint-line">当前空闲</p>
+        <pre id="enrichmentResult" class="result-box"></pre>
+      </section>
+
+      <section class="panel search-panel">
+        <h2>3. 标签筛选 / 检索</h2>
+        <div class="grid grid-3">
+          <label>
+            搜索词
+            <input id="searchText" type="text" placeholder="DOI/标题/摘要/机构" />
+          </label>
+          <label>
+            期刊
+            <input id="journalFilter" type="text" placeholder="Applied Catalysis B" />
+          </label>
+          <label>
+            标签云搜索
+            <input id="tagSearch" type="text" placeholder="输入标签名过滤下方标签云" />
+          </label>
+        </div>
+        <div class="tag-filter-box">
+          <div class="tag-filter-group">
+            <p class="subhead">AND 标签（必须全部命中）</p>
+            <div id="tagFilterAndChips" class="tag-filter-chips"></div>
+          </div>
+          <div class="tag-filter-group">
+            <p class="subhead">OR 标签（命中任一即可）</p>
+            <div id="tagFilterOrChips" class="tag-filter-chips"></div>
+          </div>
+          <p id="tagFilterSummary" class="hint-line">当前未选择标签</p>
+        </div>
+        <div class="actions">
+          <button id="applyFilter" class="btn btn-primary">检索</button>
+          <button id="clearFilter" class="btn">清除筛选</button>
+          <button id="exportCsv" class="btn">导出 CSV</button>
+          <button id="viewDroppedPapers" class="btn">查看 Drop 文献</button>
+        </div>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="table-header">
+          <h2>文献列表</h2>
+          <div class="table-header-actions">
+            <button id="refreshArticles" class="btn">刷新列表</button>
+            <p id="tableMeta"></p>
+          </div>
+        </div>
+        <div id="mobileTableTools" class="mobile-table-tools">
+          <div class="mobile-tool-group">
+            <p class="subhead">排序</p>
+            <div class="table-head-btn-row">
+              <button type="button" class="table-head-btn" data-sort-by="published_date">
+                <span>发布时间</span>
+                <span class="sort-indicator" data-sort-indicator="published_date">↕</span>
+              </button>
+              <button type="button" class="table-head-btn" data-sort-by="impact_factor">
+                <span>文章影响因子</span>
+                <span class="sort-indicator" data-sort-indicator="impact_factor">↕</span>
+              </button>
+              <button type="button" class="table-head-btn" data-sort-by="ingested_at">
+                <span>最近录入/更新</span>
+                <span class="sort-indicator" data-sort-indicator="ingested_at">↓</span>
+              </button>
+            </div>
+          </div>
+          <div class="mobile-tool-group">
+            <p class="subhead">核查筛选</p>
+            <div class="table-head-btn-row">
+              <button type="button" class="table-head-btn table-head-btn-status" data-check-filter="hide_correct">
+                <span>正确</span>
+                <small>隐藏</small>
+              </button>
+              <button type="button" class="table-head-btn table-head-btn-status" data-check-filter="only_error">
+                <span>错误</span>
+                <small>仅看</small>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr id="articleTableHead">
+                <th class="col-doi">DOI</th>
+                <th class="col-title">标题</th>
+                <th class="col-keywords">关键词</th>
+                <th class="col-abstract">摘要</th>
+                <th class="col-journal">期刊</th>
+                <th class="col-author">通讯作者</th>
+                <th class="col-aff">机构院校</th>
+                <th class="col-source">来源</th>
+                <th class="col-date">
+                  <button type="button" class="table-head-btn" data-sort-by="published_date">
+                    <span>发布时间</span>
+                    <span class="sort-indicator" data-sort-indicator="published_date">↕</span>
+                  </button>
+                </th>
+                <th class="col-citation">被引次数</th>
+                <th class="col-impact">
+                  <button type="button" class="table-head-btn" data-sort-by="impact_factor">
+                    <span>文章影响因子</span>
+                    <span class="sort-indicator" data-sort-indicator="impact_factor">↕</span>
+                  </button>
+                </th>
+                <th class="col-ingested">
+                  <button type="button" class="table-head-btn" data-sort-by="ingested_at">
+                    <span>最近录入/更新</span>
+                    <span class="sort-indicator" data-sort-indicator="ingested_at">↓</span>
+                  </button>
+                </th>
+                <th class="col-link">文献链接</th>
+                <th class="col-note">备注</th>
+                <th class="col-actions">操作</th>
+                <th class="col-check-flag">
+                  <button type="button" class="table-head-btn table-head-btn-status" data-check-filter="hide_correct">
+                    <span>正确</span>
+                    <small>隐藏</small>
+                  </button>
+                </th>
+                <th class="col-check-flag">
+                  <button type="button" class="table-head-btn table-head-btn-status" data-check-filter="only_error">
+                    <span>错误</span>
+                    <small>仅看</small>
+                  </button>
+                </th>
+                <th class="col-tags">标签</th>
+              </tr>
+            </thead>
+            <tbody id="articleTableBody"></tbody>
+          </table>
+        </div>
+        <div id="articleCardList" class="mobile-card-list"></div>
+      </section>
+    </main>
+
+    <div id="editModal" class="modal hidden">
+      <div id="editModalBackdrop" class="modal-backdrop"></div>
+      <div class="modal-dialog">
+        <div class="modal-head">
+          <h3>编辑文献</h3>
+          <button id="closeEditModal" class="modal-close">关闭</button>
+        </div>
+        <div class="modal-body">
+          <input id="editId" type="hidden" />
+          <div class="grid grid-2">
+            <label>
+              DOI
+              <input id="doi" type="text" readonly />
+            </label>
+            <label>
+              来源
+              <input id="source" type="text" />
+            </label>
+          </div>
+          <label>
+            文献标题
+            <input id="title" type="text" />
+          </label>
+          <div class="grid grid-2">
+            <label>
+              期刊
+              <input id="journal" type="text" />
+            </label>
+            <label>
+              发表日期
+              <input id="publishedDate" type="text" placeholder="YYYY-MM-DD" />
+            </label>
+          </div>
+          <div class="grid grid-2">
+            <label>
+              通讯作者
+              <input id="correspondingAuthor" type="text" />
+            </label>
+            <label>
+              出版社
+              <input id="publisher" type="text" />
+            </label>
+          </div>
+          <label>
+            机构院校（逗号分隔）
+            <input id="affiliations" type="text" />
+          </label>
+          <label>
+            关键词（逗号分隔）
+            <input id="keywords" type="text" />
+          </label>
+          <label>
+            标签（逗号分隔）
+            <input id="tags" type="text" />
+          </label>
+          <div class="grid grid-3">
+            <label>
+              核查状态
+              <select id="checkStatus">
+                <option value="unchecked">未检查</option>
+                <option value="correct">正确</option>
+                <option value="error">错误</option>
+              </select>
+            </label>
+            <label>
+              文章影响因子
+              <input id="impactFactor" type="number" min="0" step="0.1" />
+            </label>
+            <label>
+              被引次数
+              <input id="citationCount" type="number" min="0" />
+            </label>
+          </div>
+          <label>
+            链接
+            <input id="url" type="text" />
+          </label>
+          <label>
+            备注
+            <textarea id="note" rows="4" placeholder="记录这篇文献的人工判断、后续动作等"></textarea>
+          </label>
+          <label>
+            摘要
+            <textarea id="abstract" rows="6"></textarea>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button id="saveArticle" class="btn btn-primary">保存修改</button>
+          <button id="resetForm" class="btn">重置</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="dropCacheModal" class="modal hidden">
+      <div id="dropCacheModalBackdrop" class="modal-backdrop"></div>
+      <div class="modal-dialog">
+        <div class="modal-head">
+          <h3>被 Drop 文献缓存</h3>
+          <button id="closeDropCacheModal" class="modal-close">关闭</button>
+        </div>
+        <div class="modal-body">
+          <p class="hint-line">
+            这里只显示 SQLite 里的 drop 复核缓存。点击“救回”会把当前记录从 drop 缓存转入 keep 缓存；文献不会立刻入库，但下次再次检索到同一 DOI 且判定范围相同时会直接保留。
+          </p>
+          <p id="dropCacheMeta" class="hint-line">正在读取...</p>
+          <div id="dropCacheList" class="drop-cache-list"></div>
+        </div>
+        <div class="modal-actions">
+          <button id="refreshDropCache" class="btn btn-primary">刷新</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

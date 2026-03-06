@@ -1,0 +1,529 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" data-reveal>
+  <div class="page-header">
+    <h2>用户管理</h2>
+    <button class="btn primary" id="btn-add-user">+ 添加用户</button>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table" id="users-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>用户名</th>
+          <th>全名</th>
+          <th>邮箱</th>
+          <th>电话</th>
+          <th>角色</th>
+          <th>状态</th>
+          <th>创建时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="users-table-body">
+        <tr>
+          <td colspan="9" class="text-center muted">加载中...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 添加/编辑用户模态框 -->
+<div class="modal-backdrop" id="user-modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+    <header class="modal-header">
+      <h3 id="user-modal-title">添加用户</h3>
+      <button class="btn icon-btn" id="btn-close-modal" aria-label="关闭">×</button>
+    </header>
+    <form id="user-form" class="stack">
+      <input type="hidden" id="user-id">
+      
+      <label class="field">
+        <span>用户名 *</span>
+        <input type="text" id="username" required minlength="1" maxlength="80">
+      </label>
+      
+      <label class="field">
+        <span>密码 <span id="password-required">*</span></span>
+        <input type="password" id="password" minlength="6">
+      </label>
+      
+      <label class="field">
+        <span>全名</span>
+        <input type="text" id="full_name" maxlength="100">
+      </label>
+      
+      <label class="field">
+        <span>邮箱</span>
+        <input type="email" id="email" maxlength="120">
+      </label>
+      
+      <label class="field">
+        <span>电话</span>
+        <input type="text" id="phone" maxlength="20">
+      </label>
+      
+      <label class="field">
+        <span>角色</span>
+        <select id="role">
+          <option value="customer">普通用户</option>
+          <option value="admin">管理员</option>
+        </select>
+      </label>
+      
+      <div class="row" style="justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <button type="button" class="btn" id="btn-cancel">取消</button>
+        <button type="submit" class="btn primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  const API_BASE = '';
+  const usersTableBody = document.getElementById('users-table-body');
+  const userModal = document.getElementById('user-modal');
+  const userForm = document.getElementById('user-form');
+  const btnAddUser = document.getElementById('btn-add-user');
+  const btnCloseModal = document.getElementById('btn-close-modal');
+  const btnCancel = document.getElementById('btn-cancel');
+  const userIdInput = document.getElementById('user-id');
+  const usernameInput = document.getElementById('username');
+  const passwordInput = document.getElementById('password');
+  const passwordRequired = document.getElementById('password-required');
+  const fullNameInput = document.getElementById('full_name');
+  const emailInput = document.getElementById('email');
+  const phoneInput = document.getElementById('phone');
+  const roleInput = document.getElementById('role');
+  const modalTitle = document.getElementById('user-modal-title');
+
+  let isEditing = false;
+
+  // 加载用户列表
+  async function loadUsers() {
+    try {
+      const session = JSON.parse(localStorage.getItem('benome_session_v1') || '{}');
+      const userId = session.userId;
+      
+      const res = await fetch(`${API_BASE}/api/admin/users`, {
+        headers: {
+          'X-User-Id': userId || '',
+        },
+      });
+      
+      if (!res.ok) {
+        throw new Error('加载失败');
+      }
+      
+      const users = await res.json();
+      renderUsers(users);
+    } catch (err) {
+      usersTableBody.innerHTML = `
+        <tr>
+          <td colspan="9" class="text-center" style="color: var(--warning);">
+            加载失败：${err.message}
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  // 渲染用户列表
+  function renderUsers(users) {
+    if (!users || users.length === 0) {
+      usersTableBody.innerHTML = `
+        <tr>
+          <td colspan="9" class="text-center muted">暂无用户</td>
+        </tr>
+      `;
+      return;
+    }
+    
+    usersTableBody.innerHTML = users.map(user => `
+      <tr>
+        <td>${user.id}</td>
+        <td>${escapeHtml(user.username)}</td>
+        <td>${escapeHtml(user.full_name || '-')}</td>
+        <td>${escapeHtml(user.email || '-')}</td>
+        <td>${escapeHtml(user.phone || '-')}</td>
+        <td>
+          <span class="badge ${user.role === 'admin' ? 'primary' : 'muted'}">
+            ${user.role === 'admin' ? '管理员' : '普通用户'}
+          </span>
+        </td>
+        <td>
+          <span class="badge ${user.is_active ? 'success' : 'muted'}">
+            ${user.is_active ? '活跃' : '禁用'}
+          </span>
+        </td>
+        <td>${formatDate(user.created_at)}</td>
+        <td>
+          <button class="btn small" onclick="editUser(${user.id})">编辑</button>
+          <button class="btn small" onclick="toggleStatus(${user.id}, ${user.is_active})">
+            ${user.is_active ? '禁用' : '启用'}
+          </button>
+          <button class="btn small danger" onclick="deleteUser(${user.id})">删除</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // 打开添加用户模态框
+  btnAddUser.addEventListener('click', () => {
+    isEditing = false;
+    modalTitle.textContent = '添加用户';
+    passwordRequired.style.display = 'inline';
+    passwordInput.required = true;
+    passwordInput.value = '';
+    userForm.reset();
+    userIdInput.value = '';
+    userModal.hidden = false;
+  });
+
+  // 关闭模态框
+  function closeModal() {
+    userModal.hidden = true;
+  }
+
+  btnCloseModal.addEventListener('click', closeModal);
+  btnCancel.addEventListener('click', closeModal);
+
+  // 提交表单
+  userForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const session = JSON.parse(localStorage.getItem('benome_session_v1') || '{}');
+    const userId = session.userId;
+    
+    const userData = {
+      username: usernameInput.value.trim(),
+      full_name: fullNameInput.value.trim() || null,
+      email: emailInput.value.trim() || null,
+      phone: phoneInput.value.trim() || null,
+      role: roleInput.value,
+    };
+    
+    if (!isEditing) {
+      userData.password = passwordInput.value;
+    }
+    
+    try {
+      const url = isEditing 
+        ? `${API_BASE}/api/admin/users/${userIdInput.value}`
+        : `${API_BASE}/api/admin/users`;
+      
+      const method = isEditing ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId || '',
+        },
+        body: JSON.stringify(userData),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.detail || '操作失败');
+      }
+      
+      closeModal();
+      loadUsers();
+      alert(isEditing ? '用户已更新' : '用户已创建');
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  // 编辑用户
+  window.editUser = async function(userId) {
+    try {
+      const session = JSON.parse(localStorage.getItem('benome_session_v1') || '{}');
+      const currentUserId = session.userId;
+      
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        headers: {
+          'X-User-Id': currentUserId || '',
+        },
+      });
+      
+      if (!res.ok) {
+        throw new Error('获取用户信息失败');
+      }
+      
+      const user = await res.json();
+      
+      isEditing = true;
+      modalTitle.textContent = '编辑用户';
+      passwordRequired.style.display = 'none';
+      passwordInput.required = false;
+      
+      userIdInput.value = user.id;
+      usernameInput.value = user.username;
+      fullNameInput.value = user.full_name || '';
+      emailInput.value = user.email || '';
+      phoneInput.value = user.phone || '';
+      roleInput.value = user.role;
+      
+      userModal.hidden = false;
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // 切换用户状态
+  window.toggleStatus = async function(userId, isActive) {
+    if (!confirm(`确定要${isActive ? '禁用' : '启用'}该用户吗？`)) {
+      return;
+    }
+    
+    try {
+      const session = JSON.parse(localStorage.getItem('benome_session_v1') || '{}');
+      const currentUserId = session.userId;
+      
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/toggle-status`, {
+        method: 'PATCH',
+        headers: {
+          'X-User-Id': currentUserId || '',
+        },
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || '操作失败');
+      }
+      
+      loadUsers();
+      alert('用户状态已更新');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // 删除用户
+  window.deleteUser = async function(userId) {
+    if (!confirm('确定要删除该用户吗？此操作不可恢复。')) {
+      return;
+    }
+    
+    try {
+      const session = JSON.parse(localStorage.getItem('benome_session_v1') || '{}');
+      const currentUserId = session.userId;
+      
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'X-User-Id': currentUserId || '',
+        },
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || '删除失败');
+      }
+      
+      loadUsers();
+      alert('用户已删除');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // 工具函数
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  // 初始化
+  loadUsers();
+})();
+</script>
+
+<style>
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.data-table th {
+  background: var(--surface-table-head);
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.data-table tbody tr:hover {
+  background: var(--surface-subtle);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge.primary {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.badge.muted {
+  background: var(--surface-panel);
+  color: var(--muted);
+}
+
+.badge.success {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.btn.small {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  margin-right: 0.25rem;
+}
+
+.btn.danger {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.btn.danger:hover {
+  background: #ffcdd2;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: var(--card);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 0;
+  line-height: 1;
+}
+
+.icon-btn:hover {
+  color: var(--ink);
+}
+
+#user-form {
+  padding: 1.5rem;
+}
+
+.field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.text-center {
+  text-align: center;
+}
+</style>
+{% endblock %}

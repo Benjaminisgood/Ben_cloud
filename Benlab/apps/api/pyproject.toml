@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "benlab-api"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "sqlalchemy>=2.0.30",
+    "pydantic-settings>=2.4.0",
+    "python-multipart>=0.0.9",
+    "werkzeug>=3.0.1",
+    "itsdangerous>=2.2.0",
+    "jinja2>=3.1.4",
+    "pandas>=2.2.2",
+    "gunicorn>=21.2.0",
+    "oss2>=2.17.0",
+    "pillow>=10.0.0",
+    "qrcode>=7.4.2",
+    "python-dotenv>=1.0.1",
+]
+
+[project.optional-dependencies]
+dev = ["httpx>=0.27.0", "pytest>=8.0.0", "pytest-asyncio>=0.23.0", "alembic>=1.13.0"]
+
+[project.scripts]
+benlab-api = "benlab_api.main:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/benlab_api"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/"]

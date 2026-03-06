@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benome 浏览器测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .card { background: white; padding: 20px; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .status { padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .ok { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🏠 Benome 浏览器兼容性测试</h1>
+    
+    <div class="card">
+        <h2>1. 基础 HTML 渲染</h2>
+        <div class="status ok">✓ 如果能看到这段文字，说明 HTML 渲染正常</div>
+    </div>
+    
+    <div class="card">
+        <h2>2. JavaScript 测试</h2>
+        <div id="js-status">正在检测...</div>
+        <script>
+            document.getElementById('js-status').innerHTML = '<div class="status ok">✓ JavaScript 运行正常</div>';
+        </script>
+    </div>
+    
+    <div class="card">
+        <h2>3. CSS 样式测试</h2>
+        <div class="status ok">✓ 如果看到绿色背景和边框，说明 CSS 正常</div>
+    </div>
+    
+    <div class="card">
+        <h2>4. 网络请求测试</h2>
+        <div id="fetch-status">正在测试...</div>
+        <script>
+            fetch('/health')
+                .then(r => r.json())
+                .then(d => {
+                    document.getElementById('fetch-status').innerHTML = 
+                        '<div class="status ok">✓ API 请求成功：' + JSON.stringify(d) + '</div>';
+                })
+                .catch(e => {
+                    document.getElementById('fetch-status').innerHTML = 
+                        '<div class="status error">✗ API 请求失败：' + e.message + '</div>';
+                });
+        </script>
+    </div>
+    
+    <div class="card">
+        <h2>5. 用户代理信息</h2>
+        <pre id="ua-info"></pre>
+        <script>
+            document.getElementById('ua-info').textContent = navigator.userAgent;
+        </script>
+    </div>
+    
+    <div class="card">
+        <h2>6. SSO 登录测试</h2>
+        <button id="sso-test-btn" onclick="testSSO()">测试 Benbot SSO 登录</button>
+        <div id="sso-status"></div>
+        <script>
+            function testSSO() {
+                document.getElementById('sso-status').innerHTML = '<div class="status info">正在跳转到 Benbot...</div>';
+                // 跳转到 Benbot 获取 SSO token
+                window.location.href = 'http://localhost:80/goto/benome';
+            }
+        </script>
+    </div>
+    
+    <div class="card">
+        <h2>7. 直接 SSO 回调测试</h2>
+        <p>如果从 Benbot 跳转过来，这里应该显示登录状态：</p>
+        <div id="session-info"></div>
+        <script>
+            // 检查是否有 flash 消息（SSO 登录后）
+            try {
+                const flash = sessionStorage.getItem('benome_flash');
+                if (flash) {
+                    const msg = JSON.parse(flash);
+                    document.getElementById('session-info').innerHTML = 
+                        '<div class="status ' + (msg.err ? 'error' : 'ok') + '">' + msg.msg + '</div>';
+                } else {
+                    document.getElementById('session-info').innerHTML = 
+                        '<div class="status info">暂无 SSO 登录信息</div>';
+                }
+            } catch(e) {
+                document.getElementById('session-info').innerHTML = 
+                    '<div class="status error">读取 session 失败：' + e.message + '</div>';
+            }
+        </script>
+    </div>
+</body>
+</html>

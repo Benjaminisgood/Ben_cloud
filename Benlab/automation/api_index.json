@@ -1,0 +1,261 @@
+{
+  "name": "benlab-local-api",
+  "version": "2026-02-27",
+  "base_url": "http://127.0.0.1:9000",
+  "auth": {
+    "type": "session_cookie",
+    "cookie_name": "session",
+    "login": {
+      "method": "POST",
+      "path": "/login",
+      "content_type": "application/x-www-form-urlencoded",
+      "fields": ["username", "password", "next"],
+      "default_next": "/",
+      "success_status": [303]
+    },
+    "logout": {
+      "method": "GET",
+      "path": "/logout",
+      "success_status": [303]
+    },
+    "reauth_on_status": [401]
+  },
+  "conventions": {
+    "pagination": {
+      "query_param": "before_id",
+      "response_fields": ["items", "has_more"]
+    },
+    "error_shape": {
+      "detail": "string"
+    }
+  },
+  "actions": [
+    {
+      "id": "health_check",
+      "method": "GET",
+      "path": "/health",
+      "auth_required": false,
+      "success_status": [200]
+    },
+    {
+      "id": "whoami",
+      "method": "GET",
+      "path": "/api/account",
+      "auth_required": true,
+      "success_status": [200]
+    },
+    {
+      "id": "list_users",
+      "method": "GET",
+      "path": "/api/users",
+      "auth_required": true,
+      "success_status": [200]
+    },
+    {
+      "id": "create_post_text",
+      "method": "POST",
+      "path": "/api/records",
+      "auth_required": true,
+      "content_type": "application/json",
+      "body": {
+        "text": "string (required if no file)",
+        "visibility": "public|private (optional, default private)",
+        "tags": "string[] | comma-separated string (optional)",
+        "receiver_id": "int optional"
+      },
+      "success_status": [201]
+    },
+    {
+      "id": "list_posts",
+      "method": "GET",
+      "path": "/api/records",
+      "auth_required": true,
+      "query": {
+        "user_id": "string optional",
+        "tag": "string optional",
+        "day": "YYYY-MM-DD optional",
+        "visibility": "public|private optional",
+        "before_id": "int optional",
+        "limit": "1..200 optional"
+      },
+      "success_status": [200]
+    },
+    {
+      "id": "pull_posts",
+      "method": "GET",
+      "path": "/api/pull",
+      "auth_required": true,
+      "query": {
+        "user_id": "string optional",
+        "tag": "string optional",
+        "day": "YYYY-MM-DD optional",
+        "before_id": "int optional",
+        "limit": "1..200 optional",
+        "text_source": "oss|inline optional",
+        "include_signed_url": "bool optional",
+        "signed_url_expires": "int optional"
+      },
+      "success_status": [200]
+    },
+    {
+      "id": "get_post",
+      "method": "GET",
+      "path": "/api/records/{record_id}",
+      "auth_required": true,
+      "path_params": ["record_id"],
+      "query": {
+        "include_signed_url": "bool optional",
+        "signed_url_expires": "int optional"
+      },
+      "success_status": [200]
+    },
+    {
+      "id": "update_post",
+      "method": "PATCH",
+      "path": "/api/records/{record_id}",
+      "auth_required": true,
+      "path_params": ["record_id"],
+      "content_type": "application/json",
+      "body": {
+        "text": "string optional",
+        "tags": "string[] | comma-separated string optional"
+      },
+      "success_status": [200]
+    },
+    {
+      "id": "delete_post",
+      "method": "DELETE",
+      "path": "/api/records/{record_id}",
+      "auth_required": true,
+      "path_params": ["record_id"],
+      "success_status": [204]
+    },
+    {
+      "id": "list_comments",
+      "method": "GET",
+      "path": "/api/records/{record_id}/comments",
+      "auth_required": true,
+      "path_params": ["record_id"],
+      "success_status": [200]
+    },
+    {
+      "id": "create_comment",
+      "method": "POST",
+      "path": "/api/records/{record_id}/comments",
+      "auth_required": true,
+      "path_params": ["record_id"],
+      "content_type": "application/json",
+      "body": {
+        "body": "string (required, <=2000 chars)"
+      },
+      "success_status": [201]
+    },
+    {
+      "id": "list_tags",
+      "method": "GET",
+      "path": "/api/tags",
+      "auth_required": true,
+      "query": {
+        "q": "prefix string optional",
+        "limit": "1..100 optional"
+      },
+      "success_status": [200]
+    },
+    {
+      "id": "get_content_blob",
+      "method": "GET",
+      "path": "/api/contents/{content_id}/blob",
+      "auth_required": true,
+      "path_params": ["content_id"],
+      "success_status": [200]
+    },
+    {
+      "id": "home_today",
+      "method": "GET",
+      "path": "/api/home/today",
+      "auth_required": true,
+      "success_status": [200]
+    },
+    {
+      "id": "notice_records",
+      "method": "GET",
+      "path": "/api/notice/records",
+      "auth_required": true,
+      "query": {
+        "user_id": "string optional",
+        "tag": "string optional",
+        "day": "YYYY-MM-DD optional",
+        "before_id": "int optional",
+        "limit": "1..1000 optional",
+        "text_source": "oss|inline optional"
+      },
+      "success_status": [200]
+    },
+    {
+      "id": "notice_render",
+      "method": "GET",
+      "path": "/api/notice/render",
+      "auth_required": true,
+      "query": {
+        "user_id": "string optional",
+        "tag": "string optional",
+        "day": "YYYY-MM-DD optional",
+        "order": "asc|desc optional"
+      },
+      "success_status": [200]
+    },
+    {
+      "id": "direct_upload_token",
+      "method": "GET",
+      "path": "/api/direct-upload/token",
+      "auth_required": true,
+      "query": {
+        "filename": "string required",
+        "content_type": "string optional",
+        "size_bytes": "int optional",
+        "sha256": "hex string optional"
+      },
+      "success_status": [200],
+      "notes": ["returns 400 when DIRECT_OSS_UPLOAD_ENABLED=false"]
+    },
+    {
+      "id": "direct_upload_confirm",
+      "method": "POST",
+      "path": "/api/direct-upload/confirm",
+      "auth_required": true,
+      "content_type": "application/json",
+      "body": {
+        "token": "string required",
+        "visibility": "public|private optional",
+        "tags": "string[] | comma-separated string optional"
+      },
+      "success_status": [201],
+      "notes": ["returns 400 when DIRECT_OSS_UPLOAD_ENABLED=false"]
+    },
+    {
+      "id": "admin_settings_get",
+      "method": "GET",
+      "path": "/api/admin/settings",
+      "auth_required": true,
+      "role_required": "admin",
+      "success_status": [200]
+    },
+    {
+      "id": "admin_settings_put",
+      "method": "PUT",
+      "path": "/api/admin/settings",
+      "auth_required": true,
+      "role_required": "admin",
+      "content_type": "application/json",
+      "body": {
+        "values": "object",
+        "reset_keys": "string[]"
+      },
+      "success_status": [200]
+    }
+  ],
+  "references": {
+    "guide_markdown": "automation/API_AUTOMATION_GUIDE.md",
+    "openapi": "automation/openapi.json"
+  }
+}

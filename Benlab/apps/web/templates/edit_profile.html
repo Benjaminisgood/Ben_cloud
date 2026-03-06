@@ -1,0 +1,964 @@
+{% extends "base.html" %}
+{% from "_media_gallery.html" import render_media_gallery %}
+{% block content %}
+<h4 class="mb-3">编辑个人信息</h4>
+<style>
+  .avatar-editor {
+    max-width: 620px;
+  }
+  .avatar-preview-wrapper {
+    position: relative;
+    width: 220px;
+    max-width: 100%;
+    min-height: 220px;
+  }
+  .avatar-preview-wrapper .media-gallery,
+  .avatar-preview-wrapper .media-gallery-grid,
+  .avatar-preview-wrapper .media-card {
+    width: 100%;
+  }
+  .avatar-card .media-card-img {
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .avatar-card .media-actions,
+  .avatar-card .media-description {
+    display: none !important;
+  }
+  .avatar-preview-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 1rem;
+    display: none;
+    box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.2);
+    z-index: 2;
+    background-color: var(--bs-body-bg, #fff);
+    border: 2px solid rgba(255, 255, 255, 0.65);
+  }
+  .avatar-preview-img.is-visible {
+    display: block;
+  }
+  .avatar-empty {
+    width: 100%;
+    height: 100%;
+    min-height: 220px;
+    border-radius: 1rem;
+    border: 2px dashed var(--bs-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bs-secondary-color);
+    background-color: var(--bs-secondary-bg);
+    text-align: center;
+    padding: 1.5rem;
+  }
+  .avatar-empty .avatar-empty-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+</style>
+<form method="post" enctype="multipart/form-data" action="{{ url_for('edit_profile', member_id=member.id) }}">
+  <div class="mb-3">
+    <label for="name" class="form-label">姓名</label>
+    <input type="text" class="form-control" id="name" name="name" value="{{ member.name }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="contact" class="form-label">联系方式</label>
+    <input type="text" class="form-control" id="contact" name="contact" value="{{ member.contact or '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="bio" class="form-label">个人介绍</label>
+    <textarea class="form-control" id="bio" name="bio" rows="3" placeholder="向社区伙伴介绍自己、最近关注的项目等">{{ profile_meta.bio }}</textarea>
+    {% if not structured_notes and member.notes %}
+      <div class="form-text text-muted">已为你预加载原有备注，保存后将转换为新格式。</div>
+    {% endif %}
+  </div>
+  <div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <label class="form-label mb-0">社交链接</label>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="addSocialLinkBtn">新增链接</button>
+    </div>
+    <div id="socialLinksContainer" class="d-flex flex-column gap-2 mt-2">
+      {% if profile_meta.social_links %}
+        {% for link in profile_meta.social_links %}
+        <div class="input-group social-link-row">
+          <span class="input-group-text">平台</span>
+          <input type="text" class="form-control" name="social_label" value="{{ link.label }}" placeholder="例如：微博 / B站">
+          <span class="input-group-text">地址</span>
+          <input type="url" class="form-control" name="social_url" value="{{ link.url }}" placeholder="https://example.com/you">
+          <button class="btn btn-outline-danger social-link-remove" type="button">&times;</button>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="input-group social-link-row">
+          <span class="input-group-text">平台</span>
+          <input type="text" class="form-control" name="social_label" placeholder="例如：微博 / B站">
+          <span class="input-group-text">地址</span>
+          <input type="url" class="form-control" name="social_url" placeholder="https://example.com/you">
+          <button class="btn btn-outline-danger social-link-remove" type="button">&times;</button>
+        </div>
+      {% endif %}
+    </div>
+    <div class="form-text">可添加多个链接，便于他人关注你的社交账号或作品主页。</div>
+  </div>
+  <div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <label class="form-label mb-0">地点关联（仅自己可见）</label>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#affiliationBulkModal">批量新增</button>
+    </div>
+    <div class="text-muted small mt-1">说明你与地点的关系（上学、居住、工作等），仅自己可见。</div>
+    <div id="affiliationsContainer" class="d-flex flex-column gap-3 mt-2">
+      {% if profile_meta.location_relations %}
+        {% for entry in profile_meta.location_relations %}
+          {% set current_loc = (locations | selectattr('id','equalto', entry.location_id) | first) %}
+          {% set relation_label = relation_lookup.get(entry.relation) %}
+          <div class="affiliation-row border rounded p-3 d-flex flex-column gap-2"
+               data-affiliation-id="{{ entry.location_id }}"
+               data-affiliation-index="{{ loop.index0 }}">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="fw-semibold">{{ current_loc.name if current_loc else '未指定地点' }}</span>
+                {% if relation_label %}
+                <span class="badge bg-light text-dark border">{{ relation_label }}</span>
+                {% endif %}
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-danger affiliation-remove">&times;</button>
+            </div>
+            <input type="hidden" name="affiliation_location_id" value="{{ entry.location_id if entry.location_id else '' }}">
+            <input type="hidden" name="affiliation_relation" value="{{ entry.relation if entry.relation else '' }}">
+            <input type="text"
+                   class="form-control form-control-sm"
+                   name="affiliation_note"
+                   value="{{ entry.note or '' }}"
+                   placeholder="备注（选填）">
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted mb-0" id="affiliationsEmptyHint">尚未添加地点关联，点击“批量新增”选择。</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="mb-3 mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <label class="form-label mb-0">兴趣清单（仅自己可见）</label>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#interestBulkModal">批量新增</button>
+    </div>
+    <div class="text-muted small mt-1">记录你关注的物品，仅自己可见。</div>
+    <div id="interestsContainer" class="d-flex flex-column gap-3 mt-2">
+      {% if profile_meta.item_relations %}
+        {% for entry in profile_meta.item_relations %}
+          {% set current_item = (items | selectattr('id','equalto', entry.item_id) | first) %}
+          {% set relation_label = item_relation_lookup.get(entry.relation) %}
+          <div class="interest-row border rounded p-3 d-flex flex-column gap-2"
+               data-interest-id="{{ entry.item_id }}"
+               data-interest-index="{{ loop.index0 }}">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="fw-semibold">{{ current_item.name if current_item else '未指定物品' }}</span>
+                {% if relation_label %}
+                <span class="badge bg-light text-dark border">{{ relation_label }}</span>
+                {% endif %}
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-danger interest-remove">&times;</button>
+            </div>
+            <input type="hidden" name="interest_item_id" value="{{ entry.item_id if entry.item_id else '' }}">
+            <input type="hidden" name="interest_item_relation" value="{{ entry.relation if entry.relation else '' }}">
+            <input type="text"
+                   class="form-control form-control-sm"
+                   name="interest_item_note"
+                   value="{{ entry.note or '' }}"
+                   placeholder="备注（选填）">
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted mb-0" id="interestsEmptyHint">尚未记录兴趣物品，点击“批量新增”选择。</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="mb-3 mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <label class="form-label mb-0">活动关联（仅自己可见）</label>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#eventBulkModal">批量新增</button>
+    </div>
+    <div class="text-muted small mt-1">记录你与活动的关系（主办、参与、关注等），仅自己可见。</div>
+    <div id="eventsContainer" class="d-flex flex-column gap-3 mt-2">
+      {% if profile_meta.event_relations %}
+        {% for entry in profile_meta.event_relations %}
+          {% set current_event = (events | selectattr('id','equalto', entry.event_id) | first) %}
+          {% set relation_label = event_relation_lookup.get(entry.relation) %}
+          <div class="event-row border rounded p-3 d-flex flex-column gap-2"
+               data-event-id="{{ entry.event_id }}"
+               data-event-index="{{ loop.index0 }}">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="fw-semibold">{{ current_event.title if current_event else '未指定活动' }}</span>
+                {% if relation_label %}
+                <span class="badge bg-light text-dark border">{{ relation_label }}</span>
+                {% endif %}
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-danger event-remove">移除</button>
+            </div>
+            <input type="hidden" name="event_relation_event_id" value="{{ entry.event_id if entry.event_id else '' }}">
+            <input type="hidden" name="event_relation_relation" value="{{ entry.relation if entry.relation else '' }}">
+            <input type="text"
+                   class="form-control form-control-sm"
+                   name="event_relation_note"
+                   value="{{ entry.note or '' }}"
+                   placeholder="备注（选填）">
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted mb-0" id="eventsEmptyHint">尚未记录活动关联，点击“批量新增”选择。</p>
+      {% endif %}
+    </div>
+  </div>
+<div class="modal fade" id="affiliationBulkModal" tabindex="-1" aria-labelledby="affiliationBulkModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="affiliationBulkModalLabel">批量新增地点关联</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-5">
+            <label for="affiliationBulkRelation" class="form-label small mb-1 d-block">统一关联标签</label>
+            <select class="form-select form-select-sm" id="affiliationBulkRelation">
+              {% for key, label in relation_lookup.items() %}
+              <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+              {% if relation_lookup|length == 0 %}
+              <option value="other">其他</option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="col-md-7">
+            <label for="affiliationBulkSearch" class="form-label small mb-1 d-block">快速检索</label>
+            <input type="search" class="form-control form-control-sm" id="affiliationBulkSearch" placeholder="搜索地点名称">
+          </div>
+        </div>
+        <div class="border rounded mt-3 p-2" style="max-height: 320px; overflow-y: auto;">
+          {% if locations %}
+            {% for loc in locations %}
+            <div class="form-check affiliation-bulk-row py-1" data-label="{{ (loc.name or '')|lower }}">
+              <input class="form-check-input affiliation-bulk-checkbox" type="checkbox" value="{{ loc.id }}" id="affiliationBulk{{ loc.id }}" data-name="{{ loc.name }}">
+              <label class="form-check-label" for="affiliationBulk{{ loc.id }}">{{ loc.name }}</label>
+            </div>
+            {% endfor %}
+          {% else %}
+          <p class="text-muted small mb-0">暂无可选地点。</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary btn-sm" id="affiliationBulkConfirmBtn" data-bs-dismiss="modal">添加所选</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="affiliationLocationModal" tabindex="-1" aria-labelledby="affiliationLocationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="affiliationLocationModalLabel">选择关联地点</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <input type="search" class="form-control form-control-sm mb-3" id="affiliationLocationSearch" placeholder="搜索地点名称">
+        <div class="border rounded p-2" style="max-height: 320px; overflow-y: auto;">
+          <div class="form-check affiliation-location-row py-1" data-label="未指定">
+            <input class="form-check-input affiliation-location-radio" type="radio" name="affiliation_location_select" value=""
+                   id="affiliationLocationNone" data-name="选择地点">
+            <label class="form-check-label" for="affiliationLocationNone">未指定</label>
+          </div>
+          {% for loc in locations %}
+          <div class="form-check affiliation-location-row py-1" data-label="{{ (loc.name or '')|lower }}">
+            <input class="form-check-input affiliation-location-radio" type="radio" name="affiliation_location_select"
+                   value="{{ loc.id }}" id="affiliationLocation{{ loc.id }}" data-name="{{ loc.name }}">
+            <label class="form-check-label" for="affiliationLocation{{ loc.id }}">{{ loc.name }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="affiliationLocationClearBtn">清除选择</button>
+        <button type="button" class="btn btn-primary btn-sm" id="affiliationLocationConfirmBtn" data-bs-dismiss="modal">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="interestBulkModal" tabindex="-1" aria-labelledby="interestBulkModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="interestBulkModalLabel">批量新增兴趣物品</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-5">
+            <label for="interestBulkRelation" class="form-label small mb-1 d-block">统一关联标签</label>
+            <select class="form-select form-select-sm" id="interestBulkRelation">
+              {% for key, label in item_relation_lookup.items() %}
+              <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+              {% if item_relation_lookup|length == 0 %}
+              <option value="other">其他</option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="col-md-7">
+            <label for="interestBulkSearch" class="form-label small mb-1 d-block">快速检索</label>
+            <input type="search" class="form-control form-control-sm" id="interestBulkSearch" placeholder="搜索物品名称">
+          </div>
+        </div>
+        <div class="border rounded mt-3 p-2" style="max-height: 320px; overflow-y: auto;">
+          {% if items %}
+            {% for item in items %}
+            <div class="form-check interest-bulk-row py-1" data-label="{{ (item.name or '')|lower }}">
+              <input class="form-check-input interest-bulk-checkbox" type="checkbox" value="{{ item.id }}" id="interestBulk{{ item.id }}" data-name="{{ item.name }}">
+              <label class="form-check-label" for="interestBulk{{ item.id }}">{{ item.name }}</label>
+            </div>
+            {% endfor %}
+          {% else %}
+          <p class="text-muted small mb-0">暂无可选物品。</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary btn-sm" id="interestBulkConfirmBtn" data-bs-dismiss="modal">添加所选</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="interestItemModal" tabindex="-1" aria-labelledby="interestItemModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="interestItemModalLabel">选择物品</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <input type="search" class="form-control form-control-sm mb-3" id="interestItemSearch" placeholder="搜索物品名称">
+        <div class="border rounded p-2" style="max-height: 320px; overflow-y: auto;">
+          <div class="form-check interest-item-row py-1" data-label="未指定">
+            <input class="form-check-input interest-item-radio" type="radio" name="interest_item_select" value="" id="interestItemNone" data-name="选择物品">
+            <label class="form-check-label" for="interestItemNone">未指定</label>
+          </div>
+          {% for item in items %}
+          <div class="form-check interest-item-row py-1" data-label="{{ (item.name or '')|lower }}">
+            <input class="form-check-input interest-item-radio" type="radio" name="interest_item_select"
+                   value="{{ item.id }}" id="interestItem{{ item.id }}" data-name="{{ item.name }}">
+            <label class="form-check-label" for="interestItem{{ item.id }}">{{ item.name }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="interestItemClearBtn">清除选择</button>
+        <button type="button" class="btn btn-primary btn-sm" id="interestItemConfirmBtn" data-bs-dismiss="modal">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="eventBulkModal" tabindex="-1" aria-labelledby="eventBulkModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventBulkModalLabel">批量新增活动关联</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-5">
+            <label for="eventBulkRelation" class="form-label small mb-1 d-block">统一关联标签</label>
+            <select class="form-select form-select-sm" id="eventBulkRelation">
+              {% for key, label in event_relation_lookup.items() %}
+              <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+              {% if event_relation_lookup|length == 0 %}
+              <option value="other">其他</option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="col-md-7">
+            <label for="eventBulkSearch" class="form-label small mb-1 d-block">快速检索</label>
+            <input type="search" class="form-control form-control-sm" id="eventBulkSearch" placeholder="搜索活动名称">
+          </div>
+        </div>
+        <div class="border rounded mt-3 p-2" style="max-height: 320px; overflow-y: auto;">
+          {% if events %}
+            {% for event in events %}
+            <div class="form-check event-bulk-row py-1" data-label="{{ (event.title or '')|lower }}">
+              <input class="form-check-input event-bulk-checkbox" type="checkbox" value="{{ event.id }}" id="eventBulk{{ event.id }}" data-name="{{ event.title }}">
+              <label class="form-check-label" for="eventBulk{{ event.id }}">{{ event.title }}</label>
+            </div>
+            {% endfor %}
+          {% else %}
+          <p class="text-muted small mb-0">暂无可选活动。</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary btn-sm" id="eventBulkConfirmBtn" data-bs-dismiss="modal">添加所选</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <div class="mb-3">
+    <label for="password" class="form-label">新密码 (留空则不修改)</label>
+    <input type="password" class="form-control" id="password" name="password">
+  </div>
+  <div class="mb-4">
+    <label class="form-label">头像 (可选)</label>
+    <div class="card avatar-editor shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex flex-column flex-md-row align-items-start gap-3">
+          <div class="avatar-preview-wrapper">
+            {% if member.photo %}
+              {% set avatar_entries = [{
+                'url': uploaded_attachment_url(member.photo),
+                'kind': 'image',
+                'display_name': (member.name or member.username or '当前头像') ~ '的头像'
+              }] %}
+              {{ render_media_gallery(
+                avatar_entries,
+                'editProfileAvatarGallery',
+                media_kind_labels,
+                '尚未上传头像',
+                {
+                  'gallery_class': 'media-gallery avatar-gallery m-0',
+                  'grid_class': 'media-gallery-grid',
+                  'card_class': 'media-card avatar-card mb-0 border-0 shadow-none',
+                  'card_extra_class': 'rounded-4 overflow-hidden',
+                  'enable_fullscreen': false
+                }
+              ) }}
+            {% else %}
+              <div class="avatar-empty">
+                <div>
+                  <span class="avatar-empty-icon">🖼️</span>
+                  <div>尚未上传头像</div>
+                </div>
+              </div>
+            {% endif %}
+            <img id="photoPreview" src="" alt="头像预览" class="avatar-preview-img" hidden>
+          </div>
+          <div class="d-flex flex-column gap-2 flex-grow-1">
+            <input type="file" id="photoInput" name="photo" accept="image/*" class="form-control" data-direct-upload="oss" data-remote-field="photo_remote_keys">
+            <div class="form-text">
+              支持 JPG / PNG，建议选择清晰的方形图片，文件小于 5MB。选择后会立即预览，保存即可更新头像。
+            </div>
+            {% if direct_upload_config.enabled %}
+            <div class="form-text text-success">如果启用了 OSS，头像会直接上传到 OSS 并将链接保存到资料中。</div>
+            {% endif %}
+            {% if member.photo %}
+              <a href="{{ uploaded_attachment_url(member.photo) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary align-self-start">查看当前头像</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-success">保存</button>
+  <a href="{{ url_for('profile', member_id=member.id) }}" class="btn btn-secondary">取消</a>
+</form>
+<script>
+  const photoInput = document.getElementById('photoInput');
+  const photoPreview = document.getElementById('photoPreview');
+  if (photoInput && photoPreview) {
+    let previewObjectUrl = null;
+    photoInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (previewObjectUrl) {
+        URL.revokeObjectURL(previewObjectUrl);
+        previewObjectUrl = null;
+      }
+      if (file) {
+        previewObjectUrl = URL.createObjectURL(file);
+        photoPreview.src = previewObjectUrl;
+        photoPreview.hidden = false;
+        photoPreview.classList.add('is-visible');
+      } else {
+        photoPreview.removeAttribute('src');
+        photoPreview.hidden = true;
+        photoPreview.classList.remove('is-visible');
+      }
+    });
+  }
+
+  (function manageSocialLinks() {
+    const container = document.getElementById('socialLinksContainer');
+    const addBtn = document.getElementById('addSocialLinkBtn');
+    if (!container || !addBtn) {
+      return;
+    }
+    function createRow(labelValue, urlValue) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'input-group social-link-row';
+      wrapper.innerHTML = `
+        <span class="input-group-text">平台</span>
+        <input type="text" class="form-control" name="social_label" placeholder="例如：微博 / B站">
+        <span class="input-group-text">地址</span>
+        <input type="url" class="form-control" name="social_url" placeholder="https://example.com/you">
+        <button class="btn btn-outline-danger social-link-remove" type="button">&times;</button>
+      `;
+      const labelInput = wrapper.querySelector('input[name="social_label"]');
+      const urlInput = wrapper.querySelector('input[name="social_url"]');
+      if (labelValue) labelInput.value = labelValue;
+      if (urlValue) urlInput.value = urlValue;
+      wrapper.querySelector('.social-link-remove').addEventListener('click', function () {
+        if (container.children.length > 1) {
+          wrapper.remove();
+        } else {
+          labelInput.value = '';
+          urlInput.value = '';
+        }
+      });
+      return wrapper;
+    }
+    addBtn.addEventListener('click', function () {
+      container.appendChild(createRow('', ''));
+    });
+    Array.from(container.querySelectorAll('.social-link-row')).forEach(function (row) {
+      row.querySelector('.social-link-remove').addEventListener('click', function () {
+        if (container.children.length > 1) {
+          row.remove();
+        } else {
+          row.querySelector('input[name="social_label"]').value = '';
+          row.querySelector('input[name="social_url"]').value = '';
+        }
+      });
+    });
+  })();
+
+  const LOCATION_RELATION_OPTIONS = {{ relation_lookup | tojson | safe }};
+  const ITEM_RELATION_OPTIONS = {{ item_relation_lookup | tojson | safe }};
+  const EVENT_RELATION_OPTIONS = {{ event_relation_lookup | tojson | safe }};
+
+  function toggleEmptyMessage(container, hintId, message, selector) {
+    const hint = document.getElementById(hintId);
+    const hasRow = !!container.querySelector(selector);
+    if (hint) {
+      hint.style.display = hasRow ? 'none' : '';
+    } else if (!hasRow && message) {
+      const p = document.createElement('p');
+      p.id = hintId;
+      p.className = 'text-muted mb-0';
+      p.textContent = message;
+      container.appendChild(p);
+    }
+  }
+
+  (function manageAffiliations() {
+    const container = document.getElementById('affiliationsContainer');
+    if (!container) return;
+    const relationOptions = LOCATION_RELATION_OPTIONS || {};
+    const bulkModal = document.getElementById('affiliationBulkModal');
+    const bulkRelation = document.getElementById('affiliationBulkRelation');
+    const bulkConfirm = document.getElementById('affiliationBulkConfirmBtn');
+    const bulkSearch = document.getElementById('affiliationBulkSearch');
+    const bulkCheckboxes = bulkModal ? Array.from(bulkModal.querySelectorAll('.affiliation-bulk-checkbox')) : [];
+    const bulkRows = bulkModal ? Array.from(bulkModal.querySelectorAll('.affiliation-bulk-row')) : [];
+    let nextIndex = container.querySelectorAll('.affiliation-row').length;
+
+    function resolveRelationKey(relation) {
+      if (relation) {
+        return relation;
+      }
+      const firstKey = Object.keys(relationOptions)[0];
+      return firstKey || 'other';
+    }
+
+    function relationDisplay(relationKey) {
+      const label = relationOptions[relationKey];
+      if (label) return label;
+      if (relationKey && relationKey !== 'other') return relationKey;
+      return '';
+    }
+
+    function createRow(id, name, relation, note) {
+      const relationKey = resolveRelationKey(relation);
+      const labelText = relationDisplay(relationKey);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'affiliation-row border rounded p-3 d-flex flex-column gap-2';
+      wrapper.setAttribute('data-affiliation-id', id || '');
+      wrapper.setAttribute('data-affiliation-index', String(nextIndex++));
+
+      const header = document.createElement('div');
+      header.className = 'd-flex flex-wrap justify-content-between align-items-center gap-2';
+      wrapper.appendChild(header);
+
+      const info = document.createElement('div');
+      info.className = 'd-flex flex-wrap align-items-center gap-2';
+      header.appendChild(info);
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'fw-semibold';
+      nameSpan.textContent = name || '未指定地点';
+      info.appendChild(nameSpan);
+
+      if (labelText) {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-light text-dark border';
+        badge.textContent = labelText;
+        info.appendChild(badge);
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn btn-sm btn-outline-danger affiliation-remove';
+      removeBtn.textContent = '×';
+      header.appendChild(removeBtn);
+
+      const hiddenId = document.createElement('input');
+      hiddenId.type = 'hidden';
+      hiddenId.name = 'affiliation_location_id';
+      hiddenId.value = id || '';
+      wrapper.appendChild(hiddenId);
+
+      const hiddenRelation = document.createElement('input');
+      hiddenRelation.type = 'hidden';
+      hiddenRelation.name = 'affiliation_relation';
+      hiddenRelation.value = relationKey || '';
+      wrapper.appendChild(hiddenRelation);
+
+      const noteInput = document.createElement('input');
+      noteInput.type = 'text';
+      noteInput.className = 'form-control form-control-sm';
+      noteInput.name = 'affiliation_note';
+      noteInput.placeholder = '备注（选填）';
+      noteInput.value = note || '';
+      wrapper.appendChild(noteInput);
+
+      return wrapper;
+    }
+
+    function attachRow(row) {
+      const removeBtn = row.querySelector('.affiliation-remove');
+      if (removeBtn && !removeBtn.dataset.bound) {
+        removeBtn.dataset.bound = 'true';
+        removeBtn.addEventListener('click', function () {
+          row.remove();
+          toggleEmptyMessage(container, 'affiliationsEmptyHint', '尚未添加地点关联，点击“批量新增”选择。', '.affiliation-row');
+        });
+      }
+    }
+
+    Array.from(container.querySelectorAll('.affiliation-row')).forEach(function (row, idx) {
+      row.setAttribute('data-affiliation-index', row.getAttribute('data-affiliation-index') || String(idx));
+      attachRow(row);
+    });
+    nextIndex = container.querySelectorAll('.affiliation-row').length;
+    toggleEmptyMessage(container, 'affiliationsEmptyHint', '尚未添加地点关联，点击“批量新增”选择。', '.affiliation-row');
+
+    if (bulkModal && bulkConfirm) {
+      if (bulkSearch) {
+        bulkSearch.addEventListener('input', function () {
+          const term = this.value.trim().toLowerCase();
+          bulkRows.forEach(function (row) {
+            const label = (row.getAttribute('data-label') || '').toLowerCase();
+            row.style.display = term ? (label.indexOf(term) !== -1 ? '' : 'none') : '';
+          });
+        });
+      }
+      bulkConfirm.addEventListener('click', function () {
+        const relation = bulkRelation ? bulkRelation.value : '';
+        bulkCheckboxes.forEach(function (cb) {
+          if (!cb.checked) return;
+          const identifier = cb.value;
+          if (!identifier || container.querySelector('.affiliation-row[data-affiliation-id="' + identifier + '"]')) {
+            cb.checked = false;
+            return;
+          }
+          const name = cb.getAttribute('data-name') || '未指定地点';
+          const row = createRow(identifier, name, relation, '');
+          container.appendChild(row);
+          attachRow(row);
+          cb.checked = false;
+        });
+        toggleEmptyMessage(container, 'affiliationsEmptyHint', '尚未添加地点关联，点击“批量新增”选择。', '.affiliation-row');
+      });
+    }
+  })();
+
+  (function manageInterests() {
+    const container = document.getElementById('interestsContainer');
+    if (!container) return;
+    const relationOptions = ITEM_RELATION_OPTIONS || {};
+    const bulkModal = document.getElementById('interestBulkModal');
+    const bulkRelation = document.getElementById('interestBulkRelation');
+    const bulkConfirm = document.getElementById('interestBulkConfirmBtn');
+    const bulkSearch = document.getElementById('interestBulkSearch');
+    const bulkCheckboxes = bulkModal ? Array.from(bulkModal.querySelectorAll('.interest-bulk-checkbox')) : [];
+    const bulkRows = bulkModal ? Array.from(bulkModal.querySelectorAll('.interest-bulk-row')) : [];
+    let nextIndex = container.querySelectorAll('.interest-row').length;
+
+    function resolveRelationKey(relation) {
+      if (relation) {
+        return relation;
+      }
+      const firstKey = Object.keys(relationOptions)[0];
+      return firstKey || 'other';
+    }
+
+    function relationDisplay(relationKey) {
+      const label = relationOptions[relationKey];
+      if (label) return label;
+      if (relationKey && relationKey !== 'other') return relationKey;
+      return '';
+    }
+
+    function createRow(id, name, relation, note) {
+      const relationKey = resolveRelationKey(relation);
+      const labelText = relationDisplay(relationKey);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'interest-row border rounded p-3 d-flex flex-column gap-2';
+      wrapper.setAttribute('data-interest-id', id || '');
+      wrapper.setAttribute('data-interest-index', String(nextIndex++));
+
+      const header = document.createElement('div');
+      header.className = 'd-flex flex-wrap justify-content-between align-items-center gap-2';
+      wrapper.appendChild(header);
+
+      const info = document.createElement('div');
+      info.className = 'd-flex flex-wrap align-items-center gap-2';
+      header.appendChild(info);
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'fw-semibold';
+      nameSpan.textContent = name || '未指定物品';
+      info.appendChild(nameSpan);
+
+      if (labelText) {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-light text-dark border';
+        badge.textContent = labelText;
+        info.appendChild(badge);
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn btn-sm btn-outline-danger interest-remove';
+      removeBtn.textContent = '×';
+      header.appendChild(removeBtn);
+
+      const hiddenId = document.createElement('input');
+      hiddenId.type = 'hidden';
+      hiddenId.name = 'interest_item_id';
+      hiddenId.value = id || '';
+      wrapper.appendChild(hiddenId);
+
+      const hiddenRelation = document.createElement('input');
+      hiddenRelation.type = 'hidden';
+      hiddenRelation.name = 'interest_item_relation';
+      hiddenRelation.value = relationKey || '';
+      wrapper.appendChild(hiddenRelation);
+
+      const noteInput = document.createElement('input');
+      noteInput.type = 'text';
+      noteInput.className = 'form-control form-control-sm';
+      noteInput.name = 'interest_item_note';
+      noteInput.placeholder = '备注（选填）';
+      noteInput.value = note || '';
+      wrapper.appendChild(noteInput);
+
+      return wrapper;
+    }
+
+    function attachRow(row) {
+      const removeBtn = row.querySelector('.interest-remove');
+      if (removeBtn && !removeBtn.dataset.bound) {
+        removeBtn.dataset.bound = 'true';
+        removeBtn.addEventListener('click', function () {
+          row.remove();
+          toggleEmptyMessage(container, 'interestsEmptyHint', '尚未记录兴趣物品，点击“批量新增”选择。', '.interest-row');
+        });
+      }
+    }
+
+    Array.from(container.querySelectorAll('.interest-row')).forEach(function (row, idx) {
+      row.setAttribute('data-interest-index', row.getAttribute('data-interest-index') || String(idx));
+      attachRow(row);
+    });
+    nextIndex = container.querySelectorAll('.interest-row').length;
+    toggleEmptyMessage(container, 'interestsEmptyHint', '尚未记录兴趣物品，点击“批量新增”选择。', '.interest-row');
+
+    if (bulkModal && bulkConfirm) {
+      if (bulkSearch) {
+        bulkSearch.addEventListener('input', function () {
+          const term = this.value.trim().toLowerCase();
+          bulkRows.forEach(function (row) {
+            const label = (row.getAttribute('data-label') || '').toLowerCase();
+            row.style.display = term ? (label.indexOf(term) !== -1 ? '' : 'none') : '';
+          });
+        });
+      }
+      bulkConfirm.addEventListener('click', function () {
+        const relation = bulkRelation ? bulkRelation.value : '';
+        bulkCheckboxes.forEach(function (cb) {
+          if (!cb.checked) return;
+          const identifier = cb.value;
+          if (!identifier || container.querySelector('.interest-row[data-interest-id=\"' + identifier + '\"]')) {
+            cb.checked = false;
+            return;
+          }
+          const name = cb.getAttribute('data-name') || '未指定物品';
+          const row = createRow(identifier, name, relation, '');
+          container.appendChild(row);
+          attachRow(row);
+          cb.checked = false;
+        });
+        toggleEmptyMessage(container, 'interestsEmptyHint', '尚未记录兴趣物品，点击“批量新增”选择。', '.interest-row');
+      });
+    }
+  })();
+  (function manageEvents() {
+    const container = document.getElementById('eventsContainer');
+    if (!container) return;
+    const relationOptions = EVENT_RELATION_OPTIONS || {};
+    const bulkModal = document.getElementById('eventBulkModal');
+    const bulkRelation = document.getElementById('eventBulkRelation');
+    const bulkConfirm = document.getElementById('eventBulkConfirmBtn');
+    const bulkSearch = document.getElementById('eventBulkSearch');
+    const bulkCheckboxes = bulkModal ? Array.from(bulkModal.querySelectorAll('.event-bulk-checkbox')) : [];
+    const bulkRows = bulkModal ? Array.from(bulkModal.querySelectorAll('.event-bulk-row')) : [];
+    let nextIndex = container.querySelectorAll('.event-row').length;
+
+    function resolveRelationKey(relation) {
+      if (relation) {
+        return relation;
+      }
+      const firstKey = Object.keys(relationOptions)[0];
+      return firstKey || 'other';
+    }
+
+    function relationDisplay(relationKey) {
+      const label = relationOptions[relationKey];
+      if (label) return label;
+      if (relationKey && relationKey !== 'other') return relationKey;
+      return '';
+    }
+
+    function createRow(id, name, relation, note) {
+      const relationKey = resolveRelationKey(relation);
+      const labelText = relationDisplay(relationKey);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'event-row border rounded p-3 d-flex flex-column gap-2';
+      wrapper.setAttribute('data-event-id', id || '');
+      wrapper.setAttribute('data-event-index', String(nextIndex++));
+
+      const header = document.createElement('div');
+      header.className = 'd-flex flex-wrap justify-content-between align-items-center gap-2';
+      wrapper.appendChild(header);
+
+      const info = document.createElement('div');
+      info.className = 'd-flex flex-wrap align-items-center gap-2';
+      header.appendChild(info);
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'fw-semibold';
+      nameSpan.textContent = name || '未指定活动';
+      info.appendChild(nameSpan);
+
+      if (labelText) {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-light text-dark border';
+        badge.textContent = labelText;
+        info.appendChild(badge);
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn btn-sm btn-outline-danger event-remove';
+      removeBtn.textContent = '移除';
+      header.appendChild(removeBtn);
+
+      const hiddenId = document.createElement('input');
+      hiddenId.type = 'hidden';
+      hiddenId.name = 'event_relation_event_id';
+      hiddenId.value = id || '';
+      wrapper.appendChild(hiddenId);
+
+      const hiddenRelation = document.createElement('input');
+      hiddenRelation.type = 'hidden';
+      hiddenRelation.name = 'event_relation_relation';
+      hiddenRelation.value = relationKey || '';
+      wrapper.appendChild(hiddenRelation);
+
+      const noteInput = document.createElement('input');
+      noteInput.type = 'text';
+      noteInput.className = 'form-control form-control-sm';
+      noteInput.name = 'event_relation_note';
+      noteInput.placeholder = '备注（选填）';
+      noteInput.value = note || '';
+      wrapper.appendChild(noteInput);
+
+      return wrapper;
+    }
+
+    function attachRow(row) {
+      const removeBtn = row.querySelector('.event-remove');
+      if (removeBtn && !removeBtn.dataset.bound) {
+        removeBtn.dataset.bound = 'true';
+        removeBtn.addEventListener('click', function () {
+          row.remove();
+          toggleEmptyMessage(container, 'eventsEmptyHint', '尚未记录活动关联，点击“批量新增”选择。', '.event-row');
+        });
+      }
+    }
+
+    Array.from(container.querySelectorAll('.event-row')).forEach(function (row, idx) {
+      row.setAttribute('data-event-index', row.getAttribute('data-event-index') || String(idx));
+      attachRow(row);
+    });
+    nextIndex = container.querySelectorAll('.event-row').length;
+    toggleEmptyMessage(container, 'eventsEmptyHint', '尚未记录活动关联，点击“批量新增”选择。', '.event-row');
+
+    if (bulkModal && bulkConfirm) {
+      if (bulkSearch) {
+        bulkSearch.addEventListener('input', function () {
+          const term = this.value.trim().toLowerCase();
+          bulkRows.forEach(function (row) {
+            const label = (row.getAttribute('data-label') || '').toLowerCase();
+            row.style.display = term ? (label.indexOf(term) !== -1 ? '' : 'none') : '';
+          });
+        });
+      }
+      bulkConfirm.addEventListener('click', function () {
+        const relation = bulkRelation ? bulkRelation.value : '';
+        bulkCheckboxes.forEach(function (cb) {
+          if (!cb.checked) return;
+          const identifier = cb.value;
+          if (!identifier || container.querySelector('.event-row[data-event-id="' + identifier + '"]')) {
+            cb.checked = false;
+            return;
+          }
+          const name = cb.getAttribute('data-name') || '未指定活动';
+          const row = createRow(identifier, name, relation, '');
+          container.appendChild(row);
+          attachRow(row);
+          cb.checked = false;
+        });
+        toggleEmptyMessage(container, 'eventsEmptyHint', '尚未记录活动关联，点击“批量新增”选择。', '.event-row');
+      });
+    }
+  })();
+</script>
+
+{% endblock %}

@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+{% block content %}
+{% set is_edit = event is not none %}
+{% set form_id = 'eventForm' %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">{{ '编辑事项' if is_edit else '新建事项' }}</h2>
+  {% if is_edit and event.owner_id == current_user.id %}
+  <form method="post" action="{{ url_for('delete_event', event_id=event.id) }}" onsubmit="return confirm('确认删除该事项？此操作不可恢复。');">
+    <button type="submit" class="btn btn-outline-danger">删除事项</button>
+  </form>
+  {% endif %}
+</div>
+
+<form method="post" id="{{ form_id }}" class="needs-validation" novalidate enctype="multipart/form-data">
+  {% set owner_controls = (not is_edit) or (event and event.owner_id == current_user.id) %}
+  {% set selected_locations = form_state.location_ids | list %}
+  {% set selected_items = form_state.item_ids | list %}
+  {% set selected_participants = form_state.participant_ids | list %}
+  <input type="hidden" name="location_selection_touched" id="locationSelectionTouched" value="{{ form_state.location_selection_touched or '0' }}">
+  <input type="hidden" name="item_selection_touched" id="itemSelectionTouched" value="{{ form_state.item_selection_touched or '0' }}">
+  <input type="hidden" name="participant_selection_touched" id="participantSelectionTouched" value="{{ form_state.participant_selection_touched or '0' }}">
+  <input type="hidden" name="start_time_touched" id="startTimeTouched" value="{{ form_state.start_time_touched or '0' }}">
+  <input type="hidden" name="end_time_touched" id="endTimeTouched" value="{{ form_state.end_time_touched or '0' }}">
+  <div class="row g-3">
+    <div class="col-md-8">
+      <div class="mb-3">
+        <label class="form-label" for="title">事项标题 *</label>
+        <input type="text" class="form-control" id="title" name="title" value="{{ form_state.title }}" required>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="start_time">开始时间</label>
+          <input type="datetime-local" class="form-control" id="start_time" name="start_time" value="{{ form_state.start_time }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="end_time">结束时间</label>
+          <input type="datetime-local" class="form-control" id="end_time" name="end_time" value="{{ form_state.end_time }}">
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="description">事项内容</label>
+        <textarea class="form-control" id="description" name="description" rows="6" placeholder="描述活动目的、流程、注意事项等...">{{ form_state.description }}</textarea>
+        <div class="form-text">在描述中提到的物品或位置会自动匹配已有记录，未选择的会提示你补充。</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="detail_link">活动详情链接</label>
+        <input type="url" class="form-control" id="detail_link" name="detail_link" placeholder="https://..." value="{{ form_state.detail_link }}">
+        <div class="form-text">可选。如果有协作文档或活动公告，可贴上链接方便查阅。</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="event_attachments">活动媒体（图片 / 视频 / 音频）</label>
+        <input type="file" class="form-control" id="event_attachments" name="event_attachments" accept="image/*,video/*,audio/*" multiple data-direct-upload="oss" data-remote-field="event_attachments_remote_keys">
+        <div class="form-text">支持批量上传，单个文件建议小于 2500 MB。</div>
+        {% if direct_upload_config.enabled %}
+        <div class="form-text text-success">文件选择后将直接上传到 OSS，上传完毕后提交表单即可。</div>
+        {% endif %}
+        <div class="mt-3">
+          <label class="form-label" for="externalEventAttachmentUrls">外部媒体链接</label>
+          <textarea class="form-control" id="externalEventAttachmentUrls" name="external_event_attachment_urls" rows="2" placeholder="每行一个 http(s):// 链接">{{ form_state.external_attachment_urls }}</textarea>
+          <div class="form-text">可粘贴 OSS / 图床 / 视频或音频外链，上传与外链的展示样式保持一致。</div>
+        </div>
+      </div>
+      {% if is_edit and event.attachments %}
+      <div class="mb-3">
+        <label class="form-label">已上传媒资</label>
+        {% set preview_limit = 4 %}
+        <div class="d-flex flex-wrap gap-3" id="existingEventMedia">
+          {% for attachment in event.attachments %}
+            {% set media_kind_value = media_kind(attachment.filename) %}
+            {% set media_url = uploaded_media_url(attachment.filename) %}
+            {% set media_name = media_display_name(attachment.filename) %}
+            {% set is_collapsed = loop.index0 >= preview_limit %}
+            <div class="media-card flex-column align-items-stretch{% if is_collapsed %} d-none{% endif %}"
+                 data-kind="{{ media_kind_value }}"
+                 {% if is_collapsed %}data-collapsed="true" aria-hidden="true" hidden{% endif %}>
+              {% if media_kind_value == 'image' %}
+              <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+                   data-lazy-src="{{ media_url }}"
+                   alt="活动媒资"
+                   class="media-card-img"
+                   loading="lazy"
+                   decoding="async">
+              {% elif media_kind_value == 'video' %}
+              <div class="media-placeholder" data-kind="video">
+                <div class="media-placeholder-header">
+                  <span class="media-tag">{{ media_kind_labels.get('video', '视频') }}</span>
+                  {% if media_name %}<span class="media-name" title="{{ media_name }}">{{ media_name }}</span>{% endif %}
+                </div>
+                <button type="button" class="btn btn-sm btn-primary media-play-btn" data-kind="video" data-src="{{ media_url }}">预览视频</button>
+              </div>
+              {% elif media_kind_value == 'audio' %}
+              <div class="media-placeholder" data-kind="audio">
+                <div class="media-placeholder-header">
+                  <span class="media-tag">{{ media_kind_labels.get('audio', '音频') }}</span>
+                  {% if media_name %}<span class="media-name" title="{{ media_name }}">{{ media_name }}</span>{% endif %}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary media-play-btn" data-kind="audio" data-src="{{ media_url }}">预览音频</button>
+              </div>
+              {% else %}
+              <a href="{{ media_url }}" target="_blank" rel="noopener" class="media-file-link">
+                <span class="media-tag">{{ media_kind_labels.get(media_kind_value, '文件') }}</span>
+                <span class="media-name">{{ media_name or media_url }}</span>
+              </a>
+              {% endif %}
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" value="{{ attachment.id }}" id="removeAttachment{{ attachment.id }}" name="remove_event_attachment_ids">
+                <label class="form-check-label small" for="removeAttachment{{ attachment.id }}">删除该媒资</label>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        {% if event.attachments|length > preview_limit %}
+        <div class="mt-2">
+          <button type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  data-action="toggle-media-collapse"
+                  data-target="#existingEventMedia"
+                  data-collapsed-text="展开全部 {{ event.attachments|length }} 个媒资"
+                  data-expanded-text="收起部分媒资">
+            展开全部 {{ event.attachments|length }} 个媒资
+          </button>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <div class="col-md-4">
+      <div class="mb-3">
+        <label class="form-label d-block">可见性</label>
+        <div class="d-flex flex-column gap-2">
+          <input class="btn-check visibility-toggle" type="radio" name="visibility" value="personal" id="visPersonal" {% if form_state.visibility == 'personal' %}checked{% endif %}>
+          <label class="card-select card-select-surface btn btn-outline-secondary text-start p-3 rounded-3 shadow-sm" for="visPersonal">
+            <div class="fw-semibold d-flex justify-content-between align-items-center">
+              <span>个人事项</span>
+              <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+            </div>
+            <div class="text-muted small card-select-hint">仅自己可见，之后可改成其他模式。</div>
+          </label>
+          <input class="btn-check visibility-toggle" type="radio" name="visibility" value="internal" id="visInternal" {% if form_state.visibility == 'internal' %}checked{% endif %}>
+          <label class="card-select card-select-surface btn btn-outline-secondary text-start p-3 rounded-3 shadow-sm" for="visInternal">
+            <div class="fw-semibold d-flex justify-content-between align-items-center">
+              <span>内部事项</span>
+              <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+            </div>
+            <div class="text-muted small card-select-hint">仅选中的成员可见，需指定参与人。</div>
+          </label>
+          <input class="btn-check visibility-toggle" type="radio" name="visibility" value="public" id="visPublic" {% if form_state.visibility == 'public' %}checked{% endif %}>
+          <label class="card-select card-select-surface btn btn-outline-secondary text-start p-3 rounded-3 shadow-sm" for="visPublic">
+            <div class="fw-semibold d-flex justify-content-between align-items-center">
+              <span>公开事项</span>
+              <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+            </div>
+            <div class="text-muted small card-select-hint">所有成员可见，可自由报名。</div>
+          </label>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">活动地点</label>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <div id="eventLocationsSummary" class="d-flex flex-wrap gap-2 border rounded-3 px-3 py-2 bg-body-secondary text-body"></div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#eventLocationsModal">管理地点</button>
+        </div>
+        <div class="form-text text-muted">选择活动涉及的地点，可多选。</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">所需物品</label>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <div id="eventItemsSummary" class="d-flex flex-wrap gap-2 border rounded-3 px-3 py-2 bg-body-secondary text-body"></div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#eventItemsModal">管理物品</button>
+        </div>
+        <div class="form-text text-muted">列出事项需要提前准备的物品。</div>
+      </div>
+      <div class="mb-3" id="participantWrapper">
+        <label class="form-label">参与成员</label>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <div id="eventParticipantsSummary" class="d-flex flex-wrap gap-2 border rounded-3 px-3 py-2 bg-body-secondary text-body"></div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#eventParticipantsModal"
+                  {% if not owner_controls %}disabled title="仅事项负责人可调整成员"{% endif %}>管理成员</button>
+        </div>
+        <div class="form-text text-muted">内部事项需指定参与人；公开事项可预先指定默认参与者，其他成员可在详情页报名。</div>
+      </div>
+      <div class="mb-3" id="participantEditWrapper" {% if form_state.visibility != 'internal' %}style="display:none"{% endif %}>
+        <label class="form-label">编辑权限</label>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" value="1" id="allowParticipantEditToggle" name="allow_participant_edit"
+                 {% if form_state.allow_participant_edit %}checked{% endif %}
+                 {% if not owner_controls %}disabled{% endif %}>
+          <label class="form-check-label" for="allowParticipantEditToggle">允许内部参与成员一并编辑事项内容与媒体</label>
+        </div>
+        <div class="form-text text-muted">仅在选择“内部事项”时生效，方便小组成员共同维护。公开与个人事项下将自动关闭。</div>
+      </div>
+    </div>
+</div>
+<div class="modal fade" id="eventLocationsModal" tabindex="-1" aria-labelledby="eventLocationsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventLocationsModalLabel">选择活动地点</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <input type="search" class="form-control form-control-sm mb-3" id="eventLocationsSearch" placeholder="搜索地点名称">
+        <div class="selection-panel rounded-3 p-2" style="max-height: 320px; overflow-y: auto;">
+          {% for location in locations %}
+          <div class="event-location-row mb-2" data-label="{{ location.name|lower }}">
+            <input class="btn-check event-location-checkbox" type="checkbox" form="{{ form_id }}" name="location_ids" value="{{ location.id }}"
+                   id="eventLocation{{ location.id }}" data-label="{{ location.name }}"
+                   {% if location.id in selected_locations %}checked{% endif %}>
+            <label class="card-select card-select-surface d-flex justify-content-between align-items-center w-100 p-3 border rounded-3 shadow-sm" for="eventLocation{{ location.id }}">
+              <span class="fw-semibold">{{ location.name }}</span>
+              <span class="text-muted small">
+                <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+                <span class="card-select-hint">点击选择</span>
+              </span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="eventLocationsClearBtn">清除全部</button>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="eventItemsModal" tabindex="-1" aria-labelledby="eventItemsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventItemsModalLabel">选择所需物品</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <input type="search" class="form-control form-control-sm mb-3" id="eventItemsSearch" placeholder="搜索物品名称">
+        <div class="selection-panel rounded-3 p-2" style="max-height: 320px; overflow-y: auto;">
+          {% for item in items %}
+          <div class="event-item-row mb-2" data-label="{{ item.name|lower }}">
+            <input class="btn-check event-item-checkbox" type="checkbox" form="{{ form_id }}" name="item_ids" value="{{ item.id }}"
+                   id="eventItem{{ item.id }}" data-label="{{ item.name }}"
+                   {% if item.id in selected_items %}checked{% endif %}>
+            <label class="card-select card-select-surface d-flex justify-content-between align-items-center w-100 p-3 border rounded-3 shadow-sm" for="eventItem{{ item.id }}">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-semibold">{{ item.name }}</span>
+                {% set item_status = normalize_item_stock_status(item.status) %}
+                {% if item_status %}
+                  {% set status_intent = stock_status_intent(item_status) %}
+                  <span class="badge badge-item-status badge-item-status-{{ status_intent }}">{{ item_status }}</span>
+                {% endif %}
+              </div>
+              <span class="text-muted small">
+                <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+                <span class="card-select-hint">点击选择</span>
+              </span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="eventItemsClearBtn">清除全部</button>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="eventParticipantsModal" tabindex="-1" aria-labelledby="eventParticipantsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventParticipantsModalLabel">选择参与成员</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <input type="search" class="form-control form-control-sm mb-3" id="eventParticipantsSearch" placeholder="搜索姓名或用户名">
+        <div class="selection-panel rounded-3 p-2" style="max-height: 320px; overflow-y: auto;">
+          {% for member in members %}
+          {% if member.id != current_user.id %}
+          <div class="event-participant-row mb-2" data-label="{{ (member.name or member.username)|lower }}">
+            <input class="btn-check event-participant-checkbox" type="checkbox" form="{{ form_id }}" name="participant_ids" value="{{ member.id }}"
+                   id="eventParticipant{{ member.id }}" data-label="{{ member.name or member.username }}"
+                   {% if member.id in selected_participants %}checked{% endif %}>
+            <label class="card-select card-select-surface d-flex justify-content-between align-items-center w-100 p-3 border rounded-3 shadow-sm" for="eventParticipant{{ member.id }}">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-semibold">{{ member.name or member.username }}</span>
+                {% if member.username and member.name and member.username != member.name %}
+                  <span class="badge bg-light text-muted border">@{{ member.username }}</span>
+                {% endif %}
+              </div>
+              <span class="text-muted small">
+                <span class="card-select-mark badge bg-primary-subtle text-primary-emphasis border">已选</span>
+                <span class="card-select-hint">点击选择</span>
+              </span>
+            </label>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="eventParticipantsClearBtn">清除全部</button>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="mt-4 d-flex justify-content-end gap-2">
+  <a class="btn btn-outline-secondary" href="{{ url_for('events_overview') }}">取消</a>
+  <button type="submit" class="btn btn-primary">{{ '保存修改' if is_edit else '创建事项' }}</button>
+</div>
+</form>
+
+<script>
+  const visibilityRadios = document.querySelectorAll('.visibility-toggle');
+  const participantWrapper = document.getElementById('participantWrapper');
+  const participantEditWrapper = document.getElementById('participantEditWrapper');
+  const participantEditToggle = document.getElementById('allowParticipantEditToggle');
+  const participantCheckboxes = Array.prototype.slice.call(document.querySelectorAll('.event-participant-checkbox'));
+  const startTimeInput = document.getElementById('start_time');
+  const endTimeInput = document.getElementById('end_time');
+  const locationSelectionTouchedInput = document.getElementById('locationSelectionTouched');
+  const itemSelectionTouchedInput = document.getElementById('itemSelectionTouched');
+  const participantSelectionTouchedInput = document.getElementById('participantSelectionTouched');
+  const startTimeTouchedInput = document.getElementById('startTimeTouched');
+  const endTimeTouchedInput = document.getElementById('endTimeTouched');
+
+  function markSelectionTouched(input) {
+    if (input) {
+      input.value = '1';
+    }
+  }
+
+  if (startTimeInput) {
+    ['input', 'change'].forEach(function (evt) {
+      startTimeInput.addEventListener(evt, function () { markSelectionTouched(startTimeTouchedInput); });
+    });
+  }
+  if (endTimeInput) {
+    ['input', 'change'].forEach(function (evt) {
+      endTimeInput.addEventListener(evt, function () { markSelectionTouched(endTimeTouchedInput); });
+    });
+  }
+
+  function initSelectionControl(config) {
+    const summary = document.getElementById(config.summaryId);
+    const modal = document.getElementById(config.modalId);
+    if (!summary) {
+      return null;
+    }
+    if (!modal) {
+      summary.innerHTML = '<span class="text-muted">' + (config.emptyText || '未选择') + '</span>';
+      return null;
+    }
+    const searchInput = config.searchInputId ? document.getElementById(config.searchInputId) : null;
+    const clearBtn = config.clearBtnId ? document.getElementById(config.clearBtnId) : null;
+    const checkboxes = Array.prototype.slice.call(modal.querySelectorAll(config.checkboxSelector));
+    const rows = config.rowSelector ? Array.prototype.slice.call(modal.querySelectorAll(config.rowSelector)) : [];
+    const emptyText = config.emptyText || '未选择';
+    const updateSummary = function () {
+      const selected = checkboxes.filter(function (cb) { return cb.checked && !cb.disabled; });
+      if (!selected.length) {
+        summary.innerHTML = '<span class="text-muted">' + emptyText + '</span>';
+      } else {
+        summary.innerHTML = selected.map(function (cb) {
+          const label = cb.getAttribute('data-label') || cb.value;
+          return '<span class="badge bg-light text-dark border me-1">' + label + '</span>';
+        }).join('');
+      }
+    };
+    const notifySelectionChanged = typeof config.onSelectionChanged === 'function' ? config.onSelectionChanged : null;
+    checkboxes.forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        if (notifySelectionChanged) {
+          notifySelectionChanged();
+        }
+        updateSummary();
+      });
+    });
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        const term = searchInput.value.trim().toLowerCase();
+        rows.forEach(function (row) {
+          const label = (row.getAttribute('data-label') || '').toLowerCase();
+          row.style.display = term ? (label.indexOf(term) !== -1 ? '' : 'none') : '';
+        });
+      });
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        checkboxes.forEach(function (cb) { if (!cb.disabled) { cb.checked = false; } });
+        if (notifySelectionChanged) {
+          notifySelectionChanged();
+        }
+        updateSummary();
+      });
+    }
+    modal.addEventListener('hidden.bs.modal', function () {
+      if (searchInput) {
+        searchInput.value = '';
+      }
+      rows.forEach(function (row) { row.style.display = ''; });
+      updateSummary();
+    });
+    modal.addEventListener('shown.bs.modal', function () {
+      if (searchInput) {
+        searchInput.focus();
+      }
+    });
+    updateSummary();
+    return { checkboxes: checkboxes, updateSummary: updateSummary, summary: summary, emptyText: emptyText };
+  }
+
+  const locationsControl = initSelectionControl({
+    summaryId: 'eventLocationsSummary',
+    modalId: 'eventLocationsModal',
+    checkboxSelector: '.event-location-checkbox',
+    rowSelector: '.event-location-row',
+    searchInputId: 'eventLocationsSearch',
+    clearBtnId: 'eventLocationsClearBtn',
+    emptyText: '未选择地点',
+    onSelectionChanged: function () { markSelectionTouched(locationSelectionTouchedInput); }
+  });
+
+  const itemsControl = initSelectionControl({
+    summaryId: 'eventItemsSummary',
+    modalId: 'eventItemsModal',
+    checkboxSelector: '.event-item-checkbox',
+    rowSelector: '.event-item-row',
+    searchInputId: 'eventItemsSearch',
+    clearBtnId: 'eventItemsClearBtn',
+    emptyText: '未选择物品',
+    onSelectionChanged: function () { markSelectionTouched(itemSelectionTouchedInput); }
+  });
+
+  const participantsControl = initSelectionControl({
+    summaryId: 'eventParticipantsSummary',
+    modalId: 'eventParticipantsModal',
+    checkboxSelector: '.event-participant-checkbox',
+    rowSelector: '.event-participant-row',
+    searchInputId: 'eventParticipantsSearch',
+    clearBtnId: 'eventParticipantsClearBtn',
+    emptyText: '未选择成员',
+    onSelectionChanged: function () { markSelectionTouched(participantSelectionTouchedInput); }
+  });
+
+  function toggleParticipants() {
+    const checked = document.querySelector('.visibility-toggle:checked');
+    if (!participantWrapper || !checked) {
+      return;
+    }
+    const isVisible = checked.value !== 'personal';
+    participantWrapper.style.display = isVisible ? 'block' : 'none';
+    participantCheckboxes.forEach(function (cb) {
+      cb.disabled = !isVisible;
+    });
+    if (participantsControl) {
+      if (isVisible) {
+        participantsControl.updateSummary();
+      } else {
+        participantsControl.summary.innerHTML = '<span class="text-muted">个人事项无需指定成员</span>';
+      }
+    }
+    if (participantEditWrapper) {
+      const isInternal = checked.value === 'internal';
+      participantEditWrapper.style.display = isInternal ? 'block' : 'none';
+      if (!isInternal && participantEditToggle && !participantEditToggle.disabled) {
+        participantEditToggle.checked = false;
+      }
+    }
+  }
+
+  visibilityRadios.forEach(function (radio) {
+    radio.addEventListener('change', toggleParticipants);
+  });
+  toggleParticipants();
+</script>
+{% endblock %}
