@@ -124,7 +124,7 @@ wait_health() {
 cmd_install() {
   info "安装依赖"
   (
-    cd "$PROJECT_PATH"
+    cd "$PROJECT_PATH/apps/api"
     "$PYTHON_BIN" -m pip install -q --upgrade pip
     "$PYTHON_BIN" -m pip install -q -e ".[dev]"
   )

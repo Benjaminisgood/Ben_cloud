@@ -7,6 +7,7 @@ name = "benfer-api"
 version = "1.0.0"
 requires-python = ">=3.10"
 dependencies = [
+    "alembic==1.16.5",
     "fastapi==0.109.0",
     "uvicorn[standard]==0.27.0",
     "python-multipart==0.0.6",

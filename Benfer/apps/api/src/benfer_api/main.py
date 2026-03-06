@@ -7,7 +7,6 @@ from pathlib import Path
 import uvicorn
 
 from benfer_api.core.config import get_settings
-from benfer_api.db.database import init_db
 from benfer_api.api.routes import files, auth
 
 settings = get_settings()
@@ -49,8 +48,7 @@ async def serve_frontend():
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database on startup"""
-    init_db()
+    """Startup hook."""
     print(f"Benfer service started on {settings.HOST}:{settings.PORT}")
 
 

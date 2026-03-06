@@ -90,11 +90,41 @@ activate_venv() {
 
 ensure_deps() {
   local venv_python="$VENV_DIR/bin/python"
-  if ! "$venv_python" -c "import benfer_api, fastapi, sqlalchemy, gunicorn" >/dev/null 2>&1; then
+  if ! "$venv_python" -c "import benfer_api, fastapi, gunicorn, sqlalchemy" >/dev/null 2>&1; then
     info "Installing/updating dependencies"
     "$venv_python" -m pip install -q --upgrade pip
     "$venv_python" -m pip install -q -e "$API_DIR"
   fi
+}
+
+resolve_alembic_python() {
+  local venv_python="$VENV_DIR/bin/python"
+  if "$venv_python" -m alembic --help >/dev/null 2>&1; then
+    echo "$venv_python"
+    return
+  fi
+
+  if command -v python3 >/dev/null 2>&1 && python3 -m alembic --help >/dev/null 2>&1; then
+    echo "$(command -v python3)"
+    return
+  fi
+
+  if "$PYTHON_BIN" -m alembic --help >/dev/null 2>&1; then
+    echo "$PYTHON_BIN"
+    return
+  fi
+
+  die "alembic is not available; run './benfer.sh install' first"
+}
+
+run_migrations() {
+  local alembic_python
+  alembic_python="$(resolve_alembic_python)"
+  info "Applying Alembic migrations"
+  (
+    cd "$API_DIR"
+    PYTHONPATH=src "$alembic_python" -m alembic upgrade head
+  )
 }
 
 is_running() {
@@ -212,6 +242,7 @@ start() {
   ensure_venv
   activate_venv
   ensure_deps
+  run_migrations
 
   if is_running; then
     local pid
@@ -252,6 +283,29 @@ start() {
 
   error "Failed to start, check logs: $LOG_FILE"
   return 1
+}
+
+db_upgrade() {
+  load_env
+  ensure_dirs
+  ensure_venv
+  activate_venv
+  ensure_deps
+  run_migrations
+}
+
+db_current() {
+  local alembic_python
+  alembic_python="$(resolve_alembic_python)"
+  load_env
+  ensure_dirs
+  ensure_venv
+  activate_venv
+  ensure_deps
+  (
+    cd "$API_DIR"
+    PYTHONPATH=src "$alembic_python" -m alembic current
+  )
 }
 
 stop() {
@@ -338,6 +392,8 @@ resolve_python_bin
 
 case "${1:-}" in
   install) install_cmd ;;
+  db-upgrade) db_upgrade ;;
+  db-current) db_current ;;
   start) start ;;
   stop) stop ;;
   restart) restart ;;
@@ -346,7 +402,7 @@ case "${1:-}" in
   ip) ip ;;
   update) update ;;
   *)
-    echo "Usage: $0 {install|start|stop|restart|status|logs|ip|update}"
+    echo "Usage: $0 {install|db-upgrade|db-current|start|stop|restart|status|logs|ip|update}"
     exit 1
     ;;
 esac

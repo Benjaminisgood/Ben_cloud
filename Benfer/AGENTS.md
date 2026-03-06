@@ -56,8 +56,10 @@ Benfer 是 Ben_cloud 的剪贴板与文件中转子应用，核心职责：
 ## 数据库迁移规则（强制）
 
 1. Schema 变更必须走 Alembic，禁止 ad-hoc 直接改表。
-2. 目前代码存在 `create_all` 启动初始化逻辑，新增 schema 时不得继续扩展该路径，需补齐 Alembic 迁移链路。
+2. 服务启动前通过 `alembic upgrade head` 应用迁移，禁止恢复 `create_all` 作为主路径。
 3. 禁止直接 patch 线上数据库文件。
+
+当前 baseline revision：`20260306_0001`（`apps/api/alembic/versions/20260306_0001_baseline_schema.py`）。
 
 ## Agent 修改约束
 
@@ -66,4 +68,3 @@ Benfer 是 Ben_cloud 的剪贴板与文件中转子应用，核心职责：
 3. 上传安全边界必须保留：文件大小上限、`content_type` 白名单、分片数量约束。
 4. 所有资源读写必须保留用户归属校验（owner check），禁止越权访问。
 5. 修改完成后至少执行启动冒烟：`./benfer.sh start` + `GET /health`。
-

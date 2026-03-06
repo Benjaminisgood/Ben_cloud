@@ -54,6 +54,11 @@ make check
 
 默认地址：`http://localhost:8600`
 
+## 工程结构约定
+
+- 依赖与打包配置统一放在 `apps/api/pyproject.toml`
+- 运行入口仍为根目录 `app.py`，主业务代码在 `apps/`
+
 ## 当前能力说明
 
 1. 安全基线
