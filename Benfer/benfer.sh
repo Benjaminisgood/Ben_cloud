@@ -173,14 +173,7 @@ collect_project_port_pids() {
 }
 
 check_port_free() {
-  if [ -n "$(list_listening_pids)" ]; then
-    error "Port in use: $PORT"
-    if [ -n "$(collect_project_port_pids)" ]; then
-      warn "Port appears to be occupied by this project; run './benfer.sh stop' first."
-    fi
-    lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
-    exit 1
-  fi
+  force_stop_port_listeners
 }
 
 wait_for_pid() {
@@ -224,6 +217,37 @@ stop_port_listeners_if_owned() {
     return 0
   fi
   return 1
+}
+
+force_stop_port_listeners() {
+  local pids
+  pids="$(list_listening_pids)"
+  [ -z "$pids" ] && return 0
+
+  warn "Port $PORT is occupied by other process(es): $pids; terminating them."
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+  kill $pids 2>/dev/null || true
+  sleep 1
+
+  pids="$(list_listening_pids)"
+  if [ -z "$pids" ]; then
+    info "Cleared port $PORT"
+    return 0
+  fi
+
+  warn "Graceful stop timed out on port $PORT, force kill: $pids"
+  kill -9 $pids 2>/dev/null || true
+  sleep 1
+
+  pids="$(list_listening_pids)"
+  if [ -z "$pids" ]; then
+    info "Cleared port $PORT (forced)"
+    return 0
+  fi
+
+  error "Failed to clear port $PORT"
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+  exit 1
 }
 
 install_cmd() {
@@ -315,8 +339,7 @@ stop() {
       return 0
     fi
     if [ -n "$(list_listening_pids)" ]; then
-      warn "Service PID is not tracked, and port $PORT is occupied by a non-project process."
-      lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+      force_stop_port_listeners
     else
       warn "Service is not running"
     fi

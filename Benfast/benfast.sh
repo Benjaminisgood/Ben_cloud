@@ -95,12 +95,48 @@ list_listening_pids() {
   lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | awk '!seen[$0]++'
 }
 
-check_port_free() {
-  if [ -n "$(list_listening_pids)" ]; then
-    error "Port in use: $PORT"
-    lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
-    exit 1
+wait_for_port_release() {
+  local retries=50
+  while [ "$retries" -gt 0 ]; do
+    if [ -z "$(list_listening_pids)" ]; then
+      return 0
+    fi
+    sleep 0.2
+    retries=$((retries - 1))
+  done
+  return 1
+}
+
+force_stop_port_listeners() {
+  local pids
+  pids="$(list_listening_pids)"
+  [ -z "$pids" ] && return 0
+
+  warn "Port $PORT is occupied by other process(es): $pids; terminating them."
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+  kill $pids 2>/dev/null || true
+
+  if wait_for_port_release; then
+    info "Cleared port $PORT"
+    return 0
   fi
+
+  pids="$(list_listening_pids)"
+  warn "Graceful stop timed out on port $PORT, force kill: $pids"
+  [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+
+  if wait_for_port_release; then
+    info "Cleared port $PORT (forced)"
+    return 0
+  fi
+
+  error "Failed to clear port $PORT"
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+  exit 1
+}
+
+check_port_free() {
+  force_stop_port_listeners
 }
 
 wait_for_health() {
@@ -173,6 +209,9 @@ start_cmd() {
 
 stop_cmd() {
   if ! is_running; then
+    if [ -n "$(list_listening_pids)" ]; then
+      force_stop_port_listeners
+    fi
     rm -f "$PID_FILE"
     info "benfast stopped port=$PORT"
     return 0
@@ -186,6 +225,7 @@ stop_cmd() {
     kill -9 "$pid" 2>/dev/null || true
   fi
   rm -f "$PID_FILE"
+  [ -n "$(list_listening_pids)" ] && force_stop_port_listeners
   info "benfast stopped port=$PORT"
 }
 

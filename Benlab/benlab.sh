@@ -199,15 +199,35 @@ stop_port_listeners_if_owned() {
   return 1
 }
 
-check_port_free() {
-  if [ -n "$(list_listening_pids)" ]; then
-    error "端口被占用: $PORT"
-    if [ -n "$(collect_project_port_pids)" ]; then
-      warn "该端口疑似被本项目进程占用，请先执行 './benlab.sh stop'"
-    fi
-    lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
-    exit 1
+force_stop_port_listeners() {
+  local pids
+  pids="$(list_listening_pids)"
+  [ -z "$pids" ] && return 0
+
+  warn "端口 $PORT 被其他进程占用: $pids，正在终止"
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+  kill $pids 2>/dev/null || true
+
+  if wait_for_port_release; then
+    info "端口 $PORT 已释放"
+    return 0
   fi
+
+  warn "优雅停止超时，强制终止端口 $PORT 进程: $pids"
+  kill -9 $pids 2>/dev/null || true
+
+  if wait_for_port_release; then
+    info "端口 $PORT 已强制释放"
+    return 0
+  fi
+
+  error "无法释放端口 $PORT"
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+  exit 1
+}
+
+check_port_free() {
+  force_stop_port_listeners
 }
 
 install_cmd() {
@@ -282,8 +302,7 @@ stop() {
       return 0
     fi
     if [ -n "$(list_listening_pids)" ]; then
-      warn "未检测到 PID 文件对应进程，且端口 $PORT 被非本项目进程占用"
-      lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+      force_stop_port_listeners
     else
       warn "服务未运行"
     fi

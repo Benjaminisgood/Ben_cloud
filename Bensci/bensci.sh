@@ -87,6 +87,50 @@ ensure_deps() {
     fi
 }
 
+list_listening_pids() {
+    lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | awk '!seen[$0]++'
+}
+
+wait_for_port_release() {
+    local retries=60
+    while [ "$retries" -gt 0 ]; do
+        if [ -z "$(list_listening_pids)" ]; then
+            return 0
+        fi
+        sleep 0.5
+        retries=$((retries - 1))
+    done
+    return 1
+}
+
+force_stop_port_listeners() {
+    local pids
+    pids="$(list_listening_pids)"
+    [ -z "$pids" ] && return 0
+
+    echo "[WARN] Port $PORT is occupied by process(es): $pids; terminating them."
+    lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+    kill $pids 2>/dev/null || true
+
+    if wait_for_port_release; then
+        echo "[INFO] Cleared port $PORT"
+        return 0
+    fi
+
+    pids="$(list_listening_pids)"
+    echo "[WARN] Graceful stop timed out on port $PORT, force kill: $pids"
+    [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+
+    if wait_for_port_release; then
+        echo "[INFO] Cleared port $PORT (forced)"
+        return 0
+    fi
+
+    echo "[ERROR] Failed to clear port $PORT"
+    lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+    exit 1
+}
+
 wait_for_health() {
     local retries=60
     while [ "$retries" -gt 0 ]; do
@@ -121,6 +165,8 @@ start() {
         echo "[WARN] Service is already running (PID=$(cat $PID_FILE))"
         exit 1
     fi
+
+    force_stop_port_listeners
 
     echo "[INFO] Starting CATAPEDIA Metadata Service on $HOST:$PORT with $WORKERS workers..."
 
@@ -163,6 +209,7 @@ stop() {
         rm -f "$PID_FILE"
         echo "[OK] Service stopped"
     else
+        force_stop_port_listeners
         echo "[INFO] Service is not running"
     fi
 }

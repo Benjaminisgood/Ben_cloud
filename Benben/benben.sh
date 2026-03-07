@@ -129,6 +129,45 @@ port_listener_pid() {
   fi
 }
 
+port_listener_pids() {
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | awk '!seen[$0]++'
+  else
+    echo ""
+  fi
+}
+
+force_stop_port_listeners() {
+  local pids
+  pids="$(port_listener_pids || true)"
+  [ -z "$pids" ] && return 0
+
+  warn "端口 $PORT 被进程占用 ($pids)，正在终止"
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+  kill $pids 2>/dev/null || true
+  sleep 0.5
+
+  pids="$(port_listener_pids || true)"
+  if [ -z "$pids" ]; then
+    info "端口 $PORT 已释放"
+    return 0
+  fi
+
+  warn "优雅停止超时，强制终止端口 $PORT 进程: $pids"
+  kill -9 $pids 2>/dev/null || true
+  sleep 0.5
+
+  pids="$(port_listener_pids || true)"
+  if [ -z "$pids" ]; then
+    info "端口 $PORT 已强制释放"
+    return 0
+  fi
+
+  error "无法释放端口 $PORT"
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+  exit 1
+}
+
 wait_health() {
   local retries=30
   while [ "$retries" -gt 0 ]; do
@@ -164,11 +203,7 @@ cmd_start() {
     return 0
   fi
 
-  local occupy_pid
-  occupy_pid="$(port_listener_pid || true)"
-  if [ -n "$occupy_pid" ]; then
-    warn "端口 $PORT 已被占用（pid=${occupy_pid}），尝试继续启动可能失败"
-  fi
+  force_stop_port_listeners
 
   info "启动 Benben (port=$PORT)"
   (
@@ -190,6 +225,7 @@ cmd_start() {
 
 cmd_stop() {
   if ! is_running; then
+    force_stop_port_listeners
     info "benben stopped port=$PORT"
     rm -f "$PID_FILE"
     return 0
@@ -203,6 +239,7 @@ cmd_stop() {
     kill -9 "$pid" 2>/dev/null || true
   fi
   rm -f "$PID_FILE"
+  force_stop_port_listeners
   info "benben stopped port=$PORT"
 }
 

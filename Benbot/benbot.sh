@@ -222,36 +222,6 @@ _is_our_pid() {
   return 1
 }
 
-# ─── 端口冲突自动解决 ─────────────────────────────────────────────────────────
-# 策略：
-#   1. 端口空闲 → 直接通过
-#   2. 端口被本项目残留进程占用 → 杀掉，继续
-#   3. 端口被外部进程占用 → 自动找下一个空闲端口，更新 .env，继续
-_write_port_to_env() {
-  local new_port="$1"
-  if [ ! -f "$ENV_FILE" ]; then
-    echo "PORT=$new_port" > "$ENV_FILE"
-    return
-  fi
-  if grep -q "^PORT=" "$ENV_FILE" 2>/dev/null; then
-    # awk 改写（同时兼容 macOS / Linux）
-    awk -v p="$new_port" -F= '
-      $1=="PORT" { print "PORT=" p; next } { print }
-    ' "$ENV_FILE" > "${ENV_FILE}.tmp" && mv "${ENV_FILE}.tmp" "$ENV_FILE"
-  else
-    echo "PORT=$new_port" >> "$ENV_FILE"
-  fi
-}
-
-_find_free_port() {
-  local p="$1" limit=$(( $1 + 50 ))
-  while [ "$p" -le "$limit" ]; do
-    [ -z "$(_port_pids_for_port "$p")" ] && echo "$p" && return 0
-    p=$(( p + 1 ))
-  done
-  return 1
-}
-
 ensure_port_free() {
   if ! has_cmd lsof && ! has_cmd ss && ! has_cmd netstat; then
     warn "未安装 lsof/ss/netstat，跳过启动前端口占用预检，将在启动后做探活校验"
@@ -262,36 +232,28 @@ ensure_port_free() {
   pids="$(_port_pids)"
   [ -z "$pids" ] && return 0   # ✓ 端口空闲
 
-  # 检查是否全部是本项目的残留进程
-  local all_ours=1 pid
-  for pid in $pids; do
-    _is_our_pid "$pid" || { all_ours=0; break; } || true
-  done
+  warn "端口 $PORT 被进程占用 ($pids)，正在终止..."
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN || true
+  kill $pids 2>/dev/null || true
+  sleep 0.5
 
-  if [ "$all_ours" -eq 1 ]; then
-    warn "端口 $PORT 有本项目残留进程 ($pids)，正在清理..."
-    kill $pids 2>/dev/null || true
-    sleep 0.5
-    # 若仍未释放则强杀
-    pids="$(_port_pids)"
-    [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
-    info "残留进程已清理"
+  pids="$(_port_pids)"
+  if [ -z "$pids" ]; then
+    info "端口 $PORT 已释放"
     return 0
   fi
 
-  # 端口被外部进程占用 → 自动换端口
-  local occupier
-  occupier="$(ps -o comm= -p "$(printf '%s' "$pids" | head -1)" 2>/dev/null || echo "unknown")"
-  warn "端口 $PORT 被外部进程占用 ($occupier)，自动寻找空闲端口..."
+  warn "优雅停止超时，强制终止端口 $PORT 进程: $pids"
+  kill -9 $pids 2>/dev/null || true
+  sleep 0.5
 
-  local new_port
-  if new_port="$(_find_free_port $(( PORT + 1 )))"; then
-    PORT="$new_port"
-    _write_port_to_env "$new_port"
-    info "已切换至端口 $PORT（已更新 .env）"
-  else
-    die "找不到可用端口（尝试范围 $((PORT))-$((PORT+50))），请手动在 .env 中修改 PORT"
+  pids="$(_port_pids)"
+  if [ -z "$pids" ]; then
+    info "端口 $PORT 已强制释放"
+    return 0
   fi
+
+  die "无法释放端口 $PORT"
 }
 
 # ─── 后端选择（macOS 用 uvicorn 规避 ObjC fork crash）────────────────────────
@@ -427,22 +389,11 @@ stop() {
 
   rm -f "$PID_FILE"
 
-  # PID 文件不存在，检查端口上是否有残留的本项目进程
+  # PID 文件不存在时，也直接清理该端口上的占用进程
   local pids; pids="$(_port_pids)"
   if [ -n "$pids" ]; then
-    local our_pids=""
-    for pid in $pids; do
-      _is_our_pid "$pid" && our_pids="$our_pids $pid" || true
-    done
-    if [ -n "$our_pids" ]; then
-      warn "发现残留进程 ($our_pids)，正在清理..."
-      kill $our_pids 2>/dev/null || true
-      sleep 0.5
-      our_pids="$(_port_pids)"
-      [ -n "$our_pids" ] && kill -9 $our_pids 2>/dev/null || true
-      info "残留进程已清理"
-      return 0
-    fi
+    ensure_port_free
+    return 0
   fi
 
   warn "服务未运行"
