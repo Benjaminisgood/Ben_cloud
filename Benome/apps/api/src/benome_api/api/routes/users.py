@@ -10,6 +10,7 @@ from ...services.users import (
     change_current_user_password,
     create_user_by_admin,
     delete_user_by_admin,
+    get_user_detail_by_admin,
     list_all_users_for_admin,
     toggle_user_status_by_admin,
     update_current_user_profile,
@@ -110,6 +111,20 @@ def create_user_api(
             phone=payload.phone,
             role=payload.role,
         )
+    except ServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+    return _to_user_out(user)
+
+
+@router.get("/admin/users/{user_id}", response_model=UserOut)
+def get_user_api(
+    user_id: int,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """管理员获取单个用户详情"""
+    try:
+        user = get_user_detail_by_admin(db, admin=admin, user_id=user_id)
     except ServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
     return _to_user_out(user)

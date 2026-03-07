@@ -13,7 +13,7 @@ class BugReport(Base):
     id = Column(Integer, primary_key=True)
     reporter_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     body = Column(Text, nullable=False)
-    status = Column(String(32), nullable=False, default="pending")  # pending | approved | rejected
+    status = Column(String(32), nullable=False, default="pending")  # pending | approved | archived | rejected
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     approved_at = Column(DateTime, nullable=True)
     repaired = Column(Integer, default=0)  # 0: not repaired, 1: repaired by nanobot

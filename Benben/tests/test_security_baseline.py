@@ -173,6 +173,45 @@ def test_sso_login_and_versioned_save_flow(client: TestClient) -> None:
     assert request_id
 
 
+def test_editor_home_page_contains_workspace_and_slide_support(client: TestClient) -> None:
+    token = _build_sso_token("dummy", username="designer")
+    login = client.get(f"/auth/sso?token={token}", follow_redirects=False)
+    assert login.status_code == 302
+
+    page = client.get("/")
+    assert page.status_code == 200
+    assert "分视图临时写作台" in page.text
+    assert "工作台" in page.text
+    assert "预演页会自动分页" in page.text
+    assert "/static/editor.css" in page.text
+    assert "/static/editor.js" in page.text
+
+
+def test_storage_config_error_returns_503_with_clear_detail(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    audit_log_path = tmp_path / "benben_audit.log"
+    _load_app_module(monkeypatch, audit_log_path=str(audit_log_path))
+    monkeypatch.setenv("BENBEN_OSS_BUCKET_NAME", "your_bucket_name")
+
+    for name in list(sys.modules):
+        if name == "app" or name.startswith("apps") or name.startswith("benben_api"):
+            sys.modules.pop(name, None)
+
+    importlib.import_module("app")
+    from apps.main import app
+
+    raw_client = TestClient(app)
+    token = _build_sso_token("dummy", username="designer")
+    login = raw_client.get(f"/auth/sso?token={token}", follow_redirects=False)
+    assert login.status_code == 302
+
+    listed = raw_client.get("/api/files")
+    assert listed.status_code == 503
+    assert "BENBEN_OSS_BUCKET_NAME" in listed.json()["detail"]
+
+
 def test_templates_endpoint_and_creation(client: TestClient) -> None:
     token = _build_sso_token("dummy", username="alice")
     client.get(f"/auth/sso?token={token}", follow_redirects=False)

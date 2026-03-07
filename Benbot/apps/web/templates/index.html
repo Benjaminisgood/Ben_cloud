@@ -3,10 +3,12 @@
 {% block content %}
 <div class="portal-page">
   <div class="portal-hero">
+    <span class="portal-eyebrow">Benbot Portal</span>
     <h2 class="portal-heading">项目入口</h2>
-    <p class="portal-desc">选择一个项目，Benbot 将自动完成登录</p>
+    <p class="portal-desc">选择一个项目进入；管理员运维、权限分配和 Bug 管理都在独立管理页处理。</p>
   </div>
 
+  {% if projects %}
   <div class="project-grid">
     {% for proj in projects %}
     <div
@@ -58,41 +60,15 @@
             </svg>
           </a>
         </div>
-
-        {% if current_user.role == "admin" %}
-        <div class="admin-controls">
-          <label class="power-switch">
-            <input
-              class="power-input"
-              type="checkbox"
-              data-project-toggle
-              {% if proj.service_state == "running" %}checked{% endif %}
-            >
-            <span class="power-slider"></span>
-            <span class="power-text">
-              运行开关
-              <span class="power-state-text">
-                {% if proj.service_state == "running" %}已开启{% elif proj.service_state == "stopped" %}已关闭{% else %}未知{% endif %}
-              </span>
-            </span>
-          </label>
-          <button class="control-btn" type="button" data-project-restart>重启</button>
-          <button class="control-btn log-btn" type="button" data-project-logs title="查看日志与报错">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-            日志
-          </button>
-        </div>
-        {% endif %}
       </div>
     </div>
     {% endfor %}
   </div>
+  {% else %}
+  <div class="project-empty-state">
+    当前账号还没有可见项目，请联系管理员分配权限。
+  </div>
+  {% endif %}
 
   <div class="portal-footer">
     <button class="refresh-btn" id="refresh-btn" onclick="refreshStatus()" title="刷新健康状态">
@@ -113,7 +89,12 @@
   data-logged-in="{{ 'true' if current_user else 'false' }}"
 >
   <div class="bug-section-inner">
-    <h2 class="bug-section-title">🐛 Bug 反馈</h2>
+    <div class="bug-section-head">
+      <div>
+        <h2 class="bug-section-title">🐛 Bug 反馈</h2>
+        <p class="bug-section-desc">这里负责提交反馈；审核、收录和后续人工处理请在管理页执行。</p>
+      </div>
+    </div>
 
     {% if current_user %}
     <!-- 提交表单 -->
@@ -131,68 +112,9 @@
       </div>
     </div>
 
-    {% if current_user.role == "admin" %}
-    <!-- 管理员：待审核列表 -->
-    <div class="bug-admin-box" id="bug-admin-box">
-      <h3 class="bug-sub-title">待审核</h3>
-      <div id="pending-bug-list"><p class="bug-empty">加载中…</p></div>
-    </div>
-    {% endif %}
-
-    <!-- 已收录 Bug -->
-    <div class="bug-approved-box">
-      <h3 class="bug-sub-title">已收录 Bug</h3>
-      <div id="approved-bug-list"><p class="bug-empty">加载中…</p></div>
-    </div>
-
     {% else %}
     <p class="bug-login-hint">请先 <a href="/login">登录</a> 后提交 Bug 反馈。</p>
     {% endif %}
   </div>
 </section>
-<!-- ── 项目日志弹窗（管理员专属）──────────────────────────────── -->
-{% if current_user and current_user.role == "admin" %}
-<div class="log-modal-overlay" id="log-modal-overlay" aria-hidden="true">
-  <div class="log-modal" role="dialog" aria-modal="true" aria-labelledby="log-modal-title">
-    <div class="log-modal-header">
-      <div class="log-modal-title-row">
-        <h2 class="log-modal-title" id="log-modal-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-          </svg>
-          <span id="log-modal-project-name">项目日志</span>
-        </h2>
-        <button class="log-modal-close" id="log-modal-close" aria-label="关闭">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <div class="log-modal-toolbar">
-        <div class="log-level-tabs">
-          <button class="log-tab active" data-level="">全部</button>
-          <button class="log-tab" data-level="INFO">INFO</button>
-          <button class="log-tab" data-level="WARNING">WARNING</button>
-          <button class="log-tab" data-level="ERROR">ERROR</button>
-        </div>
-        <div class="log-toolbar-right">
-          <span class="log-count-badge" id="log-count-badge">— 条</span>
-          <button class="log-refresh-btn" id="log-refresh-btn" title="刷新日志">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-    <div class="log-modal-body" id="log-modal-body">
-      <p class="log-empty-hint">加载中…</p>
-    </div>
-    <div class="log-modal-footer" id="log-modal-footer">
-      <button class="log-load-more" id="log-load-more" style="display:none">加载更多</button>
-    </div>
-  </div>
-</div>
-{% endif %}
 {% endblock %}

@@ -1,0 +1,104 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "BF Document Library / 文档库" [ref=e4] [cursor=pointer]:
+        - /url: /app/
+        - generic [ref=e5]: BF
+        - generic [ref=e6]: Document Library / 文档库
+      - generic [ref=e7]:
+        - generic [ref=e8]: benbenbuben · 管理员
+        - paragraph [ref=e9]: 发布页已就绪。
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - link "文档库" [ref=e12] [cursor=pointer]:
+          - /url: /app/
+        - generic [ref=e13]: /
+        - link "a" [ref=e50] [cursor=pointer]:
+          - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/settings/
+        - generic [ref=e15]: /
+        - strong [ref=e16]: 发布
+      - navigation "文档工作区" [ref=e17]:
+        - link "文档设置" [ref=e18] [cursor=pointer]:
+          - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/settings/
+        - link "目录管理" [ref=e19] [cursor=pointer]:
+          - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/outline/
+        - link "写作" [ref=e20] [cursor=pointer]:
+          - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/pages/07598f50f9bb4515a1aee98a9c4454e1/
+        - link "预览" [ref=e21] [cursor=pointer]:
+          - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/pages/07598f50f9bb4515a1aee98a9c4454e1/preview/
+        - link "发布" [ref=e22] [cursor=pointer]:
+          - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/publish/
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - paragraph [ref=e26]: Release
+        - heading "发布《a》" [level=2] [ref=e51]
+      - paragraph [ref=e28]: slug=aa · 6 页
+      - paragraph [ref=e29]:
+        - text: 正式站入口：
+        - link /kb/books/a/ [ref=e52] [cursor=pointer]:
+          - /url: /kb/books/a/
+      - link "打开当前正式站" [ref=e53] [cursor=pointer]:
+        - /url: /kb/books/a/
+    - generic [ref=e30]:
+      - generic [ref=e32]:
+        - paragraph [ref=e33]: Publish Action
+        - heading "创建新发布" [level=2] [ref=e34]
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - text: 发布说明
+          - textbox "发布说明" [ref=e37]:
+            - /placeholder: 例如：发布 2026 春季版手册
+        - button "发布到正式站" [ref=e39] [cursor=pointer]
+    - generic [ref=e40]:
+      - generic [ref=e42]:
+        - paragraph [ref=e43]: Outline Snapshot
+        - heading "当前目录结构" [level=2] [ref=e44]
+      - list [ref=e54]:
+        - listitem [ref=e55]:
+          - link "dd 章节 · 可包含子节点 · v1 · da" [ref=e56] [cursor=pointer]:
+            - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/pages/2ccc1014bffd4487a7924def32122208/
+            - strong [ref=e57]: dd
+            - generic [ref=e58]: 章节 · 可包含子节点 · v1 · da
+          - list [ref=e59]:
+            - listitem [ref=e60]:
+              - link "kk 章节 · 可包含子节点 · v1 · da/kk" [ref=e61] [cursor=pointer]:
+                - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/pages/9f806c71d5444f5bb41a334083e3c1b0/
+                - strong [ref=e62]: kk
+                - generic [ref=e63]: 章节 · 可包含子节点 · v1 · da/kk
+              - list [ref=e64]:
+                - listitem [ref=e65]:
+                  - link "b 正文页 · 正文内容页 · v3 · da/kk/bbbb" [ref=e66] [cursor=pointer]:
+                    - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/pages/43ffc34598aa4348857f8bea01cab11f/
+                    - strong [ref=e67]: b
+                    - generic [ref=e68]: 正文页 · 正文内容页 · v3 · da/kk/bbbb
+        - listitem [ref=e69]:
+          - link "aa 正文页 · 正文内容页 · v1 · aa" [ref=e70] [cursor=pointer]:
+            - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/pages/32c4e2f7c6194f61a073c0f3154a6480/
+            - strong [ref=e71]: aa
+            - generic [ref=e72]: 正文页 · 正文内容页 · v1 · aa
+        - listitem [ref=e73]:
+          - link "m 正文页 · 正文内容页 · v1 · m" [ref=e74] [cursor=pointer]:
+            - /url: /app/books/644840f1e60c4be6b4e67f2ccbefbc11/pages/98ecfa50ca0e4f539a6972fe52afbe43/
+            - strong [ref=e75]: m
+            - generic [ref=e76]: 正文页 · 正文内容页 · v1 · m
+    - generic [ref=e45]:
+      - generic [ref=e47]:
+        - paragraph [ref=e48]: History
+        - heading "发布记录" [level=2] [ref=e49]
+      - list [ref=e77]:
+        - listitem [ref=e78]:
+          - strong [ref=e79]: addkkb
+          - generic [ref=e80]: 2026-03-07T04:02:01.977219+00:00 · benbenbuben
+          - link /kb/books/a/ [ref=e81] [cursor=pointer]:
+            - /url: /kb/books/a/
+        - listitem [ref=e82]:
+          - strong [ref=e83]: 发布新的正式版本
+          - generic [ref=e84]: 2026-03-06T20:57:29.457715+00:00 · benbenbuben
+          - link /kb/books/a/ [ref=e85] [cursor=pointer]:
+            - /url: /kb/books/a/
+        - listitem [ref=e86]:
+          - strong [ref=e87]: 发布一版正式文档
+          - generic [ref=e88]: 2026-03-06T20:01:31.590200+00:00 · benbenbuben
+          - link /kb/books/a/ [ref=e89] [cursor=pointer]:
+            - /url: /kb/books/a/

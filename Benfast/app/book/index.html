@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Benfast 文档设置</title>
+    <link rel="icon" href="/app/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/app/styles.css" />
+  </head>
+  <body>
+    <header class="shell-header">
+      <div class="header-panel header-panel--top">
+        <a class="brand-home" href="/app/">
+          <span class="brand-mark">BF</span>
+          <span class="brand-line">Document Library / 文档库</span>
+        </a>
+        <div class="header-tools">
+          <div id="currentUserBadge" class="user-meta">成员信息加载中</div>
+          <p id="appStatus" class="visually-hidden" aria-live="polite">正在加载文档设置...</p>
+        </div>
+      </div>
+      <div class="header-panel header-panel--context">
+        <div class="context-breadcrumb">
+          <a class="inline-link" href="/app/">文档库</a>
+          <span>/</span>
+          <a id="documentCrumbLink" class="inline-link" href="#">当前文档</a>
+          <span>/</span>
+          <strong>文档设置</strong>
+        </div>
+        <nav class="context-tabs" aria-label="文档工作区">
+          <a id="tabSettingsLink" class="tab-link is-active" href="#">文档设置</a>
+          <a id="tabOutlineLink" class="tab-link" href="#">目录管理</a>
+          <a id="tabRootEditorLink" class="tab-link" href="#">写作</a>
+          <a id="tabRootPreviewLink" class="tab-link" href="#">预览</a>
+          <a id="tabPublishLink" class="tab-link" href="#">发布</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell-main panel-grid panel-grid-2col">
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Metadata</p>
+            <h2>文档元信息</h2>
+          </div>
+          <button id="saveBookBtn" class="primary" type="button">保存设置</button>
+        </div>
+        <div class="form-grid form-grid-single">
+          <label>文档标题
+            <input id="bookTitleInput" type="text" />
+          </label>
+          <label>Slug
+            <input id="bookSlugInput" type="text" />
+          </label>
+          <label>摘要
+            <input id="bookSummaryInput" type="text" />
+          </label>
+          <label>关键词（逗号分隔）
+            <input id="bookTagsInput" type="text" placeholder="手册,SOP,规范" />
+          </label>
+          <label>说明
+            <textarea id="bookDescriptionInput" rows="7"></textarea>
+          </label>
+        </div>
+      </section>
+
+      <section class="content-stack">
+        <section class="panel page-hero">
+          <div>
+            <p class="eyebrow">Summary</p>
+            <h2 id="bookTitleHeading">当前文档</h2>
+          </div>
+          <p id="bookMetaLine" class="panel-note">正在读取文档信息...</p>
+          <div class="meta-grid">
+            <article class="kicker-card">
+              <strong id="metaPageCount">0 页</strong>
+              <span>当前节点数量</span>
+            </article>
+            <article class="kicker-card">
+              <strong id="metaUpdatedAt">-</strong>
+              <span>最近更新时间</span>
+            </article>
+            <article class="kicker-card">
+              <strong id="metaPublishState">未发布</strong>
+              <span>当前发布状态</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Publishing</p>
+              <h2>发布入口</h2>
+            </div>
+          </div>
+          <p id="publishedLink" class="panel-note">当前还没有发布记录。</p>
+          <ul id="publishList" class="record-list"></ul>
+        </section>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <script type="module" src="/app/book.js"></script>
+  </body>
+</html>

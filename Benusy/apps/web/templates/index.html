@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Influencer Promotion Platform</title>
+    <title>Benusy 品牌合作平台</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- 导航栏 -->
     <nav class="navbar">
         <div class="container">
             <div class="logo">
-                <a href="/" id="site-logo">Influencer Platform</a>
+                <a href="/" id="site-logo">Benusy</a>
             </div>
             <div class="nav-links">
-                <a href="#features">功能</a>
-                <a href="#how-it-works">工作原理</a>
-                <a href="#contact">联系我们</a>
+                <a id="nav-link-features" href="#features">平台能力</a>
+                <a id="nav-link-scenes" href="#scenes">合作场景</a>
+                <a id="nav-link-workflow" href="#how-it-works">合作流程</a>
+                <a id="nav-link-contact" href="#contact">联系团队</a>
                 <div class="auth-buttons">
                     <a id="nav-register-btn" href="/auth/register" class="btn btn-outline">注册</a>
                     <a id="nav-login-btn" href="/login" class="btn btn-primary">登录</a>
@@ -26,110 +26,209 @@
         </div>
     </nav>
 
-    <!-- 英雄区域 -->
     <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h1 id="hero-title">影响者推广平台</h1>
-                <p id="hero-subtitle">连接品牌与优质影响者，实现高效、精准的营销推广</p>
-                <div class="hero-buttons">
+        <div class="container hero-shell">
+            <div class="hero-content" data-reveal-group>
+                <p id="hero-kicker" class="hero-kicker" data-reveal="up">Benusy Creator Commerce</p>
+                <h1 id="hero-title" data-reveal="up">影响者推广平台</h1>
+                <p id="hero-subtitle" data-reveal="up">连接品牌与优质影响者，实现高效、精准的营销推广</p>
+                <div class="hero-buttons" data-reveal="up">
                     <a id="hero-primary-btn" href="/auth/register" class="btn btn-primary">立即注册</a>
                     <a id="hero-secondary-btn" href="#how-it-works" class="btn btn-outline">了解更多</a>
                 </div>
-                <p id="merchant-quick-note" class="merchant-quick-note">商家合作请直接联系站长（电话/微信/邮箱），由站长协助发布需求或开通商家管理员账号，商家无需手动注册。</p>
+                <div class="hero-proof" data-reveal="up">
+                    <div class="proof-card">
+                        <strong id="hero-proof-primary-title">需求统一派发</strong>
+                        <span id="hero-proof-primary-body">商家需求、达人接单、后台审核在一条线上完成。</span>
+                    </div>
+                    <div class="proof-card">
+                        <strong id="hero-proof-secondary-title">数据和结算同步</strong>
+                        <span id="hero-proof-secondary-body">内容表现、任务进度、结算状态放在同一个工作台里。</span>
+                    </div>
+                </div>
+                <p id="merchant-quick-note" class="merchant-quick-note" data-reveal="up">商家合作请直接联系站长（电话/微信/邮箱），由站长协助发布需求或开通商家管理员账号，商家无需手动注册。</p>
             </div>
-            <div class="hero-image">
-                <img id="hero-image" src="/static/images/hero-image.png" alt="影响者推广平台">
-            </div>
-        </div>
-    </section>
-
-    <!-- 功能区域 -->
-    <section id="features" class="features">
-        <div class="container">
-            <h2>平台功能</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-user-plus"></i>
-                    </div>
-                    <h3>用户管理</h3>
-                    <p>简单快捷的注册流程，完善的个人信息管理，支持多种社交账号绑定</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                    <h3>任务管理</h3>
-                    <p>浏览、接受和管理推广任务，实时跟踪任务状态和进度</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h3>数据分析</h3>
-                    <p>详细的绩效指标跟踪，包括点赞、收藏、分享和浏览量等数据</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-handshake"></i>
-                    </div>
-                    <h3>任务分配</h3>
-                    <p>品牌可以根据影响者的特点和受众群体，精准分配推广任务</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                    <h3>收益管理</h3>
-                    <p>透明的收益计算和管理，确保影响者获得合理的回报</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h3>安全保障</h3>
-                    <p>多重安全措施，保障用户数据和交易安全</p>
+            <div class="hero-showcase" aria-label="平台宣传图片展示" data-reveal="fade">
+                <div class="hero-mosaic">
+                    <figure class="hero-photo hero-photo-main">
+                        <img id="hero-image" src="/static/images/hero-creator-studio.png" alt="创作者拍摄商品宣传内容">
+                        <figcaption id="hero-photo-primary-caption">创作者拍摄商品内容，适合放在视觉主位吸引注意力。</figcaption>
+                    </figure>
+                    <figure class="hero-photo hero-photo-side">
+                        <img src="/static/images/hero-campaign-room.png" alt="品牌和运营协同策划推广活动">
+                        <figcaption id="hero-photo-secondary-caption">品牌方与运营一起规划活动节奏和素材要求。</figcaption>
+                    </figure>
+                    <figure class="hero-photo hero-photo-wide">
+                        <img src="/static/images/hero-performance-desk.png" alt="任务数据看板和结算进度展示">
+                        <figcaption id="hero-photo-tertiary-caption">任务数据、审核节点和结算状态放在一个后台面板里。</figcaption>
+                    </figure>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 工作原理区域 -->
-    <section id="how-it-works" class="how-it-works">
+    <section id="scenes" class="showcase-section" data-reveal="up">
         <div class="container">
-            <h2>工作原理</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>注册并完善资料</h3>
-                    <p>创建账户并填写个人信息，绑定社交账号，设置专业领域</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>浏览并接受任务</h3>
-                    <p>根据自己的兴趣和专业领域，浏览并接受适合的推广任务</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>完成任务并提交</h3>
-                    <p>按照任务要求完成推广内容，提交任务链接</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h3>获取收益</h3>
-                    <p>任务审核通过后，根据绩效指标获得相应的收益</p>
+            <div class="section-heading">
+                <p id="showcase-label" class="section-label">平台宣传展示</p>
+                <h2 id="showcase-title">不同位置放不同图片，每一张都对应一个真实功能场景</h2>
+                <p id="showcase-subtitle">主位图用暖色拍摄现场拉近距离，右侧图展示商家协作，下方宽图负责把数据和结算逻辑收住，首页一眼就能看懂平台是怎么运转的。</p>
+            </div>
+            <div class="showcase-grid">
+                <article class="showcase-card" data-reveal="up">
+                    <div class="showcase-card-image">
+                        <img src="/static/images/hero-creator-studio.png" alt="达人拍摄现场">
+                    </div>
+                    <div class="showcase-card-body">
+                        <h3 id="showcase-primary-title">拍摄执行场</h3>
+                        <p id="showcase-primary-body">用偏暖的画面放在首页主位，适合承担“吸引用户停留”的第一职责，也能自然承接达人注册和接单的入口。</p>
+                    </div>
+                </article>
+                <article class="showcase-card" data-reveal="up">
+                    <div class="showcase-card-image">
+                        <img src="/static/images/hero-campaign-room.png" alt="品牌协作会议场景">
+                    </div>
+                    <div class="showcase-card-body">
+                        <h3 id="showcase-secondary-title">商家协作场</h3>
+                        <p id="showcase-secondary-body">更冷静的青绿色照片放在侧位，和整页品牌色一致，强调需求沟通、任务策划和运营陪跑这类后台型能力。</p>
+                    </div>
+                </article>
+                <article class="showcase-card" data-reveal="up">
+                    <div class="showcase-card-image">
+                        <img src="/static/images/hero-performance-desk.png" alt="任务数据和结算看板">
+                    </div>
+                    <div class="showcase-card-body">
+                        <h3 id="showcase-tertiary-title">复盘结算场</h3>
+                        <p id="showcase-tertiary-body">横向宽图更适合承载流程和数字信息，放在下方负责把“审核、绩效、收益”这些结果型能力讲完整。</p>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="capabilities-section">
+        <div class="container">
+            <div class="section-heading capabilities-heading" data-reveal="up">
+                <p id="capabilities-label" class="section-label">平台能力</p>
+                <h2 id="capabilities-title">不是把任务堆给达人，而是把合作真正排成一条线</h2>
+                <p id="capabilities-subtitle">Benusy 把品牌需求、达人执行、审核反馈和收益复盘收进同一个协作面板，让每个角色看到自己真正需要的状态。</p>
+            </div>
+            <div class="capabilities-layout">
+                <article class="capability-spotlight" data-reveal="up">
+                    <span id="capability-spotlight-label" class="card-kicker">运营主控台</span>
+                    <h3 id="capability-spotlight-title">从 brief 到结算的全链路视图</h3>
+                    <p id="capability-spotlight-body">首页不是只展示平台长什么样，而是把品牌方最关心的交付节奏、达人最关心的任务状态、运营最关心的复盘节点直接说清楚。</p>
+                    <div class="capability-highlights">
+                        <span id="capability-highlight-one">品牌需求对接</span>
+                        <span id="capability-highlight-two">达人执行协同</span>
+                        <span id="capability-highlight-three">审核结算闭环</span>
+                    </div>
+                </article>
+                <div class="capability-grid">
+                    <article class="capability-card" data-reveal="up">
+                        <span id="capability-card-one-label" class="card-kicker">商家端</span>
+                        <h3 id="capability-card-one-title">需求拆解和投放节奏放在一张面板上</h3>
+                        <p id="capability-card-one-body">商家只需要给出目标、预算和内容方向，平台会把 brief、节点和交付要求拆成可执行任务。</p>
+                    </article>
+                    <article class="capability-card" data-reveal="up">
+                        <span id="capability-card-two-label" class="card-kicker">达人端</span>
+                        <h3 id="capability-card-two-title">接单、提交和反馈路径更短</h3>
+                        <p id="capability-card-two-body">达人可以直接看到任务要求、参考素材、审核意见和收益状态，不再反复追问运营。</p>
+                    </article>
+                    <article class="capability-card" data-reveal="up">
+                        <span id="capability-card-three-label" class="card-kicker">运营端</span>
+                        <h3 id="capability-card-three-title">审核、催办和复盘可以连续推进</h3>
+                        <p id="capability-card-three-body">从分配达人到复核内容，再到跟踪数据和结案，运营不需要再在多个群和表格间切换。</p>
+                    </article>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 联系我们区域 -->
-    <section id="contact" class="contact">
+    <section id="how-it-works" class="workflow-section">
         <div class="container">
-            <h2 id="contact-title">联系我们</h2>
-            <div class="contact-content">
-                <div class="contact-form">
+            <div class="section-heading workflow-heading" data-reveal="up">
+                <p id="workflow-label" class="section-label">合作流程</p>
+                <h2 id="workflow-title">商家不用理解复杂系统，也能快速把合作跑起来</h2>
+                <p id="workflow-subtitle">Benusy 用更轻的流程承接首次合作和长期运营，两种模式都能走得顺，不会把前台注册当成唯一入口。</p>
+            </div>
+            <div class="workflow-rail">
+                <article class="workflow-step" data-reveal="up">
+                    <div class="workflow-index">01</div>
+                    <h3 id="workflow-step-one-title">提交合作目标</h3>
+                    <p id="workflow-step-one-body">商家告诉我们品类、预期内容方向、发布时间和预算边界，先把合作目的讲清楚。</p>
+                </article>
+                <article class="workflow-step" data-reveal="up">
+                    <div class="workflow-index">02</div>
+                    <h3 id="workflow-step-two-title">拆解 brief 与达人池</h3>
+                    <p id="workflow-step-two-body">运营把需求拆成任务模板，筛达人、定节奏、补素材，让执行标准在开始前对齐。</p>
+                </article>
+                <article class="workflow-step" data-reveal="up">
+                    <div class="workflow-index">03</div>
+                    <h3 id="workflow-step-three-title">审核内容并推进上线</h3>
+                    <p id="workflow-step-three-body">创作者提交内容后，平台集中处理修改意见、补件和排期，不让沟通碎成很多线程。</p>
+                </article>
+                <article class="workflow-step" data-reveal="up">
+                    <div class="workflow-index">04</div>
+                    <h3 id="workflow-step-four-title">复盘数据与收益</h3>
+                    <p id="workflow-step-four-body">上线后继续跟踪表现、沉淀结果和收益状态，让下一轮合作有清晰参考。</p>
+                </article>
+            </div>
+            <article class="workflow-summary" data-reveal="up">
+                <div class="workflow-summary-copy">
+                    <span id="workflow-summary-label" class="card-kicker">交付结果</span>
+                    <h3 id="workflow-summary-title">对商家来说是一个入口，对运营来说是一张全景图</h3>
+                </div>
+                <p id="workflow-summary-body">这套流程既适合临时 campaign，也适合持续达人合作。平台的价值不是多一个系统，而是把零散执行真正收口。</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <div class="contact-shell">
+                <div class="contact-panel" data-reveal="up">
+                    <p id="contact-section-label" class="section-label">合作入口</p>
+                    <h2 id="contact-title">联系我们</h2>
+                    <p id="contact-subtitle">如果您有任何问题或建议，欢迎随时联系我们</p>
+                    <div class="contact-info-block">
+                        <h3 id="contact-info-title">联系方式</h3>
+                        <div class="contact-details">
+                            <div class="contact-item">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span id="contact-address">北京市朝阳区建国路88号</span>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-phone"></i>
+                                <span id="contact-phone">+86 10 8888 8888</span>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-envelope"></i>
+                                <span id="contact-email">info@influencer-platform.com</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="merchant-notice">
+                        <h4 id="merchant-notice-title">商家合作通道</h4>
+                        <p id="merchant-notice-text">商家请直接联系站长（电话、微信或邮箱均可）。站长可代为发布需求，或直接开通商家管理员账号。商家无需自行注册。</p>
+                        <ul class="merchant-service-list">
+                            <li id="merchant-service-publish">站长协助商家发布需求并跟进上线流程</li>
+                            <li id="merchant-service-account">站长可直接分配商家管理员账号用于后台管理</li>
+                            <li id="merchant-service-no-register">商家不需要在前台手动注册</li>
+                        </ul>
+                        <div class="merchant-direct-contact">
+                            <div><strong>电话：</strong><span id="merchant-contact-phone">+86 10 8888 8888</span></div>
+                            <div><strong>微信：</strong><span id="merchant-contact-wechat">BenusyAdmin</span></div>
+                            <div><strong>邮箱：</strong><span id="merchant-contact-email">merchant@influencer-platform.com</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="contact-form-panel" data-reveal="up">
+                    <div class="form-panel-head">
+                        <span id="contact-form-label" class="card-kicker">在线留言</span>
+                        <h3 id="contact-form-title">留下你的合作需求</h3>
+                        <p id="contact-form-subtitle">如果你希望快速试跑一次 campaign，可以直接写明品类、目标平台、内容方向和预期预算。</p>
+                    </div>
                     <form action="/contact" method="POST">
                         <div class="form-group">
                             <label for="name">姓名</label>
@@ -147,91 +246,52 @@
                             <label for="message">消息</label>
                             <textarea id="message" name="message" rows="5" required></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary">发送消息</button>
+                        <button id="contact-form-button" type="submit" class="btn btn-primary">发送消息</button>
                     </form>
-                </div>
-                <div class="contact-info">
-                    <h3>联系方式</h3>
-                    <p id="contact-subtitle">如果您有任何问题或建议，欢迎随时联系我们</p>
-                    <div class="contact-details">
-                        <div class="contact-item">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span id="contact-address">北京市朝阳区建国路88号</span>
-                        </div>
-                        <div class="contact-item">
-                            <i class="fas fa-phone"></i>
-                            <span id="contact-phone">+86 10 8888 8888</span>
-                        </div>
-                        <div class="contact-item">
-                            <i class="fas fa-envelope"></i>
-                            <span id="contact-email">info@influencer-platform.com</span>
-                        </div>
-                    </div>
-                    <div class="merchant-notice">
-                        <h4 id="merchant-notice-title">商家合作通道</h4>
-                        <p id="merchant-notice-text">商家请直接联系站长（电话、微信或邮箱均可）。站长可代为发布需求，或直接开通商家管理员账号。商家无需自行注册。</p>
-                        <ul class="merchant-service-list">
-                            <li id="merchant-service-publish">站长协助商家发布需求并跟进上线流程</li>
-                            <li id="merchant-service-account">站长可直接分配商家管理员账号用于后台管理</li>
-                            <li id="merchant-service-no-register">商家不需要在前台手动注册</li>
-                        </ul>
-                        <div class="merchant-direct-contact">
-                            <div><strong>电话：</strong><span id="merchant-contact-phone">+86 10 8888 8888</span></div>
-                            <div><strong>微信：</strong><span id="merchant-contact-wechat">BenusyAdmin</span></div>
-                            <div><strong>邮箱：</strong><span id="merchant-contact-email">merchant@influencer-platform.com</span></div>
-                        </div>
-                    </div>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-weixin"></i></a>
-                        <a href="#"><i class="fab fa-weibo"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 页脚 -->
-    <footer class="footer">
+    <footer class="site-footer">
         <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>关于我们</h3>
-                    <p>我们是一家专注于影响者营销的科技公司，致力于为品牌和影响者搭建高效、透明的合作平台</p>
+            <div class="footer-grid">
+                <div class="footer-section footer-brand">
+                    <h3 id="footer-about-title">关于我们</h3>
+                    <p id="footer-about-body">我们是一家专注于影响者营销的科技公司，致力于为品牌和影响者搭建高效、透明的合作平台</p>
                 </div>
                 <div class="footer-section">
-                    <h3>快速链接</h3>
+                    <h3 id="footer-links-title">快速链接</h3>
                     <ul>
-                        <li><a href="#features">功能</a></li>
-                        <li><a href="#how-it-works">工作原理</a></li>
-                        <li><a href="#contact">联系我们</a></li>
+                        <li><a id="footer-link-features" href="#features">平台能力</a></li>
+                        <li><a id="footer-link-scenes" href="#scenes">合作场景</a></li>
+                        <li><a id="footer-link-workflow" href="#how-it-works">合作流程</a></li>
+                        <li><a id="footer-link-contact" href="#contact">联系团队</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
-                    <h3>法律信息</h3>
+                    <h3 id="footer-legal-title">法律信息</h3>
                     <ul>
-                        <li><a href="#">隐私政策</a></li>
-                        <li><a href="#">服务条款</a></li>
-                        <li><a href="#">Cookie政策</a></li>
+                        <li><a id="footer-privacy-label" href="#">隐私政策</a></li>
+                        <li><a id="footer-terms-label" href="#">服务条款</a></li>
+                        <li><a id="footer-cookie-label" href="#">Cookie政策</a></li>
                     </ul>
                 </div>
-                <div class="footer-section">
-                    <h3>订阅更新</h3>
-                    <p>订阅我们的邮件，获取最新的平台动态和营销趋势</p>
+                <div class="footer-section footer-subscribe">
+                    <h3 id="footer-subscribe-title">订阅更新</h3>
+                    <p id="footer-subscribe-body">订阅我们的邮件，获取最新的平台动态和营销趋势</p>
                     <form class="subscribe-form">
-                        <input type="email" placeholder="您的邮箱地址">
-                        <button type="submit">订阅</button>
+                        <input id="footer-subscribe-input" type="email" placeholder="您的邮箱地址">
+                        <button id="footer-subscribe-button" type="submit">订阅</button>
                     </form>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 Influencer Promotion Platform. 保留所有权利</p>
+                <p id="footer-copyright">&copy; 2026 Influencer Promotion Platform. 保留所有权利</p>
             </div>
         </div>
     </footer>
 
-    <!-- JavaScript -->
     <script src="/static/js/main.js"></script>
 </body>
 </html>

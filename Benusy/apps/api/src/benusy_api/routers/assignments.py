@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -26,12 +27,14 @@ from benusy_api.services.activity import log_activity
 from benusy_api.services.sync import sync_assignment_metrics_once
 
 router = APIRouter(prefix="/assignments", tags=["assignments"])
+logger = logging.getLogger(__name__)
 
 
-def _ensure_assignment_relations_loaded(assignment: Assignment) -> None:
-    _ = assignment.task
+def _ensure_assignment_relations_loaded(assignment: Assignment) -> bool:
+    task = assignment.task
     _ = assignment.metrics
     _ = assignment.manual_metric_submissions
+    return task is not None
 
 
 @router.get("/me", response_model=list[AssignmentRead])
@@ -44,9 +47,18 @@ def list_user_assignments(
         .where(Assignment.user_id == current_user.id)
         .order_by(Assignment.created_at.desc())
     ).all()
+    valid_assignments: list[Assignment] = []
     for assignment in assignments:
-        _ensure_assignment_relations_loaded(assignment)
-    return assignments
+        if _ensure_assignment_relations_loaded(assignment):
+            valid_assignments.append(assignment)
+        else:
+            logger.warning(
+                "Skip orphan assignment in user view: assignment_id=%s user_id=%s task_id=%s",
+                assignment.id,
+                current_user.id,
+                assignment.task_id,
+            )
+    return valid_assignments
 
 
 @router.post("/{assignment_id}/submit", response_model=AssignmentRead)
@@ -91,7 +103,11 @@ def submit_assignment(
 
     background_tasks.add_task(_sync_once_task, assignment.id)
 
-    _ensure_assignment_relations_loaded(assignment)
+    if not _ensure_assignment_relations_loaded(assignment):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Assignment task is missing",
+        )
     return assignment
 
 

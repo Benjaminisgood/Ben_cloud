@@ -1,8 +1,5 @@
 const API_BASE = "/api";
 const AUTH_BASE = "/auth";
-const MULTIPART_THRESHOLD_BYTES = 20 * 1024 * 1024;
-const CHUNK_SIZE_BYTES = 8 * 1024 * 1024;
-
 let authToken = null;
 let currentUserId = null;
 
@@ -309,20 +306,22 @@ async function uploadFile(file) {
         }
 
         const initData = await initResponse.json();
-        let completePayload = null;
         if (uploadPlan.chunkCount === 1) {
-            const uploadUrl = initData.chunk_upload_urls[0];
-            const uploadResponse = await fetch(uploadUrl, {
-                method: "PUT",
-                body: file,
+            const formData = new FormData();
+            formData.append("file", file, file.name);
+            const uploadResponse = await authorizedFetch(`${API_BASE}/files/${initData.upload_id}/content`, {
+                method: "POST",
+                body: formData,
             });
             if (!uploadResponse.ok) {
-                throw new Error("上传文件失败");
+                const error = await uploadResponse.json().catch(() => ({}));
+                throw new Error(error.detail || "上传文件失败");
             }
         } else {
             if (!initData.multipart_upload_id) {
                 throw new Error("缺少 multipart_upload_id");
             }
+            let completePayload = null;
             const parts = [];
             for (let i = 0; i < uploadPlan.chunks.length; i += 1) {
                 const chunk = uploadPlan.chunks[i];
@@ -349,17 +348,17 @@ async function uploadFile(file) {
                 multipart_upload_id: initData.multipart_upload_id,
                 parts,
             };
-        }
 
-        const completeResponse = await authorizedFetch(`${API_BASE}/files/${initData.upload_id}/complete`, {
-            method: "POST",
-            headers: completePayload ? { "Content-Type": "application/json" } : undefined,
-            body: completePayload ? JSON.stringify(completePayload) : undefined,
-        });
+            const completeResponse = await authorizedFetch(`${API_BASE}/files/${initData.upload_id}/complete`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(completePayload),
+            });
 
-        if (!completeResponse.ok) {
-            const error = await completeResponse.json();
-            throw new Error(error.detail || "完成上传失败");
+            if (!completeResponse.ok) {
+                const error = await completeResponse.json();
+                throw new Error(error.detail || "完成上传失败");
+            }
         }
 
         progressDiv.textContent = `✅ ${file.name} 上传成功`;
@@ -377,21 +376,10 @@ async function uploadFile(file) {
 }
 
 function buildUploadPlan(file) {
-    if (file.size <= MULTIPART_THRESHOLD_BYTES) {
-        return {
-            chunkCount: 1,
-            chunks: [{ start: 0, end: file.size }],
-        };
-    }
-
-    const chunkCount = Math.ceil(file.size / CHUNK_SIZE_BYTES);
-    const chunks = [];
-    for (let i = 0; i < chunkCount; i += 1) {
-        const start = i * CHUNK_SIZE_BYTES;
-        const end = Math.min(start + CHUNK_SIZE_BYTES, file.size);
-        chunks.push({ start, end });
-    }
-    return { chunkCount, chunks };
+    return {
+        chunkCount: 1,
+        chunks: [{ start: 0, end: file.size }],
+    };
 }
 
 async function loadFiles() {
@@ -431,13 +419,25 @@ function renderFiles(files) {
                 <div class="list-item-title">${escapeHtml(file.filename)}</div>
                 <div class="list-item-meta">
                     大小：${formatBytes(file.file_size)} | 创建：${formatDate(file.created_at)}
-                    | 状态：${escapeHtml(file.upload_status)}
+                    | 状态：${escapeHtml(file.upload_status)} | ${file.is_public ? "公开分享已开启" : "私有文件"}
                 </div>
             </div>
             <div class="list-item-actions"></div>
         `;
 
         const actions = row.querySelector(".list-item-actions");
+        const isCompleted = file.upload_status === "completed";
+
+        const downloadBtn = document.createElement("a");
+        downloadBtn.className = "btn btn-primary btn-small";
+        downloadBtn.textContent = "下载";
+        downloadBtn.href = buildPrivateDownloadLink(file.access_token);
+        downloadBtn.target = "_blank";
+        downloadBtn.rel = "noopener noreferrer";
+        if (!isCompleted) {
+            downloadBtn.classList.add("disabled");
+            downloadBtn.removeAttribute("href");
+        }
 
         const copyDownloadBtn = document.createElement("button");
         copyDownloadBtn.className = "btn btn-secondary btn-small";
@@ -445,6 +445,22 @@ function renderFiles(files) {
         copyDownloadBtn.addEventListener("click", async () => {
             await copyDownloadLink(file.access_token);
         });
+        if (!isCompleted) {
+            copyDownloadBtn.disabled = true;
+        }
+
+        if (file.is_public) {
+            const copyPublicBtn = document.createElement("button");
+            copyPublicBtn.className = "btn btn-secondary btn-small";
+            copyPublicBtn.textContent = "复制公开链接";
+            copyPublicBtn.addEventListener("click", async () => {
+                await copyText(buildPublicDownloadLink(file.access_token));
+            });
+            if (!isCompleted) {
+                copyPublicBtn.disabled = true;
+            }
+            actions.appendChild(copyPublicBtn);
+        }
 
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "btn btn-danger btn-small";
@@ -453,6 +469,7 @@ function renderFiles(files) {
             await deleteFileItem(file.access_token);
         });
 
+        actions.appendChild(downloadBtn);
         actions.appendChild(copyDownloadBtn);
         actions.appendChild(deleteBtn);
         list.appendChild(row);
@@ -461,18 +478,19 @@ function renderFiles(files) {
 
 async function copyDownloadLink(accessToken) {
     try {
-        const response = await authorizedFetch(`${API_BASE}/files/${accessToken}/download`);
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || "获取下载链接失败");
-        }
-
-        const data = await response.json();
-        await copyText(data.download_url);
+        await copyText(buildPrivateDownloadLink(accessToken));
     } catch (error) {
         console.error("Copy download URL failed:", error);
         alert(error.message || "获取下载链接失败");
     }
+}
+
+function buildPrivateDownloadLink(accessToken) {
+    return `${window.location.origin}${API_BASE}/files/${encodeURIComponent(accessToken)}/download/redirect`;
+}
+
+function buildPublicDownloadLink(accessToken) {
+    return `${window.location.origin}${API_BASE}/files/public/${encodeURIComponent(accessToken)}/download`;
 }
 
 async function deleteFileItem(accessToken) {

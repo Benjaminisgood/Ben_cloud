@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 import secrets
-from typing import Optional
+from typing import BinaryIO, Optional
 
 import oss2
 
@@ -84,7 +84,12 @@ class OSSService:
         ]
         self.bucket.complete_multipart_upload(oss_key, multipart_upload_id, part_infos)
 
-    def upload_file(self, oss_key: str, file_content: bytes, content_type: Optional[str] = None) -> bool:
+    def upload_file(
+        self,
+        oss_key: str,
+        file_content: bytes | BinaryIO,
+        content_type: Optional[str] = None,
+    ) -> bool:
         """Upload file to OSS."""
         try:
             headers = {}

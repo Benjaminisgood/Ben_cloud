@@ -1,0 +1,76 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "BF Document Library / 文档库" [ref=e4] [cursor=pointer]:
+        - /url: /app/
+        - generic [ref=e5]: BF
+        - generic [ref=e6]: Document Library / 文档库
+      - generic [ref=e7]:
+        - generic [ref=e8]: benbenbuben · 管理员
+        - paragraph [ref=e9]: 文档设置页已就绪。
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - link "文档库" [ref=e12] [cursor=pointer]:
+          - /url: /app/
+        - generic [ref=e13]: /
+        - generic [ref=e14]: 课题组手册
+        - generic [ref=e15]: /
+        - strong [ref=e16]: 文档设置
+      - navigation "文档工作区" [ref=e17]:
+        - link "文档设置" [ref=e18] [cursor=pointer]:
+          - /url: /app/books/d552ddad79264c71ab187fcb2c619cc5/settings/
+        - link "目录管理" [ref=e19] [cursor=pointer]:
+          - /url: /app/books/d552ddad79264c71ab187fcb2c619cc5/outline/
+        - link "写作" [ref=e20] [cursor=pointer]:
+          - /url: /app/books/d552ddad79264c71ab187fcb2c619cc5/pages/466daf5643c94f2e8d8b1f4bf9e30d22/
+        - link "预览" [ref=e21] [cursor=pointer]:
+          - /url: /app/books/d552ddad79264c71ab187fcb2c619cc5/pages/466daf5643c94f2e8d8b1f4bf9e30d22/preview/
+        - link "发布" [ref=e22] [cursor=pointer]:
+          - /url: /app/books/d552ddad79264c71ab187fcb2c619cc5/publish/
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - paragraph [ref=e27]: Metadata
+          - heading "文档元信息" [level=2] [ref=e28]
+        - button "保存设置" [ref=e29] [cursor=pointer]
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - text: 文档标题
+          - textbox "文档标题" [ref=e32]: 课题组手册
+        - generic [ref=e33]:
+          - text: Slug
+          - textbox "Slug" [ref=e34]: untitled
+        - generic [ref=e35]:
+          - text: 摘要
+          - textbox "摘要" [ref=e36]: 手册
+        - generic [ref=e37]:
+          - text: 标签（逗号分隔）
+          - textbox "标签（逗号分隔）" [ref=e38]:
+            - /placeholder: 手册,SOP,规范
+        - generic [ref=e39]:
+          - text: 说明
+          - textbox "说明" [ref=e40]: 服务课题组
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - paragraph [ref=e44]: Summary
+          - heading "课题组手册" [level=2] [ref=e45]
+        - paragraph [ref=e46]: slug=untitled · 1 页 · updated_at=2026-03-06T20:17:35.717761+00:00
+        - generic [ref=e47]:
+          - article [ref=e48]:
+            - strong [ref=e49]: 1 页
+            - text: 当前节点数量
+          - article [ref=e50]:
+            - strong [ref=e51]: 2026-03-06T20:17:35.717761+00:00
+            - text: 最近更新时间
+          - article [ref=e52]:
+            - strong [ref=e53]: 未发布
+            - text: 当前发布状态
+      - generic [ref=e54]:
+        - generic [ref=e56]:
+          - paragraph [ref=e57]: Publishing
+          - heading "发布入口" [level=2] [ref=e58]
+        - paragraph [ref=e59]: 当前还没有发布记录。
+        - list [ref=e60]:
+          - listitem [ref=e61]: 当前还没有发布记录。

@@ -10,6 +10,7 @@ from ..core.config import get_settings
 
 _logger = logging.getLogger(__name__)
 _API_ROOT = Path(__file__).resolve().parents[3]
+_BASELINE_ALEMBIC_REVISION = "20260306_0001"
 
 
 def _make_engine():
@@ -72,9 +73,11 @@ def _upgrade_schema_with_alembic() -> None:
 
     baseline_tables = {"user", "project_health", "project_click", "bug_report", "project_log"}
     if "alembic_version" not in existing_tables and baseline_tables.issubset(existing_tables):
-        command.stamp(cfg, "head")
-        _logger.info("检测到现有历史库，已执行 alembic stamp head 基线接管")
-        return
+        command.stamp(cfg, _BASELINE_ALEMBIC_REVISION)
+        _logger.info(
+            "检测到现有历史库，已执行 alembic stamp %s 基线接管",
+            _BASELINE_ALEMBIC_REVISION,
+        )
 
     command.upgrade(cfg, "head")
     _logger.info("数据库迁移完成（alembic upgrade head）")

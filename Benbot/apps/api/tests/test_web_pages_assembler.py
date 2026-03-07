@@ -33,6 +33,11 @@ def test_assemble_dashboard_context_for_admin_includes_runtime_states(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(web_pages, "get_settings", lambda: _Settings([_project()]))
+    monkeypatch.setattr(
+        web_pages,
+        "filter_visible_projects_for_user",
+        lambda **kwargs: kwargs["projects"],
+    )
     monkeypatch.setattr(web_pages, "get_all_health", lambda _db: {})
     monkeypatch.setattr(web_pages, "get_all_total_clicks", lambda _db: {"benoss": 3})
     monkeypatch.setattr(web_pages, "get_project_runtime_states", lambda _ids: {"benoss": "running"})
@@ -55,6 +60,11 @@ def test_assemble_dashboard_context_for_non_admin_hides_runtime_states(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(web_pages, "get_settings", lambda: _Settings([_project("benlab")]))
+    monkeypatch.setattr(
+        web_pages,
+        "filter_visible_projects_for_user",
+        lambda **kwargs: kwargs["projects"],
+    )
     monkeypatch.setattr(web_pages, "get_all_health", lambda _db: {})
     monkeypatch.setattr(web_pages, "get_all_total_clicks", lambda _db: {})
     monkeypatch.setattr(web_pages, "get_project_runtime_states", lambda _ids: {"benlab": "running"})
@@ -86,3 +96,46 @@ def test_assemble_register_context_drops_invalid_flash_items() -> None:
     )
     assert len(dto.flash_messages) == 1
     assert dto.flash_messages[0].category == "success"
+
+
+def test_assemble_dashboard_context_without_visible_projects_returns_empty_cards(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(web_pages, "get_settings", lambda: _Settings([_project("benoss")]))
+    monkeypatch.setattr(web_pages, "filter_visible_projects_for_user", lambda **_kwargs: [])
+    monkeypatch.setattr(web_pages, "get_all_health", lambda _db: {})
+    monkeypatch.setattr(web_pages, "get_all_total_clicks", lambda _db: {})
+    monkeypatch.setattr(web_pages, "get_project_runtime_states", lambda _ids: {})
+
+    dto = web_pages.assemble_dashboard_page_context(
+        db=object(),
+        current_user=SessionUserDTO(id=2, username="alice", role="user", is_active=True),
+        flash_messages=[],
+    )
+    assert dto.projects == []
+
+
+def test_assemble_management_context_sets_manage_page_and_flash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(web_pages, "get_settings", lambda: _Settings([_project("benlab")]))
+    monkeypatch.setattr(
+        web_pages,
+        "filter_visible_projects_for_user",
+        lambda **kwargs: kwargs["projects"],
+    )
+    monkeypatch.setattr(web_pages, "get_all_health", lambda _db: {})
+    monkeypatch.setattr(web_pages, "get_all_total_clicks", lambda _db: {"benlab": 2})
+    monkeypatch.setattr(web_pages, "get_project_runtime_states", lambda _ids: {"benlab": "running"})
+
+    dto = web_pages.assemble_management_page_context(
+        db=object(),
+        current_user=SessionUserDTO(id=1, username="root", role="admin", is_active=True),
+        flash_messages=[["success", "saved"]],
+    )
+
+    assert dto.page == "manage"
+    assert dto.current_user.role == "admin"
+    assert dto.projects[0].id == "benlab"
+    assert dto.projects[0].service_state == "running"
+    assert dto.flash_messages[0].text == "saved"

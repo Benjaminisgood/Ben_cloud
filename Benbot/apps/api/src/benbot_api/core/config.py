@@ -27,7 +27,7 @@ class ProjectConfig:
     icon: str
     port: int           # sub-project port, used for dynamic browser redirect
     internal_url: str   # used for health check (always localhost-based)
-    public_url: str     # browser-visible entry URL, preferred by /goto redirect
+    public_url: str     # browser-visible metadata (display/ops), not used for /goto host routing
     color: str = "#3b82f6"
     sso_entry_path: str = "/auth/sso"
     sso_enabled: bool = True
@@ -77,10 +77,12 @@ class Settings(BaseSettings):
     BENOME_PUBLIC_URL: str = "http://00ling.com:8200"
     BENSCI_INTERNAL_URL: str = "http://localhost:8300"
     BENSCI_PUBLIC_URL: str = "http://00ling.com:8300"
-    BENFER_INTERNAL_URL: str = "http://localhost:8500"
-    BENFER_PUBLIC_URL: str = "http://00ling.com:8500"
+    BENFER_INTERNAL_URL: str = "http://localhost:8400"
+    BENFER_PUBLIC_URL: str = "http://00ling.com:8400"
     BENBEN_INTERNAL_URL: str = "http://localhost:8600"
     BENBEN_PUBLIC_URL: str = "http://00ling.com:8600"
+    BENFAST_INTERNAL_URL: str = "http://localhost:8700"
+    BENFAST_PUBLIC_URL: str = "http://00ling.com:8700"
 
     # Health check interval (seconds)
     HEALTH_CHECK_INTERVAL: int = 60
@@ -175,7 +177,7 @@ class Settings(BaseSettings):
                 name="Benfer",
                 description="剪贴板与文件中转站 · 支持断点续传",
                 icon="📋",
-                port=8500,
+                port=8400,
                 internal_url=self.BENFER_INTERNAL_URL,
                 public_url=self.BENFER_PUBLIC_URL,
                 color="#667eea",
@@ -191,6 +193,18 @@ class Settings(BaseSettings):
                 internal_url=self.BENBEN_INTERNAL_URL,
                 public_url=self.BENBEN_PUBLIC_URL,
                 color="#e67e22",
+                sso_entry_path="/auth/sso",
+                sso_enabled=True,
+            ),
+            ProjectConfig(
+                id="benfast",
+                name="Benfast",
+                description="FastAPI 通用后端模板 · RBAC 与管理能力",
+                icon="⚙️",
+                port=8700,
+                internal_url=self.BENFAST_INTERNAL_URL,
+                public_url=self.BENFAST_PUBLIC_URL,
+                color="#1f4a8a",
                 sso_entry_path="/auth/sso",
                 sso_enabled=True,
             ),

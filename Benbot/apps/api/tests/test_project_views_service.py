@@ -43,6 +43,11 @@ def test_assemble_projects_status_response_for_non_admin_hides_runtime_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(project_views, "get_settings", lambda: _Settings([_project("benlab")]))
+    monkeypatch.setattr(
+        project_views,
+        "filter_visible_projects_for_user",
+        lambda **kwargs: kwargs["projects"],
+    )
     monkeypatch.setattr(project_views, "get_all_health", lambda _db: {})
     monkeypatch.setattr(project_views, "get_all_total_clicks", lambda _db: {"benlab": 9})
     monkeypatch.setattr(project_views, "get_project_runtime_states", lambda _ids: {"benlab": "running"})
@@ -80,3 +85,19 @@ def test_assemble_project_logs_response_formats_output(monkeypatch: pytest.Monke
     assert dto.project_id == "benoss"
     assert dto.total == 1
     assert dto.logs[0].created_at == "2026-03-06 12:30:45"
+
+
+def test_assemble_projects_status_response_returns_empty_when_no_visible_projects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(project_views, "get_settings", lambda: _Settings([_project("benlab")]))
+    monkeypatch.setattr(project_views, "filter_visible_projects_for_user", lambda **_kwargs: [])
+    monkeypatch.setattr(project_views, "get_all_health", lambda _db: {})
+    monkeypatch.setattr(project_views, "get_all_total_clicks", lambda _db: {"benlab": 9})
+    monkeypatch.setattr(project_views, "get_project_runtime_states", lambda _ids: {"benlab": "running"})
+
+    dto = project_views.assemble_projects_status_response(
+        db=object(),
+        current_user=SessionUserDTO(id=7, username="alice", role="user", is_active=True),
+    )
+    assert dto.projects == []

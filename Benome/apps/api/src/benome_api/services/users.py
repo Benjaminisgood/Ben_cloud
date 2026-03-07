@@ -99,6 +99,19 @@ def create_user_by_admin(
     return user
 
 
+def get_user_detail_by_admin(
+    db: Session,
+    *,
+    admin: User,
+    user_id: int,
+) -> User:
+    _require_admin(admin)
+    user = get_user_by_id(db, user_id=user_id)
+    if not user:
+        raise ServiceError("用户不存在", status_code=404)
+    return user
+
+
 def update_user_by_admin(
     db: Session,
     *,

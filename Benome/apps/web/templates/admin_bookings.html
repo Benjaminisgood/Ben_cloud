@@ -96,6 +96,18 @@
 
   let showPendingOnly = false;
 
+  function openModal() {
+    reviewModal.hidden = false;
+    reviewModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    reviewModal.hidden = true;
+    reviewModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
   // 加载预订列表
   async function loadBookings() {
     try {
@@ -153,7 +165,7 @@
     
     let filteredBookings = bookings;
     if (showPendingOnly) {
-      filteredBookings = bookings.filter(b => b.status === 'pending');
+      filteredBookings = bookings.filter(b => b.status === 'pending_review');
     }
     
     if (filteredBookings.length === 0) {
@@ -182,7 +194,7 @@
         <td>${formatDate(booking.created_at)}</td>
         <td>
           <button class="btn small" onclick="viewBooking(${booking.id})">查看</button>
-          ${booking.status === 'pending' ? `<button class="btn small primary" onclick="reviewBooking(${booking.id})">审核</button>` : ''}
+          ${booking.status === 'pending_review' ? `<button class="btn small primary" onclick="reviewBooking(${booking.id})">审核</button>` : ''}
         </td>
       </tr>
     `).join('');
@@ -191,7 +203,7 @@
   // 获取状态样式
   function getStatusClass(status) {
     const map = {
-      'pending': 'warning',
+      'pending_review': 'warning',
       'confirmed': 'success',
       'cancelled': 'danger',
       'completed': 'primary'
@@ -202,7 +214,7 @@
   // 获取状态文本
   function getStatusText(status) {
     const map = {
-      'pending': '待审核',
+      'pending_review': '待审核',
       'confirmed': '已确认',
       'cancelled': '已取消',
       'completed': '已完成'
@@ -243,7 +255,7 @@
       paymentReceivedSelect.value = 'false';
       reviewNoteInput.value = '';
       
-      reviewModal.hidden = false;
+      openModal();
     } catch (err) {
       alert(err.message);
     }
@@ -255,12 +267,16 @@
   };
 
   // 关闭模态框
-  function closeModal() {
-    reviewModal.hidden = true;
-  }
-
   btnCloseModal.addEventListener('click', closeModal);
   btnCancel.addEventListener('click', closeModal);
+  reviewModal.addEventListener('click', (event) => {
+    if (event.target === reviewModal) closeModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !reviewModal.hidden) {
+      closeModal();
+    }
+  });
 
   // 提交审核
   reviewForm.addEventListener('submit', async (e) => {
@@ -316,17 +332,6 @@
 </script>
 
 <style>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.table-responsive {
-  overflow-x: auto;
-}
-
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -399,53 +404,6 @@
   background: #ffcdd2;
 }
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-card {
-  background: var(--card);
-  border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--line);
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.2rem;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--muted);
-  padding: 0;
-  line-height: 1;
-}
-
-.icon-btn:hover {
-  color: var(--ink);
-}
-
 #review-form {
   padding: 1.5rem;
 }
@@ -497,6 +455,12 @@
 
 .booking-summary {
   margin-bottom: 1rem;
+}
+
+@media (max-width: 720px) {
+  .data-table {
+    min-width: 900px;
+  }
 }
 </style>
 {% endblock %}

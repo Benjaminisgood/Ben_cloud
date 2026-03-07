@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     # Core
     SECRET_KEY: str = "dev-secret-key"
+    SSO_SECRET: str = "benbot-sso-secret-2025"
     DATABASE_URL: str = f"sqlite:///{_DATA_DIR / 'benoss.sqlite'}"
     DB_BOOTSTRAP_CREATE_ALL: bool = False
     DB_AUTO_UPGRADE_ON_STARTUP: bool = True

@@ -29,63 +29,80 @@
         }
         .header {
             background: var(--card-bg);
-            padding: 1.5rem 2rem;
-            border-radius: 8px;
+            padding: 1.5rem 1.75rem;
+            border-radius: 14px;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1rem;
         }
         .header h1 {
             color: var(--primary);
-            font-size: 1.5rem;
+            font-size: 1.45rem;
+            line-height: 1.3;
         }
         .header-actions {
             display: flex;
             gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
         .btn {
-            display: inline-block;
-            padding: 0.5rem 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.7rem 1rem;
             border: none;
-            border-radius: 4px;
+            border-radius: 10px;
             background: var(--primary);
             color: white;
             text-decoration: none;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.92rem;
+            font-weight: 600;
+            min-height: 42px;
             transition: opacity 0.2s;
         }
         .btn:hover { opacity: 0.9; }
         .btn-sm {
-            padding: 0.25rem 0.75rem;
-            font-size: 0.85rem;
+            padding: 0.55rem 0.85rem;
+            font-size: 0.84rem;
+            min-height: 36px;
         }
         .btn-success { background: var(--success); }
         .btn-danger { background: var(--danger); }
         .btn-warning { background: var(--warning); color: #000; }
         .card {
             background: var(--card-bg);
-            border-radius: 8px;
+            border-radius: 14px;
             padding: 2rem;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
         }
         .card h2 {
             color: var(--primary);
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
             font-size: 1.25rem;
+        }
+        .upload-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+            gap: 1.5rem;
+            align-items: start;
         }
         /* 上传区域 */
         .upload-area {
             border: 2px dashed #ddd;
-            border-radius: 8px;
+            border-radius: 14px;
             padding: 3rem 2rem;
             text-align: center;
             background: #fafafa;
             transition: all 0.3s;
             cursor: pointer;
+            min-height: 100%;
         }
         .upload-area:hover, .upload-area.dragover {
             border-color: var(--primary);
@@ -104,28 +121,42 @@
         .upload-area input[type="file"] {
             display: none;
         }
+        .form-panel {
+            background: #fbfcfd;
+            border: 1px solid #e5eaef;
+            border-radius: 14px;
+            padding: 1.25rem;
+        }
         .form-group {
             margin-bottom: 1rem;
         }
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
+            margin-bottom: 0.45rem;
+            font-weight: 600;
+            color: var(--text);
         }
         .form-group input[type="text"],
         .form-group textarea {
             width: 100%;
             padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
+            border: 1px solid #d9e0e7;
+            border-radius: 10px;
+            font-size: 0.96rem;
         }
         .form-group textarea {
             min-height: 100px;
             resize: vertical;
         }
-        .form-group input[type="checkbox"] {
-            margin-right: 0.5rem;
+        .checkbox-row label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+        .checkbox-row input[type="checkbox"] {
+            margin: 0;
         }
         /* 媒体列表 */
         .media-list {
@@ -135,13 +166,14 @@
         }
         .media-item {
             background: #f8f9fa;
-            border-radius: 8px;
+            border-radius: 14px;
             overflow: hidden;
             transition: transform 0.2s;
+            border: 1px solid #e4e9ee;
         }
         .media-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
         }
         .media-preview {
             width: 100%;
@@ -151,23 +183,32 @@
         }
         .media-info {
             padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .media-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
         }
         .media-title {
             font-weight: 600;
-            margin-bottom: 0.5rem;
             color: var(--text);
+            line-height: 1.4;
         }
         .media-description {
             color: var(--text-light);
             font-size: 0.9rem;
-            margin-bottom: 0.5rem;
+            min-height: 2.8rem;
         }
         .media-meta {
             display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
             font-size: 0.8rem;
             color: var(--text-light);
-            margin-bottom: 1rem;
         }
         .media-badge {
             display: inline-block;
@@ -183,6 +224,7 @@
             display: flex;
             gap: 0.5rem;
             flex-wrap: wrap;
+            margin-top: auto;
         }
         /* 编辑模态框 */
         .modal {
@@ -249,7 +291,11 @@
         @media (max-width: 768px) {
             .container { padding: 1rem; }
             .media-list { grid-template-columns: 1fr; }
-            .header { flex-direction: column; gap: 1rem; }
+            .header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .header-actions { width: 100%; justify-content: stretch; }
+            .header-actions .btn { flex: 1 1 100%; }
+            .upload-layout { grid-template-columns: 1fr; }
+            .media-item-actions .btn { flex: 1 1 100%; }
         }
     </style>
 </head>
@@ -267,31 +313,34 @@
         <div class="card">
             <h2>⬆️ 上传新媒体</h2>
             <form id="uploadForm" enctype="multipart/form-data">
-                <div class="upload-area" id="uploadArea">
-                    <i>📁</i>
-                    <p><strong>点击选择文件</strong> 或将文件拖拽到此处</p>
-                    <p style="font-size: 0.9rem;">支持图片（JPG/PNG/GIF/WebP）和视频（MP4/MOV/AVI），最大 500MB</p>
-                    <input type="file" id="fileInput" name="file" accept="image/*,video/*" required>
-                </div>
-                
-                <div style="margin-top: 1.5rem;">
-                    <div class="form-group">
-                        <label for="mediaTitle">标题</label>
-                        <input type="text" id="mediaTitle" name="title" placeholder="例如：客厅全景、钱塘云湾中心宣传视频">
+                <div class="upload-layout">
+                    <div class="upload-area" id="uploadArea">
+                        <i>📁</i>
+                        <p><strong>点击选择文件</strong> 或将文件拖拽到此处</p>
+                        <p style="font-size: 0.9rem;">支持图片（JPG/PNG/GIF/WebP）和视频（MP4/MOV/AVI），最大 500MB</p>
+                        <input type="file" id="fileInput" name="file" accept="image/*,video/*" required>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="mediaDescription">描述</label>
-                        <textarea id="mediaDescription" name="description" placeholder="添加更多细节描述..."></textarea>
+                    <div class="form-panel">
+                        <div class="form-group">
+                            <label for="mediaTitle">标题</label>
+                            <input type="text" id="mediaTitle" name="title" placeholder="例如：客厅全景、钱塘云湾中心宣传视频">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="mediaDescription">描述</label>
+                            <textarea id="mediaDescription" name="description" placeholder="添加更多细节描述..."></textarea>
+                        </div>
+                        
+                        <div class="form-group checkbox-row">
+                            <label for="mediaIsCover">
+                                <input type="checkbox" id="mediaIsCover" name="is_cover">
+                                <span>设为封面</span>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success">📤 上传媒体</button>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="mediaIsCover" name="is_cover"> 设为封面
-                        </label>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-success">📤 上传媒体</button>
                 </div>
             </form>
         </div>
@@ -325,9 +374,10 @@
                     <textarea id="editDescription" name="description" placeholder="添加更多细节描述..."></textarea>
                 </div>
                 
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="editIsCover" name="is_cover"> 设为封面
+                <div class="form-group checkbox-row">
+                    <label for="editIsCover">
+                        <input type="checkbox" id="editIsCover" name="is_cover">
+                        <span>设为封面</span>
                     </label>
                 </div>
                 
@@ -478,8 +528,10 @@
                             : `<img class="media-preview" src="${media.public_url}" alt="${media.title || '媒体文件'}">`
                         }
                         <div class="media-info">
-                            ${media.is_cover ? '<span class="media-badge badge-cover">📸 封面</span>' : ''}
-                            <span class="media-badge badge-${media.media_type}">${media.media_type === 'image' ? '🖼️ 图片' : '🎬 视频'}</span>
+                            <div class="media-badges">
+                                ${media.is_cover ? '<span class="media-badge badge-cover">📸 封面</span>' : ''}
+                                <span class="media-badge badge-${media.media_type}">${media.media_type === 'image' ? '🖼️ 图片' : '🎬 视频'}</span>
+                            </div>
                             <h3 class="media-title">${media.title || '无标题'}</h3>
                             <p class="media-description">${media.description || '无描述'}</p>
                             <div class="media-meta">

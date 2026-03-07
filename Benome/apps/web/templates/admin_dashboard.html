@@ -98,6 +98,73 @@
             font-size: 0.9rem;
             color: var(--text-light);
         }
+        .media-property-list {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .media-property-card {
+            display: grid;
+            grid-template-columns: 120px minmax(0, 1fr) auto;
+            gap: 1.25rem;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #d9e2e8;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #ffffff 0%, #f9fbfc 100%);
+        }
+        .media-property-thumb {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: #e8edf1;
+            border: 1px solid #d8e0e6;
+            display: block;
+        }
+        .media-property-body {
+            min-width: 0;
+            display: grid;
+            gap: 0.45rem;
+        }
+        .media-property-title {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.5rem;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .media-property-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+        .media-property-desc {
+            margin: 0;
+            color: var(--text-light);
+            font-size: 0.92rem;
+        }
+        .media-property-actions {
+            display: grid;
+            gap: 0.75rem;
+            justify-items: end;
+        }
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 128px;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .action-btn-secondary {
+            background: #eef3f6;
+            color: var(--text);
+        }
         .flash-message {
             background: #d4edda;
             color: #155724;
@@ -108,6 +175,50 @@
         .flash-message.error {
             background: #f8d7da;
             color: #721c24;
+        }
+        @media (max-width: 900px) {
+            .media-property-card {
+                grid-template-columns: 96px minmax(0, 1fr);
+            }
+            .media-property-thumb {
+                width: 96px;
+                height: 96px;
+            }
+            .media-property-actions {
+                grid-column: 1 / -1;
+                grid-template-columns: 1fr 1fr;
+                justify-items: stretch;
+            }
+            .action-btn {
+                min-width: 0;
+                width: 100%;
+            }
+        }
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+            .header nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.75rem;
+            }
+            .header nav a {
+                margin-left: 0;
+            }
+            .media-property-card {
+                grid-template-columns: 1fr;
+            }
+            .media-property-thumb {
+                width: 100%;
+                height: 180px;
+            }
+            .media-property-actions {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -266,14 +377,27 @@
                     return;
                 }
                 
-                container.innerHTML = '<div class="admin-links">' + properties.map(p => `
-                    <div style="position: relative;">
-                        <a href="/admin/properties/${p.id}/media" class="admin-link">
-                            <h3>🏠 ${p.title}</h3>
-                            <p>📍 ${p.city || '未设置位置'} · 💰 ¥${p.price_per_night}/晚</p>
-                            <p style="margin-top: 0.5rem; font-size: 0.85rem;">点击管理房间图片和视频</p>
-                        </a>
-                        <a href="/admin/properties/${p.id}/edit" class="btn btn-sm" style="position: absolute; top: 1rem; right: 1rem; background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none; font-size: 0.85rem;">✏️ 编辑</a>
+                container.innerHTML = '<div class="media-property-list">' + properties.map(p => `
+                    <div class="media-property-card">
+                        <img
+                            class="media-property-thumb"
+                            src="${p.cover_image || '/static/images/placeholder.svg'}"
+                            alt="${p.title}"
+                            onerror="this.src='/static/images/placeholder.svg'"
+                        >
+                        <div class="media-property-body">
+                            <h3 class="media-property-title">🏠 ${p.title}</h3>
+                            <div class="media-property-meta">
+                                <span>📍 ${p.city || '未设置位置'}</span>
+                                <span>💰 ¥${p.price_per_night}/晚</span>
+                                <span>👥 ${p.max_guests || 0} 人</span>
+                            </div>
+                            <p class="media-property-desc">管理房间图片和视频素材，设置封面并维护展示内容。</p>
+                        </div>
+                        <div class="media-property-actions">
+                            <a href="/admin/properties/${p.id}/media" class="btn action-btn">📸 管理媒体</a>
+                            <a href="/admin/properties/${p.id}/edit" class="action-btn action-btn-secondary">✏️ 编辑房源</a>
+                        </div>
                     </div>
                 `).join('') + '</div>';
             } catch (error) {

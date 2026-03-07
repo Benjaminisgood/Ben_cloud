@@ -1,40 +1,35 @@
 # Ben_cloud
 
-Ben_cloud 是一个多应用工作区。根目录负责统一调度、联合测试与跨项目规范；各子应用独立开发与运维。
+Ben_cloud 是一个多应用工作区。根目录负责统一调度、联合测试与跨项目规则；具体业务和执行细则以各子应用自己的 `AGENTS.md` 与 `README.md` 为准。
 
-> 文档状态：2026-03-06（已按仓库内 `AGENTS.md`、`*.sh`、`Makefile`、代码入口核对）
+## 工作区总览
 
-## 子应用矩阵（当前）
-
-| 应用 | 端口（默认） | 主要职责 | 主要入口 |
-|------|--------------|----------|----------|
-| `Benbot` | `80` | 门户、SSO 中枢、健康监控、子应用控制 | `Benbot/benbot.sh` |
-| `Benoss` | `8000` | 学习协作与记录 | `Benoss/benoss.sh` |
-| `Benusy` | `8100` | 达人运营任务/审核/结算 | `Benusy/benusy.sh` |
+| 应用 | 默认端口 | 主要职责 | 启动入口 |
+|------|----------|----------|----------|
+| `Benbot` | `80` | 门户、SSO、健康监控、子应用控制 | `Benbot/benbot.sh` |
+| `Benoss` | `8000` | 学习、协作、团队记录 | `Benoss/benoss.sh` |
+| `Benusy` | `8100` | 达人运营、任务审核、结算 | `Benusy/benusy.sh` |
 | `Benome` | `8200` | 民宿房源与预订 | `Benome/benome.sh` |
-| `Bensci` | `8300` | 文献元信息聚合与任务处理 | `Bensci/bensci.sh` |
+| `Bensci` | `8300` | 文献元信息聚合、抓取、导出 | `Bensci/bensci.sh` |
 | `Benfer` | `8500` | 剪贴板与文件中转 | `Benfer/benfer.sh` |
-| `Benben` | `8600` | Markdown 编辑与模板写作 | `Benben/benben.sh` |
+| `Benben` | `8600` | Markdown 编辑、模板写作 | `Benben/benben.sh` |
+| `Benfast` | `8700` | 文档站、RBAC、后端模板 | `Benfast/benfast.sh` |
 | `Benlab` | `9000` | 实验室管理 | `Benlab/benlab.sh` |
 
 补充：
-- `Benbot` 的项目注册表（`Benbot/apps/api/src/benbot_api/core/config.py`）当前已包含：`Benoss/Benusy/Benome/Bensci/Benfer/Benben/Benlab`。
-- `Benfer/.env` 当前设置 `PORT=8400`，与 `Benbot` 默认 `BENFER_*_URL` 的 `8500` 存在差异；如需门户跳转与健康检查一致，需对齐端口。
+- `Benbot` 当前项目注册表已包含：`Benoss`、`Benusy`、`Benome`、`Bensci`、`Benfer`、`Benben`、`Benfast`、`Benlab`。
+- `Benfer` 脚本默认端口是 `8500`；如果本地 `.env` 覆盖了 `PORT`，需要同步检查 `Benbot` 里的跳转与健康检查配置。
 
-## SSO 路径（当前）
+## 文档优先级
 
-```text
-浏览器
-  -> Benbot /login
-  -> Benbot /goto/{project_id}
-  -> 子应用 /auth/sso?token=...
-```
-
-token 为短时 HMAC-SHA256 签名（默认 30 秒），子应用自行校验并建立本地会话。
+1. 根级调度与跨项目规则：`/Users/ben/Desktop/Ben_cloud/AGENTS.md`
+2. 子应用执行细则：各项目目录下 `AGENTS.md`
+3. 子应用使用说明：各项目目录下 `README.md`
+4. `PROJECT_STANDARDS/` 仅用于新项目搭建或重建级改造
 
 ## 启动与运维
 
-根级统一调度（推荐）：
+统一调度：
 
 ```bash
 cd /Users/ben/Desktop/Ben_cloud
@@ -46,50 +41,55 @@ cd /Users/ben/Desktop/Ben_cloud
 ./Ben.sh open
 ```
 
-子应用单独开发（有 Makefile 的项目）：
+单项目开发：
 
 ```bash
-cd /Users/ben/Desktop/Ben_cloud/<Benbot|Benlab|Benoss|Benusy|Benome>
+cd /Users/ben/Desktop/Ben_cloud/<project>
 make install
 make db-upgrade
 make dev
 ```
 
-无根级 Makefile 接入的项目：
+说明：
+- `Benben`、`Benfer`、`Bensci`、`Benfast` 也已接入各自的 `Makefile`，不必再按“无 Makefile 项目”处理。
+- 具体端口、环境变量和脚本命令，以子项目文档为准。
 
-```bash
-# Benben
-cd /Users/ben/Desktop/Ben_cloud/Benben
-./benben.sh install && ./benben.sh start
+## 测试与 CI
 
-# Benfer
-cd /Users/ben/Desktop/Ben_cloud/Benfer
-./benfer.sh install && ./benfer.sh start
-
-# Bensci
-cd /Users/ben/Desktop/Ben_cloud/Bensci
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-./bensci.sh start
-```
-
-## 测试与 CI（当前真实范围）
-
-根目录：
+根目录命令：
 
 ```bash
 cd /Users/ben/Desktop/Ben_cloud
 make test
+make check
 make ci
 ```
 
-当前根 `Makefile` 仅覆盖 5 个应用：`Benbot`、`Benlab`、`Benoss`、`Benusy`、`Benome`。
+当前根 `Makefile` 已覆盖全部 9 个子应用：
+- `Benbot`
+- `Benben`
+- `Benlab`
+- `Benoss`
+- `Benusy`
+- `Benfer`
+- `Benfast`
+- `Bensci`
+- `Benome`
 
-其余应用当前建议：
-- `Benben`：`cd Benben && make test`
-- `Bensci`：`cd Bensci && pytest -q`（需本地具备 pytest）
-- `Benfer`：当前无内置自动化测试目标，至少执行启动与 `/health` 冒烟检查
+规则：
+- 单应用改动：先跑对应应用的 `make test`
+- 跨应用改动：回到根目录跑 `make test`
+
+## SSO 路径
+
+```text
+浏览器
+  -> Benbot /login
+  -> Benbot /goto/{project_id}
+  -> 子应用 /auth/sso?token=...
+```
+
+Token 为短时 HMAC-SHA256 签名，子应用负责校验并建立本地会话。共享密钥必须在各项目 `.env` 中显式配置，不能使用弱默认值。
 
 ## 目录结构
 
@@ -107,11 +107,6 @@ Ben_cloud/
 ├── Benoss/
 ├── Bensci/
 ├── Benusy/
+├── Benfast/
 └── PROJECT_STANDARDS/
 ```
-
-## 文档与规则优先级
-
-1. 根级调度与通用规则：`/Users/ben/Desktop/Ben_cloud/AGENTS.md`
-2. 子应用执行细则：各项目目录下 `AGENTS.md`
-3. `PROJECT_STANDARDS/` 仅用于新项目搭建或重建级改造，不覆盖现有项目本地规则

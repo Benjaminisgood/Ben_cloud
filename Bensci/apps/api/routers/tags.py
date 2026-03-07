@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -53,10 +54,15 @@ def create_tag(payload: TagCreate, db: Session = Depends(get_db)) -> TagRead:
     return TagRead(id=tag.id, name=tag.name, article_count=0)
 
 
-@router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tag(tag_id: int, db: Session = Depends(get_db)) -> None:
+@router.delete(
+    "/{tag_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+def delete_tag(tag_id: int, db: Session = Depends(get_db)) -> Response:
     tag = db.get(Tag, tag_id)
     if tag is None:
         raise HTTPException(status_code=404, detail="标签不存在")
     db.delete(tag)
     db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

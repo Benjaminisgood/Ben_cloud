@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Benfast 目录管理</title>
+    <link rel="icon" href="/app/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/app/styles.css" />
+  </head>
+  <body>
+    <header class="shell-header">
+      <div class="header-panel header-panel--top">
+        <a class="brand-home" href="/app/">
+          <span class="brand-mark">BF</span>
+          <span class="brand-line">Document Library / 文档库</span>
+        </a>
+        <div class="header-tools">
+          <div id="currentUserBadge" class="user-meta">成员信息加载中</div>
+          <p id="appStatus" class="visually-hidden" aria-live="polite">正在加载目录管理...</p>
+        </div>
+      </div>
+      <div class="header-panel header-panel--context">
+        <div class="context-breadcrumb">
+          <a class="inline-link" href="/app/">文档库</a>
+          <span>/</span>
+          <a id="documentCrumbLink" class="inline-link" href="#">当前文档</a>
+          <span>/</span>
+          <strong>目录管理</strong>
+        </div>
+        <nav class="context-tabs" aria-label="文档工作区">
+          <a id="tabSettingsLink" class="tab-link" href="#">文档设置</a>
+          <a id="tabOutlineLink" class="tab-link is-active" href="#">目录管理</a>
+          <a id="tabRootEditorLink" class="tab-link" href="#">写作</a>
+          <a id="tabRootPreviewLink" class="tab-link" href="#">预览</a>
+          <a id="tabPublishLink" class="tab-link" href="#">发布</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell-main workspace-grid">
+      <aside class="sidebar-stack">
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Add Node</p>
+              <h2>新增目录节点</h2>
+            </div>
+          </div>
+          <p class="panel-note">章节用于继续分层；正文页用于承载实际 Markdown 内容。</p>
+          <form id="newPageForm" class="form-grid form-grid-single" autocomplete="off">
+            <label>标题
+              <input id="newPageTitle" type="text" placeholder="例如：实验 SOP" />
+            </label>
+            <label>Slug
+              <input id="newPageSlug" type="text" placeholder="experiment-sop" />
+            </label>
+            <label>类型
+              <select id="newPageKind">
+                <option value="chapter">章节</option>
+                <option value="page">正文页</option>
+              </select>
+            </label>
+            <label>父节点
+              <select id="newPageParent"></select>
+            </label>
+            <label>排序
+              <input id="newPageOrder" type="number" min="0" value="20" />
+            </label>
+            <div class="form-actions">
+              <button id="createPageBtn" class="primary" type="submit">创建节点</button>
+            </div>
+          </form>
+        </section>
+      </aside>
+
+      <section class="content-stack">
+        <section class="panel page-hero">
+          <div>
+            <p class="eyebrow">Outline</p>
+            <h2 id="bookTitleHeading">当前文档</h2>
+          </div>
+          <p id="bookMetaLine" class="panel-note">正在读取目录结构...</p>
+          <ul id="outlineTree" class="tree-list"></ul>
+        </section>
+      </section>
+
+      <aside class="sidebar-stack">
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Publishing</p>
+              <h2>发布摘要</h2>
+            </div>
+          </div>
+          <p id="publishedLink" class="panel-note">当前还没有发布记录。</p>
+          <ul id="publishList" class="record-list"></ul>
+        </section>
+      </aside>
+    </main>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <script type="module" src="/app/outline.js"></script>
+  </body>
+</html>

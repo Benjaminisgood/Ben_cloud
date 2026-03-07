@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 import secrets
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from benfer_api.core.config import get_settings
@@ -53,6 +54,48 @@ def _ensure_owner(resource_user_id: Optional[str], current_user: dict) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied",
         )
+
+
+def _build_proxy_upload_url(upload_id: int, upload_token: str) -> str:
+    return f"/api/files/{upload_id}/content?upload_token={upload_token}"
+
+
+def _build_private_download_url(access_token: str) -> str:
+    return f"/api/files/{access_token}/download/redirect"
+
+
+def _build_public_download_url(access_token: str) -> str:
+    return f"/api/files/public/{access_token}/download"
+
+
+def _ensure_upload_access(
+    db_file: FileUpload,
+    current_user: Optional[dict],
+    upload_token: Optional[str],
+) -> None:
+    if current_user:
+        _ensure_owner(db_file.user_id, current_user)
+        return
+
+    if upload_token and db_file.access_token and secrets.compare_digest(upload_token, db_file.access_token):
+        return
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+
+def _get_file_by_access_token(db: Session, access_token: str) -> FileUpload:
+    db_file = db.query(FileUpload).filter(FileUpload.access_token == access_token).first()
+    if not db_file:
+        raise HTTPException(status_code=404, detail="File not found")
+    return db_file
+
+
+def _ensure_downloadable(db_file: FileUpload) -> None:
+    if db_file.upload_status != "completed":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File upload is not completed yet")
+
+    if db_file.expires_at and datetime.utcnow() > db_file.expires_at:
+        raise HTTPException(status_code=410, detail="File expired")
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -237,6 +280,7 @@ async def init_file_upload(
         content_type=request.content_type,
         user_id=user_id,
         expires_at=expires_at,
+        is_public=request.is_public,
         access_token=secrets.token_urlsafe(32),
         upload_status="uploading",
         chunk_count=request.chunk_count,
@@ -263,7 +307,7 @@ async def init_file_upload(
                 )
             )
     else:
-        chunk_urls.append(oss_service.get_upload_url(oss_key))
+        chunk_urls.append(_build_proxy_upload_url(db_file.id, db_file.access_token))
 
     return FileUploadInitResponse(
         upload_id=db_file.id,
@@ -332,6 +376,88 @@ async def complete_file_upload(
     return db_file
 
 
+@router.api_route("/files/{upload_id}/content", methods=["POST", "PUT"], response_model=FileUploadResponse)
+async def upload_file_content(
+    upload_id: int,
+    request: Request,
+    upload_token: Optional[str] = Query(default=None),
+    file: Optional[UploadFile] = File(default=None),
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_optional_current_user),
+):
+    """Upload path that proxies file bytes through Benfer for both new and legacy frontends."""
+    db_file = db.query(FileUpload).filter(FileUpload.id == upload_id).first()
+
+    if not db_file:
+        raise HTTPException(status_code=404, detail="Upload not found")
+
+    _ensure_upload_access(db_file, current_user, upload_token)
+
+    if db_file.upload_status == "completed":
+        return db_file
+
+    upload_body: bytes | object
+    content_type: Optional[str]
+
+    if request.method == "POST":
+        if file is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="missing file field",
+            )
+
+        file.file.seek(0, 2)
+        actual_size = file.file.tell()
+        file.file.seek(0)
+        if actual_size != db_file.file_size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="uploaded file size mismatch",
+            )
+
+        content_type = file.content_type or db_file.content_type
+        if not _is_allowed_content_type(content_type):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"unsupported content_type: {content_type}",
+            )
+        upload_body = file.file
+    else:
+        raw = await request.body()
+        if len(raw) != db_file.file_size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="uploaded file size mismatch",
+            )
+
+        content_type = request.headers.get("content-type") or db_file.content_type
+        if not _is_allowed_content_type(content_type):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"unsupported content_type: {content_type}",
+            )
+        upload_body = raw
+
+    oss_service = get_oss_service()
+    ok = oss_service.upload_file(
+        db_file.oss_key,
+        upload_body,
+        content_type=content_type,
+    )
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="proxy upload to OSS failed",
+        )
+
+    db_file.upload_status = "completed"
+    db.commit()
+    db.refresh(db_file)
+    if file is not None:
+        await file.close()
+    return db_file
+
+
 @router.get("/files/{access_token}", response_model=FileUploadResponse)
 async def get_file_info(
     access_token: str,
@@ -339,11 +465,7 @@ async def get_file_info(
     current_user: dict = Depends(get_current_user),
 ):
     """Get file upload info."""
-    db_file = db.query(FileUpload).filter(FileUpload.access_token == access_token).first()
-
-    if not db_file:
-        raise HTTPException(status_code=404, detail="File not found")
-
+    db_file = _get_file_by_access_token(db, access_token)
     _ensure_owner(db_file.user_id, current_user)
     return db_file
 
@@ -355,15 +477,9 @@ async def download_file(
     current_user: dict = Depends(get_current_user),
 ):
     """Download file with presigned URL."""
-    db_file = db.query(FileUpload).filter(FileUpload.access_token == access_token).first()
-
-    if not db_file:
-        raise HTTPException(status_code=404, detail="File not found")
-
+    db_file = _get_file_by_access_token(db, access_token)
     _ensure_owner(db_file.user_id, current_user)
-
-    if db_file.expires_at and datetime.utcnow() > db_file.expires_at:
-        raise HTTPException(status_code=410, detail="File expired")
+    _ensure_downloadable(db_file)
 
     oss_service = get_oss_service()
     download_url = oss_service.get_download_url(db_file.oss_key)
@@ -371,7 +487,54 @@ async def download_file(
     db_file.download_count += 1
     db.commit()
 
-    return {"download_url": download_url, "filename": db_file.filename}
+    return {
+        "download_url": download_url,
+        "filename": db_file.filename,
+        "stable_download_url": _build_private_download_url(access_token),
+        "public_download_url": _build_public_download_url(access_token) if db_file.is_public else None,
+        "is_public": db_file.is_public,
+    }
+
+
+@router.get("/files/{access_token}/download/redirect")
+async def redirect_private_file_download(
+    access_token: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Stable owner-only download entry that redirects to a fresh OSS signed URL."""
+    db_file = _get_file_by_access_token(db, access_token)
+    _ensure_owner(db_file.user_id, current_user)
+    _ensure_downloadable(db_file)
+
+    oss_service = get_oss_service()
+    download_url = oss_service.get_download_url(db_file.oss_key)
+
+    db_file.download_count += 1
+    db.commit()
+
+    return RedirectResponse(download_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
+@router.get("/files/public/{access_token}/download")
+async def redirect_public_file_download(
+    access_token: str,
+    db: Session = Depends(get_db),
+):
+    """Public share entry for files explicitly marked as public."""
+    db_file = _get_file_by_access_token(db, access_token)
+    if not db_file.is_public:
+        raise HTTPException(status_code=404, detail="Public file not found")
+
+    _ensure_downloadable(db_file)
+
+    oss_service = get_oss_service()
+    download_url = oss_service.get_download_url(db_file.oss_key)
+
+    db_file.download_count += 1
+    db.commit()
+
+    return RedirectResponse(download_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
 @router.delete("/files/{access_token}")
@@ -381,11 +544,7 @@ async def delete_file(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete file."""
-    db_file = db.query(FileUpload).filter(FileUpload.access_token == access_token).first()
-
-    if not db_file:
-        raise HTTPException(status_code=404, detail="File not found")
-
+    db_file = _get_file_by_access_token(db, access_token)
     _ensure_owner(db_file.user_id, current_user)
 
     oss_service = get_oss_service()

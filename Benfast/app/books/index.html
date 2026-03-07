@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Benfast 文档库</title>
+    <link rel="icon" href="/app/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/app/styles.css" />
+  </head>
+  <body>
+    <header class="shell-header">
+      <div class="header-panel header-panel--top">
+        <a class="brand-home" href="/app/">
+          <span class="brand-mark">BF</span>
+          <span class="brand-line">Document Library / 文档库</span>
+        </a>
+        <div class="header-tools">
+          <div id="currentUserBadge" class="user-meta">成员信息加载中</div>
+          <p id="appStatus" class="visually-hidden" aria-live="polite">正在读取文档库...</p>
+        </div>
+      </div>
+      <div class="header-panel header-panel--context">
+        <div class="context-breadcrumb">
+          <strong>文档库</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell-main panel-grid panel-grid-wide">
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Create Document</p>
+            <h2>新建文档</h2>
+          </div>
+        </div>
+        <form id="newBookForm" class="form-grid" autocomplete="off">
+          <label>文档标题
+            <input id="newBookTitle" type="text" placeholder="例如：课题组手册" />
+          </label>
+          <label>Slug
+            <input id="newBookSlug" type="text" placeholder="lab-handbook" />
+          </label>
+          <label>摘要
+            <input id="newBookSummary" type="text" placeholder="一句话说明这份文档的用途" />
+          </label>
+          <label class="span-2">说明
+            <textarea id="newBookDescription" rows="5" placeholder="这份文档服务谁、覆盖哪些内容、何时使用"></textarea>
+          </label>
+          <div class="form-actions span-2">
+            <button id="createBookBtn" class="primary" type="submit">创建文档</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Documents</p>
+            <h2>全部文档</h2>
+          </div>
+          <label class="inline-field">搜索
+            <input id="bookSearchInput" type="text" placeholder="标题、slug、说明" />
+          </label>
+        </div>
+        <p id="bookShelfMeta" class="muted">正在加载文档库...</p>
+        <div id="bookShelf" class="document-grid"></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <script type="module" src="/app/books.js"></script>
+  </body>
+</html>

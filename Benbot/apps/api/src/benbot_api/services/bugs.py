@@ -12,6 +12,7 @@ from ..repositories import (
     get_bug_report,
     get_user_by_id,
     list_approved_bug_reports_with_reporter,
+    list_archived_bug_reports_with_reporter,
     list_pending_bug_reports_with_reporter,
     save_bug_report,
 )
@@ -39,6 +40,12 @@ def list_approved(db: Session) -> list[dict]:
         "repaired": bool(bug.repaired),
         "verified": bool(bug.verified),
     } for bug, username in rows]
+
+
+def list_archived(db: Session) -> list[dict]:
+    """Return all archived bug reports with reporter username."""
+    rows = list_archived_bug_reports_with_reporter(db)
+    return [_format_bug(bug, username) for bug, username in rows]
 
 
 def approve_bug(db: Session, bug_id: int) -> dict:
@@ -78,6 +85,22 @@ def reject_bug(db: Session, bug_id: int) -> dict:
     username = reporter.username if reporter else f"user#{bug.reporter_id}"
 
     bug.status = "rejected"
+    save_bug_report(db, bug)
+    return _format_bug(bug, username)
+
+
+def archive_bug(db: Session, bug_id: int) -> dict:
+    """Archive an approved bug after manual repair and validation."""
+    bug = get_bug_report(db, bug_id)
+    if not bug:
+        raise ValueError(f"bug_report {bug_id} not found")
+    if bug.status != "approved":
+        raise ValueError(f"bug_report {bug_id} is not approved (status={bug.status})")
+
+    reporter = get_user_by_id(db, bug.reporter_id)
+    username = reporter.username if reporter else f"user#{bug.reporter_id}"
+
+    bug.status = "archived"
     save_bug_report(db, bug)
     return _format_bug(bug, username)
 

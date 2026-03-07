@@ -1,0 +1,118 @@
+site_name: Benfast 课题组文档站
+site_description: Ben_cloud 课题组协作知识库与模板站
+site_author: Ben Group
+site_url: http://127.0.0.1:8800/
+copyright: Copyright &copy; 2026 Ben Group
+
+repo_name: Ben_cloud/Benfast
+repo_url: https://example.invalid/Ben_cloud/Benfast
+edit_uri: edit/main/Benfast/docs/
+
+theme:
+  name: material
+  language: zh
+  palette:
+    - scheme: default
+      primary: teal
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: 切换至夜间模式
+    - scheme: slate
+      primary: teal
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: 切换至日间模式
+  font:
+    text: Noto Sans SC
+    code: JetBrains Mono
+  icon:
+    logo: material/notebook-multiple
+  features:
+    - content.code.copy
+    - navigation.indexes
+    - navigation.instant
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - toc.follow
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+  - git-revision-date-localized:
+      type: date
+      timezone: Asia/Shanghai
+      locale: zh
+      enable_creation_date: true
+  - gen-files:
+      scripts:
+        - docs/gen_pages.py
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      title: 目录
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+nav:
+  - 首页: index.md
+  - 课题组总览:
+    - 组织与方向: group/overview.md
+    - 成员与分工: group/members.md
+  - 研究执行:
+    - 研究路线图: group/roadmap.md
+    - 实验记录规范: group/experiments.md
+    - 会议与协作: group/meetings.md
+  - 数据与规范:
+    - 数据治理: group/data-governance.md
+    - 可复现规范: group/reproducibility.md
+  - 成果与里程碑:
+    - 阶段成果: group/milestones.md
+  - 模板中心:
+    - 模板总览: kits/index.md
+    - 课题立项模板: kits/project-charter.md
+    - 周报模板: kits/weekly-report.md
+    - 会议纪要模板: kits/meeting-minutes.md
+    - 实验记录模板: kits/experiment-log.md
+    - 数据集卡片模板: kits/dataset-card.md
+  - 系统运维:
+    - 运维总览: ops/index.md
+    - 接口清单: ops/endpoints.md
+    - API与集成: api/index.md
+
+extra:
+  social:
+    - icon: fontawesome/solid/house
+      link: http://127.0.0.1:8800/
+
+strict: false

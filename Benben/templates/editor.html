@@ -3,757 +3,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Benben Markdown 编辑器</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
-            background: #f4f6fb;
-            color: #1f2937;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .toolbar {
-            background: #fff;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .toolbar h1 { font-size: 18px; margin-right: 8px; }
-        .toolbar .meta { color: #6b7280; font-size: 12px; margin-right: 8px; }
-        .toolbar select,
-        .toolbar input {
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 7px 10px;
-            font-size: 13px;
-            min-width: 180px;
-            background: #fff;
-        }
-        .btn {
-            border: none;
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 13px;
-            cursor: pointer;
-            color: #fff;
-        }
-        .btn-primary { background: #2563eb; }
-        .btn-success { background: #0d9488; }
-        .btn-danger { background: #dc2626; }
-        .btn-template { background: #7c3aed; }
-        .btn-muted { background: #4b5563; }
-        .btn-export { background: #1d4ed8; }
-        .editor-container {
-            flex: 1;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            padding: 12px;
-            overflow: hidden;
-        }
-        .pane {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .pane-header {
-            background: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 8px 12px;
-            font-size: 12px;
-            color: #4b5563;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #editor {
-            flex: 1;
-            border: none;
-            resize: none;
-            outline: none;
-            padding: 14px;
-            font-family: "SF Mono", Menlo, Consolas, monospace;
-            line-height: 1.6;
-            font-size: 13px;
-        }
-        #preview {
-            flex: 1;
-            overflow: auto;
-            padding: 14px;
-            line-height: 1.6;
-            font-size: 14px;
-        }
-        #preview h1, #preview h2, #preview h3 { margin: 12px 0 10px; }
-        #preview code { background: #f3f4f6; padding: 2px 4px; border-radius: 4px; }
-        #preview pre { background: #111827; color: #f9fafb; padding: 12px; border-radius: 8px; overflow: auto; }
-        #preview pre code { background: transparent; padding: 0; }
-        #preview table { border-collapse: collapse; width: 100%; }
-        #preview th, #preview td { border: 1px solid #e5e7eb; padding: 6px 8px; }
-        #preview th { background: #f9fafb; }
-        .status {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            background: #111827;
-            color: #fff;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            opacity: 0;
-            transform: translateY(8px);
-            transition: all .25s;
-            pointer-events: none;
-        }
-        .status.show { opacity: 1; transform: translateY(0); }
-        .status.error { background: #dc2626; }
-        .status.success { background: #059669; }
-        .status.warn { background: #d97706; }
-        #image-upload { display: none; }
-        @media (max-width: 980px) {
-            .editor-container { grid-template-columns: 1fr; }
-        }
-    </style>
+    <title>Benben 分视图工作台</title>
+    <link rel="stylesheet" href="/static/editor.css">
 </head>
 <body>
-    <div class="toolbar">
-        <h1>📝 Benben</h1>
-        <span class="meta" id="session-meta">未登录</span>
-
-        <select id="file-select">
-            <option value="">选择文件...</option>
-        </select>
-
-        <select id="template-select">
-            <option value="">选择模板...</option>
-        </select>
-
-        <input id="template-project" type="text" placeholder="项目名（用于模板变量）">
-
-        <button class="btn btn-muted" onclick="createBlankFile()">➕ 新建空白</button>
-        <button class="btn btn-template" onclick="createFromTemplate()">📄 模板新建</button>
-        <button class="btn btn-primary" onclick="uploadImage()">📷 上传图片</button>
-        <button class="btn btn-success" onclick="saveFile()">💾 保存</button>
-        <select id="export-format">
-            <option value="txt">导出 TXT</option>
-            <option value="md">导出 Markdown</option>
-            <option value="html">导出 HTML</option>
-            <option value="png">导出 PNG 图片</option>
-        </select>
-        <button class="btn btn-export" onclick="exportCurrentNote()">⬇️ 导出</button>
-        <button class="btn btn-danger" onclick="deleteFile()" id="delete-btn" disabled>🗑️ 删除</button>
-
-        <input type="file" id="image-upload" accept="image/*" onchange="handleImageUpload(event)">
-    </div>
-
-    <div class="editor-container">
-        <div class="pane">
-            <div class="pane-header">
-                <span>编辑区</span>
-                <span id="editor-state">未选择文件</span>
+    <div class="app-shell">
+        <header class="topbar card animate">
+            <div class="topbar-brand">
+                <div class="brand-mark">Bb</div>
+                <div>
+                    <p class="eyebrow">Benben Workspace</p>
+                    <h1>分视图临时写作台</h1>
+                    <p class="brand-copy">文库、写作、预演拆开，各做一件事。单独一行写 <code>---</code>，预演页会自动分页。</p>
+                </div>
             </div>
-            <textarea id="editor" placeholder="开始编写 Markdown..."></textarea>
-        </div>
-        <div class="pane">
-            <div class="pane-header">
-                <span>预览</span>
-                <span id="version-state">version: -</span>
+
+            <nav class="view-nav" aria-label="Benben 主视图">
+                <button type="button" id="view-overview-btn" class="active">工作台</button>
+                <button type="button" id="view-write-btn">写作</button>
+                <button type="button" id="view-present-btn">预演</button>
+            </nav>
+
+            <div class="topbar-actions">
+                <div class="signal-stack">
+                    <div class="signal-pill">
+                        <span>会话</span>
+                        <strong id="session-meta">未登录</strong>
+                    </div>
+                    <div class="signal-pill">
+                        <span>草稿</span>
+                        <strong id="autosave-meta">草稿未缓存</strong>
+                    </div>
+                </div>
+
+                <div class="action-stack">
+                    <button type="button" class="ghost-btn" data-action="new-blank">新建空白</button>
+                    <button type="button" class="secondary-btn" data-action="save">保存</button>
+                    <button type="button" class="primary-btn" data-action="present">开始放映</button>
+                    <button type="button" class="danger-btn" id="delete-btn" disabled>删除</button>
+                </div>
             </div>
-            <div id="preview"></div>
-        </div>
+        </header>
+
+        <main class="view-stage">
+            <section class="app-view" id="overview-view">
+                <div class="overview-grid">
+                    <section class="panel library-panel animate">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="section-kicker">Library</p>
+                                <h2>文档库</h2>
+                                <p class="view-helper">先选文档，再决定去写还是去预演。</p>
+                            </div>
+                            <button type="button" class="ghost-btn compact-btn" id="refresh-files-btn">刷新</button>
+                        </div>
+
+                        <label class="field">
+                            <span>筛选文件</span>
+                            <input id="file-filter" type="text" placeholder="输入关键字，快速筛选 Markdown">
+                        </label>
+
+                        <div class="file-list" id="file-list">
+                            <div class="empty-list">正在加载文件列表...</div>
+                        </div>
+                    </section>
+
+                    <section class="panel launch-panel animate">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="section-kicker">Launch Pad</p>
+                                <h2>模板与速写</h2>
+                                <p class="view-helper">从模板起草，或者直接塞进一套临时汇报骨架。</p>
+                            </div>
+                        </div>
+
+                        <label class="field">
+                            <span>目标路径</span>
+                            <input id="new-file-path" type="text" placeholder="例如：weekly/2026w10.md">
+                        </label>
+
+                        <label class="field">
+                            <span>模板</span>
+                            <select id="template-select">
+                                <option value="">选择模板...</option>
+                            </select>
+                        </label>
+
+                        <label class="field">
+                            <span>项目名（可选）</span>
+                            <input id="template-project" type="text" placeholder="例如：Benoss 协作周报">
+                        </label>
+
+                        <div class="action-row">
+                            <button type="button" class="secondary-btn" id="template-create-btn">模板新建</button>
+                            <button type="button" class="ghost-btn" id="insert-report-btn">插入汇报骨架</button>
+                        </div>
+
+                        <div class="tip-stack">
+                            <div class="tip-card">
+                                <strong>分页规则</strong>
+                                <span>单独一行写 <code>---</code>，预演页会自动拆成下一页。</span>
+                            </div>
+                            <div class="tip-card">
+                                <strong>适合场景</strong>
+                                <span>站会同步、周报快写、实验记录、临时汇报。</span>
+                            </div>
+                            <div class="tip-card">
+                                <strong>操作节奏</strong>
+                                <span>工作台选文档，写作页专心写，预演页专心看。</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel summary-panel animate">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="section-kicker">Current Note</p>
+                                <h2 id="overview-file-name">未选择文件</h2>
+                                <p class="view-helper" id="overview-file-state">从文档库打开一个 Markdown，或者直接新建。</p>
+                            </div>
+                        </div>
+
+                        <div class="summary-metrics">
+                            <div class="summary-kpi">
+                                <span>路径</span>
+                                <strong id="overview-current-path">未保存</strong>
+                            </div>
+                            <div class="summary-kpi">
+                                <span>内容量</span>
+                                <strong id="overview-word-count">0</strong>
+                            </div>
+                            <div class="summary-kpi">
+                                <span>幻灯片</span>
+                                <strong id="overview-slide-count">1</strong>
+                            </div>
+                            <div class="summary-kpi">
+                                <span>预计阅读</span>
+                                <strong id="overview-read-time">0 分钟</strong>
+                            </div>
+                        </div>
+
+                        <div class="overview-summary" id="overview-summary">
+                            这里会显示当前文档的摘要。当前还没有打开任何笔记。
+                        </div>
+
+                        <div class="action-row">
+                            <button type="button" class="ghost-btn" id="go-write-btn">进入写作</button>
+                            <button type="button" class="primary-btn" id="go-present-btn">进入预演</button>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <section class="app-view hidden" id="write-view">
+                <div class="write-layout">
+                    <section class="panel writer-panel animate">
+                        <div class="panel-heading compact">
+                            <div>
+                                <p class="section-kicker">Writing View</p>
+                                <h2 id="editor-title">未命名文档</h2>
+                                <p class="view-helper" id="editor-state">未选择文件</p>
+                            </div>
+                            <div class="panel-meta">
+                                <span class="meta-pill" id="version-state">version: -</span>
+                                <span class="meta-pill" id="draft-state">草稿未缓存</span>
+                            </div>
+                        </div>
+
+                        <div class="toolbar-strip">
+                            <button type="button" class="chip-btn" id="insert-slide-btn">插入分页</button>
+                            <button type="button" class="chip-btn" id="insert-heading-btn">标题块</button>
+                            <button type="button" class="chip-btn" id="insert-summary-btn">结论块</button>
+                            <button type="button" class="chip-btn" id="insert-checklist-btn">待办清单</button>
+                            <button type="button" class="chip-btn" id="upload-image-btn">上传图片</button>
+                        </div>
+
+                        <div class="writer-metrics">
+                            <div class="writer-chip">
+                                <span>当前文件</span>
+                                <strong id="current-path">未保存</strong>
+                            </div>
+                            <div class="writer-chip">
+                                <span>内容量</span>
+                                <strong id="word-count">0</strong>
+                            </div>
+                            <div class="writer-chip">
+                                <span>幻灯片</span>
+                                <strong id="slide-count">1</strong>
+                            </div>
+                            <div class="writer-chip">
+                                <span>预计阅读</span>
+                                <strong id="read-time">0 分钟</strong>
+                            </div>
+                        </div>
+
+                        <textarea id="editor" placeholder="# 今日同步&#10;&#10;一句话结论...&#10;&#10;---&#10;&#10;## 关键进展&#10;- ..."></textarea>
+
+                        <div class="editor-footer">
+                            <div class="footer-help">写作页只负责写。需要看效果时，再切去预演页。</div>
+                            <div class="footer-actions">
+                                <button type="button" class="ghost-btn compact-btn" data-switch-view="overview">回工作台</button>
+                                <button type="button" class="secondary-btn compact-btn" data-action="save">保存</button>
+                                <button type="button" class="ghost-btn compact-btn" data-switch-view="present">去预演</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <section class="app-view hidden" id="present-view">
+                <div class="present-layout">
+                    <section class="panel preview-panel animate">
+                        <div class="panel-heading compact">
+                            <div>
+                                <p class="section-kicker">Preview View</p>
+                                <h2>文档与幻灯片预演</h2>
+                                <p class="view-helper">预演页只看效果，不和编辑器抢空间。</p>
+                            </div>
+                            <div class="segmented-control" role="tablist" aria-label="预览模式">
+                                <button type="button" id="mode-document-btn" class="active" aria-pressed="true">文档</button>
+                                <button type="button" id="mode-slides-btn" aria-pressed="false">幻灯片</button>
+                            </div>
+                        </div>
+
+                        <div class="preview-actions">
+                            <button type="button" class="ghost-btn compact-btn" data-switch-view="write">回写作</button>
+                            <button type="button" class="ghost-btn compact-btn" id="focus-slide-btn">定位当前页</button>
+                            <button type="button" class="primary-btn compact-btn" data-action="present">开始放映</button>
+                            <select id="export-format">
+                                <option value="txt">导出 TXT</option>
+                                <option value="md">导出 Markdown</option>
+                                <option value="html">导出 HTML</option>
+                                <option value="png">导出 PNG 图片</option>
+                            </select>
+                            <button type="button" class="ghost-btn compact-btn" id="export-btn">导出</button>
+                        </div>
+
+                        <div class="preview-mode" id="document-preview-mode">
+                            <div class="doc-preview-frame">
+                                <div id="preview" class="markdown-body"></div>
+                            </div>
+                        </div>
+
+                        <div class="preview-mode hidden" id="slides-preview-mode">
+                            <div class="slide-stage-wrap">
+                                <div class="slide-stage-header">
+                                    <span id="slide-position">第 1 / 1 页</span>
+                                    <div class="slide-nav-buttons">
+                                        <button type="button" class="ghost-btn compact-btn" id="prev-slide-btn">上一页</button>
+                                        <button type="button" class="ghost-btn compact-btn" id="next-slide-btn">下一页</button>
+                                    </div>
+                                </div>
+                                <div class="slide-stage" id="slide-stage"></div>
+                            </div>
+
+                            <div class="slide-strip" id="slide-strip"></div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </main>
+
+        <input type="file" id="image-upload" accept="image/*" hidden>
     </div>
 
     <div id="status" class="status"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>
-        const DRAFT_PREFIX = 'benben:draft:';
-        const NEW_DRAFT_KEY = DRAFT_PREFIX + '__new__';
-
-        let currentFile = '';
-        let currentVersion = null;
-        let currentUser = null;
-        let isDirty = false;
-        let autoSaveTimer = null;
-
-        const editorEl = document.getElementById('editor');
-        const previewEl = document.getElementById('preview');
-        const fileSelectEl = document.getElementById('file-select');
-        const templateSelectEl = document.getElementById('template-select');
-        const exportFormatEl = document.getElementById('export-format');
-        const versionStateEl = document.getElementById('version-state');
-        const editorStateEl = document.getElementById('editor-state');
-        const statusEl = document.getElementById('status');
-        const sessionMetaEl = document.getElementById('session-meta');
-
-        function draftKey(path) {
-            return DRAFT_PREFIX + (path || '__new__');
-        }
-
-        function showStatus(message, type = 'success') {
-            statusEl.textContent = message;
-            statusEl.className = `status show ${type}`;
-            setTimeout(() => {
-                statusEl.classList.remove('show');
-            }, 2600);
-        }
-
-        function setDirty(nextDirty) {
-            isDirty = nextDirty;
-            editorStateEl.textContent = currentFile
-                ? `${currentFile}${isDirty ? ' *' : ''}`
-                : (isDirty ? '未命名文档 *' : '未选择文件');
-        }
-
-        function updatePreview(content) {
-            previewEl.innerHTML = marked.parse(content || '');
-        }
-
-        function updateVersion(version) {
-            currentVersion = version;
-            versionStateEl.textContent = `version: ${version || '-'}`;
-        }
-
-        function saveDraftToLocal() {
-            const payload = {
-                path: currentFile || '',
-                content: editorEl.value,
-                version: currentVersion,
-                updated_at: Date.now(),
-            };
-            localStorage.setItem(draftKey(currentFile), JSON.stringify(payload));
-        }
-
-        function clearDraft(path) {
-            localStorage.removeItem(draftKey(path));
-        }
-
-        function maybeRestoreDraftForPath(path, serverContent) {
-            const raw = localStorage.getItem(draftKey(path));
-            if (!raw) return serverContent;
-
-            try {
-                const draft = JSON.parse(raw);
-                if (draft.content === serverContent) {
-                    clearDraft(path);
-                    return serverContent;
-                }
-                const recover = confirm(`检测到本地草稿（${new Date(draft.updated_at).toLocaleString()}），是否恢复？`);
-                if (recover) {
-                    showStatus('已恢复本地草稿', 'warn');
-                    setDirty(true);
-                    return draft.content;
-                }
-                clearDraft(path);
-            } catch (_e) {
-                clearDraft(path);
-            }
-            return serverContent;
-        }
-
-        function maybeRestoreUnsavedDraft() {
-            const raw = localStorage.getItem(NEW_DRAFT_KEY);
-            if (!raw) return;
-            try {
-                const draft = JSON.parse(raw);
-                if (!draft.content) return;
-                const recover = confirm(`发现未命名草稿（${new Date(draft.updated_at).toLocaleString()}），是否恢复？`);
-                if (!recover) return;
-                currentFile = '';
-                updateVersion(null);
-                editorEl.value = draft.content;
-                updatePreview(draft.content);
-                setDirty(true);
-                editorStateEl.textContent = '未命名文档 *';
-                showStatus('已恢复未命名草稿', 'warn');
-            } catch (_e) {
-                localStorage.removeItem(NEW_DRAFT_KEY);
-            }
-        }
-
-        function scheduleDraftAutoSave() {
-            if (autoSaveTimer) {
-                clearTimeout(autoSaveTimer);
-            }
-            autoSaveTimer = setTimeout(() => {
-                saveDraftToLocal();
-            }, 1200);
-        }
-
-        async function requestJSON(url, options = {}) {
-            const res = await fetch(url, options);
-            const data = await res.json().catch(() => ({}));
-            return { res, data };
-        }
-
-        function resolveExportBaseName() {
-            if (currentFile) {
-                const fileName = currentFile.split('/').pop() || 'note.md';
-                return fileName.replace(/\.md$/i, '') || 'note';
-            }
-            const date = new Date();
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const d = String(date.getDate()).padStart(2, '0');
-            const hh = String(date.getHours()).padStart(2, '0');
-            const mm = String(date.getMinutes()).padStart(2, '0');
-            return `note-${y}${m}${d}-${hh}${mm}`;
-        }
-
-        function triggerDownload(blob, fileName) {
-            const url = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = fileName;
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-            URL.revokeObjectURL(url);
-        }
-
-        function parseFilenameFromDisposition(disposition) {
-            if (!disposition) return '';
-            const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
-            if (utf8Match) {
-                try {
-                    return decodeURIComponent(utf8Match[1]);
-                } catch (_e) {
-                    return utf8Match[1];
-                }
-            }
-            const plainMatch = disposition.match(/filename="?([^\";]+)"?/i);
-            return plainMatch ? plainMatch[1] : '';
-        }
-
-        function buildWrappedLines(ctx, text, maxWidth) {
-            const source = (text || '').replace(/\r\n/g, '\n');
-            const result = [];
-            for (const rawLine of source.split('\n')) {
-                if (!rawLine) {
-                    result.push('');
-                    continue;
-                }
-                let current = '';
-                for (const char of rawLine) {
-                    const next = current + char;
-                    if (ctx.measureText(next).width > maxWidth && current) {
-                        result.push(current);
-                        current = char;
-                    } else {
-                        current = next;
-                    }
-                }
-                result.push(current);
-            }
-            return result;
-        }
-
-        async function exportCurrentNote() {
-            const format = exportFormatEl.value || 'txt';
-            if (format === 'png') {
-                exportAsPng();
-                return;
-            }
-
-            const payload = {
-                format,
-                content: editorEl.value,
-                file_name: resolveExportBaseName(),
-            };
-
-            const res = await fetch('/api/export', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (!res.ok) {
-                const detail = await res.json().catch(() => ({}));
-                showStatus(`导出失败：${detail.detail || '未知错误'}`, 'error');
-                return;
-            }
-
-            const blob = await res.blob();
-            const fileName =
-                parseFilenameFromDisposition(res.headers.get('content-disposition')) ||
-                `${resolveExportBaseName()}.${format}`;
-            triggerDownload(blob, fileName);
-            showStatus(`已导出 ${fileName}`, 'success');
-        }
-
-        function exportAsPng() {
-            const sourceText = (previewEl.innerText || editorEl.value || '').trim();
-            if (!sourceText) {
-                showStatus('当前内容为空，无法导出图片', 'warn');
-                return;
-            }
-
-            const canvas = document.createElement('canvas');
-            const width = 1400;
-            const padding = 48;
-            const maxTextWidth = width - padding * 2;
-            const lineHeight = 30;
-
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                showStatus('当前浏览器不支持图片导出', 'error');
-                return;
-            }
-
-            ctx.font = "22px 'PingFang SC', 'Microsoft YaHei', sans-serif";
-            const title = resolveExportBaseName();
-            ctx.font = "18px 'PingFang SC', 'Microsoft YaHei', sans-serif";
-            const lines = buildWrappedLines(ctx, sourceText, maxTextWidth);
-            const headerLines = 3;
-            const height = Math.min(
-                16000,
-                padding * 2 + lineHeight * (headerLines + lines.length + 1),
-            );
-
-            canvas.width = width;
-            canvas.height = height;
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, width, height);
-
-            let y = padding;
-            ctx.fillStyle = '#111827';
-            ctx.font = "bold 32px 'PingFang SC', 'Microsoft YaHei', sans-serif";
-            ctx.fillText(title, padding, y);
-            y += lineHeight + 8;
-
-            ctx.font = "16px 'PingFang SC', 'Microsoft YaHei', sans-serif";
-            ctx.fillStyle = '#6b7280';
-            ctx.fillText(`导出时间：${new Date().toLocaleString()}`, padding, y);
-            y += lineHeight + 8;
-
-            ctx.strokeStyle = '#e5e7eb';
-            ctx.beginPath();
-            ctx.moveTo(padding, y);
-            ctx.lineTo(width - padding, y);
-            ctx.stroke();
-            y += lineHeight;
-
-            ctx.fillStyle = '#111827';
-            ctx.font = "18px 'PingFang SC', 'Microsoft YaHei', sans-serif";
-            for (const line of lines) {
-                if (y > height - padding) {
-                    break;
-                }
-                ctx.fillText(line || ' ', padding, y);
-                y += lineHeight;
-            }
-
-            canvas.toBlob((blob) => {
-                if (!blob) {
-                    showStatus('图片导出失败', 'error');
-                    return;
-                }
-                const fileName = `${resolveExportBaseName()}.png`;
-                triggerDownload(blob, fileName);
-                showStatus(`已导出 ${fileName}`, 'success');
-            }, 'image/png');
-        }
-
-        async function loadSession() {
-            const { res, data } = await requestJSON('/api/session');
-            if (res.ok) {
-                currentUser = data;
-                sessionMetaEl.textContent = `登录用户：${data.username}（${data.role}）`;
-                return;
-            }
-            sessionMetaEl.textContent = '未登录';
-        }
-
-        async function loadTemplates() {
-            const { res, data } = await requestJSON('/api/templates');
-            if (!res.ok) {
-                showStatus('加载模板失败', 'error');
-                return;
-            }
-
-            templateSelectEl.innerHTML = '<option value="">选择模板...</option>';
-            for (const tpl of data.templates || []) {
-                const option = document.createElement('option');
-                option.value = tpl.id;
-                option.textContent = `${tpl.name} (${tpl.description})`;
-                templateSelectEl.appendChild(option);
-            }
-        }
-
-        async function loadFileList() {
-            const { res, data } = await requestJSON('/api/files');
-            if (!res.ok) {
-                showStatus('加载文件列表失败', 'error');
-                return;
-            }
-
-            const files = data.files || [];
-            fileSelectEl.innerHTML = '<option value="">选择文件...</option>';
-            for (const file of files) {
-                const option = document.createElement('option');
-                option.value = file;
-                option.textContent = file;
-                fileSelectEl.appendChild(option);
-            }
-        }
-
-        async function openFile(path) {
-            if (isDirty && !confirm('当前内容未保存，确认切换文件？')) {
-                fileSelectEl.value = currentFile;
-                return;
-            }
-
-            if (!path) {
-                currentFile = '';
-                updateVersion(null);
-                editorEl.value = '';
-                updatePreview('');
-                setDirty(false);
-                document.getElementById('delete-btn').disabled = true;
-                return;
-            }
-
-            const { res, data } = await requestJSON(`/api/files/${encodeURIComponent(path)}`);
-            if (!res.ok) {
-                showStatus(`加载失败：${data.detail || '未知错误'}`, 'error');
-                return;
-            }
-
-            currentFile = data.path;
-            fileSelectEl.value = currentFile;
-            updateVersion(data.version);
-            const merged = maybeRestoreDraftForPath(currentFile, data.content);
-            editorEl.value = merged;
-            updatePreview(merged);
-            if (merged === data.content) {
-                setDirty(false);
-            }
-            document.getElementById('delete-btn').disabled = false;
-        }
-
-        async function saveFile(force = false) {
-            let targetPath = currentFile;
-            if (!targetPath) {
-                const filename = prompt('请输入文件名（例如：notes.md）', 'untitled.md');
-                if (!filename) return;
-                targetPath = filename.endsWith('.md') ? filename : `${filename}.md`;
-            }
-
-            const payload = {
-                path: targetPath,
-                content: editorEl.value,
-                base_version: currentVersion,
-                force,
-            };
-            const { res, data } = await requestJSON('/api/files', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (res.status === 409) {
-                const detail = data.detail || {};
-                const overwrite = confirm('检测到并发修改冲突。是否覆盖远端版本（谨慎）？');
-                if (overwrite) {
-                    return saveFile(true);
-                }
-                if (detail.current_content) {
-                    const reload = confirm('是否加载服务器最新内容？');
-                    if (reload) {
-                        editorEl.value = detail.current_content;
-                        updatePreview(detail.current_content);
-                        updateVersion(detail.current_version || null);
-                        setDirty(true);
-                    }
-                }
-                return;
-            }
-
-            if (!res.ok) {
-                showStatus(`保存失败：${data.detail || '未知错误'}`, 'error');
-                return;
-            }
-
-            currentFile = data.path;
-            fileSelectEl.value = currentFile;
-            updateVersion(data.version);
-            setDirty(false);
-            clearDraft(currentFile);
-            clearDraft('');
-            await loadFileList();
-            showStatus('已保存', 'success');
-        }
-
-        async function createBlankFile() {
-            if (isDirty && !confirm('当前内容未保存，确认新建空白文档？')) {
-                return;
-            }
-
-            const filename = prompt('请输入新文件名（例如：notes.md）', 'untitled.md');
-            if (!filename) return;
-
-            const finalFilename = filename.endsWith('.md') ? filename : `${filename}.md`;
-            const initialContent = `# ${finalFilename.replace('.md', '')}\n\n开始编写...`;
-
-            currentFile = finalFilename;
-            updateVersion(null);
-            editorEl.value = initialContent;
-            updatePreview(initialContent);
-            setDirty(true);
-            await saveFile(false);
-            document.getElementById('delete-btn').disabled = false;
-        }
-
-        async function createFromTemplate() {
-            if (isDirty && !confirm('当前内容未保存，确认使用模板新建？')) {
-                return;
-            }
-
-            const templateId = templateSelectEl.value;
-            if (!templateId) {
-                showStatus('请先选择模板', 'warn');
-                return;
-            }
-
-            const filename = prompt('请输入新文件名（例如：weekly/2026w10.md）', 'weekly/new.md');
-            if (!filename) return;
-            const finalFilename = filename.endsWith('.md') ? filename : `${filename}.md`;
-
-            const project = document.getElementById('template-project').value || null;
-
-            const { res, data } = await requestJSON('/api/files/from-template', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    path: finalFilename,
-                    template_id: templateId,
-                    project,
-                    force: false,
-                }),
-            });
-
-            if (res.status === 409) {
-                const overwrite = confirm('文件已存在且版本不一致，是否覆盖创建？');
-                if (!overwrite) return;
-
-                const forced = await requestJSON('/api/files/from-template', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        path: finalFilename,
-                        template_id: templateId,
-                        project,
-                        force: true,
-                    }),
-                });
-                if (!forced.res.ok) {
-                    showStatus(`模板创建失败：${forced.data.detail || '未知错误'}`, 'error');
-                    return;
-                }
-            } else if (!res.ok) {
-                showStatus(`模板创建失败：${data.detail || '未知错误'}`, 'error');
-                return;
-            }
-
-            await loadFileList();
-            await openFile(finalFilename);
-            setDirty(false);
-            showStatus('模板文档已创建', 'success');
-        }
-
-        function uploadImage() {
-            document.getElementById('image-upload').click();
-        }
-
-        async function handleImageUpload(event) {
-            const file = event.target.files[0];
-            event.target.value = '';
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const { res, data } = await requestJSON('/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!res.ok) {
-                showStatus(`上传失败：${data.detail || '未知错误'}`, 'error');
-                return;
-            }
-
-            const markdown = `![${file.name}](${data.url})`;
-            const start = editorEl.selectionStart;
-            const end = editorEl.selectionEnd;
-            const before = editorEl.value.substring(0, start);
-            const after = editorEl.value.substring(end);
-            editorEl.value = before + markdown + after;
-            editorEl.selectionStart = editorEl.selectionEnd = start + markdown.length;
-            updatePreview(editorEl.value);
-            setDirty(true);
-            scheduleDraftAutoSave();
-            showStatus('图片已上传', 'success');
-        }
-
-        async function deleteFile() {
-            if (!currentFile) {
-                showStatus('请先选择文件', 'warn');
-                return;
-            }
-            if (!confirm(`确定删除 ${currentFile} 吗？`)) return;
-
-            const { res, data } = await requestJSON(`/api/files/${encodeURIComponent(currentFile)}`, {
-                method: 'DELETE',
-            });
-            if (!res.ok) {
-                showStatus(`删除失败：${data.detail || '未知错误'}`, 'error');
-                return;
-            }
-
-            clearDraft(currentFile);
-            currentFile = '';
-            updateVersion(null);
-            editorEl.value = '';
-            updatePreview('');
-            setDirty(false);
-            fileSelectEl.value = '';
-            document.getElementById('delete-btn').disabled = true;
-            await loadFileList();
-            showStatus('文件已删除', 'success');
-        }
-
-        editorEl.addEventListener('input', () => {
-            updatePreview(editorEl.value);
-            setDirty(true);
-            scheduleDraftAutoSave();
-        });
-
-        fileSelectEl.addEventListener('change', function () {
-            openFile(this.value);
-        });
-
-        window.addEventListener('beforeunload', (event) => {
-            if (!isDirty) return;
-            event.preventDefault();
-            event.returnValue = '';
-        });
-
-        async function bootstrap() {
-            await loadSession();
-            await loadTemplates();
-            await loadFileList();
-            maybeRestoreUnsavedDraft();
-        }
-
-        bootstrap();
-    </script>
+    <div id="presentation-overlay" class="presentation-overlay" aria-hidden="true">
+        <div class="presentation-toolbar">
+            <div>
+                <p class="overlay-label">Presentation Mode</p>
+                <strong id="presentation-position">第 1 / 1 页</strong>
+            </div>
+            <div class="presentation-shortcuts">方向键 / 空格切页，Esc 退出，F 切换全屏</div>
+            <button type="button" class="overlay-close" id="presentation-close-btn">结束放映</button>
+        </div>
+
+        <div class="presentation-stage" id="presentation-stage"></div>
+
+        <div class="presentation-controls">
+            <button type="button" class="overlay-nav-btn" id="presentation-prev-btn">上一页</button>
+            <button type="button" class="overlay-nav-btn" id="presentation-next-btn">下一页</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js" crossorigin="anonymous"></script>
+    <script src="/static/editor.js"></script>
 </body>
 </html>

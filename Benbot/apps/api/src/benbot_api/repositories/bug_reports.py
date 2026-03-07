@@ -45,6 +45,16 @@ def list_approved_bug_reports_with_reporter(db: Session) -> list[tuple[BugReport
     )
 
 
+def list_archived_bug_reports_with_reporter(db: Session) -> list[tuple[BugReport, str]]:
+    return (
+        db.query(BugReport, User.username)
+        .join(User, BugReport.reporter_id == User.id)
+        .filter(BugReport.status == "archived")
+        .order_by(BugReport.approved_at.desc())
+        .all()
+    )
+
+
 def list_approved_bug_reports(db: Session) -> list[BugReport]:
     return (
         db.query(BugReport)

@@ -154,7 +154,14 @@ cmd_status() {
   local app out state pid port col
   for app in $show_apps; do
     out="$(_run_one "$app" status 2>&1 || true)"
-    state="$(printf '%s' "$out" | grep -o 'running\|stopped' | head -1 || true)"
+    state="$(printf '%s' "$out" | awk '
+      /^[[:space:]]*running([[:space:]]|$)/ { print "running"; exit }
+      /^[[:space:]]*stopped([[:space:]]|$)/ { print "stopped"; exit }
+      /Service is running/ { print "running"; exit }
+      /Service is not running/ { print "stopped"; exit }
+      /\[OK\][[:space:]]+Service is running/ { print "running"; exit }
+      /\[INFO\][[:space:]]+Service is not running/ { print "stopped"; exit }
+    ' || true)"
     pid="$(  printf '%s' "$out" | grep -o 'pid=[0-9]*'       | head -1 | cut -d= -f2 || true)"
     port="$( printf '%s' "$out" | grep -o 'port=[0-9]*'      | head -1 | cut -d= -f2 || true)"
     [ -z "$port" ] && port="$(_app_port "$app")"
@@ -193,7 +200,10 @@ main() {
       else
         _run_one "$t" start
         # 单独启动 benbot 时也打开门户
-        [ "$t" = "benbot" ] && { sleep 1; cmd_open; }
+        if [ "$t" = "benbot" ]; then
+          sleep 1
+          cmd_open
+        fi
       fi
       ;;
 

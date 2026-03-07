@@ -18,6 +18,10 @@
 
       {% if current_user %}
       <nav class="header-nav">
+        <a class="nav-link {% if page == 'home' %}active{% endif %}" href="/">门户</a>
+        {% if current_user.role == "admin" %}
+        <a class="nav-link {% if page == 'manage' %}active{% endif %}" href="/manage">管理页</a>
+        {% endif %}
         <span class="user-badge">
           <span class="user-dot"></span>
           {{ current_user.username }}

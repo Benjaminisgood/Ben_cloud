@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from ...db.session import get_db
 from ...models import User
+from ...core.config import get_settings
 from ..deps import login_session
 
 router = APIRouter(tags=["sso"])
@@ -26,7 +27,7 @@ _SSO_TOKEN_TTL = 60  # seconds, slightly longer than Benbot's 30s for clock skew
 
 
 def _get_sso_secret() -> str:
-    return os.environ.get("SSO_SECRET", "benbot-sso-secret-2025")
+    return get_settings().SSO_SECRET
 
 
 def _verify_token(token: str) -> dict | None:

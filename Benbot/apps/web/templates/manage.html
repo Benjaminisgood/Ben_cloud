@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-page">
+  <section class="admin-hero">
+    <div>
+      <span class="admin-eyebrow">Benbot Admin</span>
+      <h2 class="admin-heading">门户管理页</h2>
+      <p class="admin-desc">统一处理项目运行控制、Bug 审核与归档、用户项目可见性。首页只负责入口和反馈提交。</p>
+    </div>
+    <a class="admin-home-link" href="/">返回门户</a>
+  </section>
+
+  <section class="admin-brief">
+    <article class="admin-brief-card">
+      <span class="admin-brief-label">权限策略</span>
+      <p>普通用户默认无项目可见性，需管理员显式勾选后才会在门户看到入口。</p>
+    </article>
+    <article class="admin-brief-card">
+      <span class="admin-brief-label">Bug 流程</span>
+      <p>Benbot 只负责收录和审核，不再在前端承诺“自动修复状态”。收录后请复制内容给 Agent，并人工回归确认。</p>
+    </article>
+  </section>
+
+  <section
+    class="admin-section bug-section bug-workbench"
+    id="bug-section"
+    data-is-admin="true"
+    data-logged-in="true"
+  >
+    <div class="bug-section-inner">
+      <div class="bug-section-head">
+        <div>
+          <p class="admin-section-kicker">Bug Workbench</p>
+          <h3 class="bug-section-title" id="bug-workbench">待审核与已收录 Bug</h3>
+          <p class="bug-section-desc">审核通过后会写入 `bug.md`。后续修复由人工把内容交给 Agent 处理，Benbot 不再展示自动修复状态。</p>
+        </div>
+      </div>
+
+      <div class="bug-admin-stack">
+        <div class="bug-admin-box" id="bug-admin-box">
+          <h4 class="bug-sub-title">待审核</h4>
+          <div id="pending-bug-list"><p class="bug-empty">加载中…</p></div>
+        </div>
+
+        <div class="bug-approved-box">
+          <div class="bug-approved-head">
+            <h4 class="bug-sub-title">已收录 Bug</h4>
+            <span class="bug-approved-tip">修复完成后手动归档</span>
+          </div>
+          <div id="approved-bug-list"><p class="bug-empty">加载中…</p></div>
+        </div>
+
+        <section class="bug-archive-section collapsed" id="bug-archive-section">
+          <button class="bug-archive-toggle" id="bug-archive-toggle" type="button" aria-expanded="false">
+            <span class="bug-archive-toggle-main">
+              <svg class="bug-archive-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+              <span class="bug-sub-title bug-archive-title">已归档</span>
+            </span>
+            <span class="bug-archive-toggle-side">
+              <span class="bug-approved-tip">人工确认已修复并收口</span>
+              <span class="bug-archive-count" id="archived-bug-count">0</span>
+            </span>
+          </button>
+          <div class="bug-archive-panel" id="archived-bug-list"><p class="bug-empty">加载中…</p></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section class="admin-section project-ops-panel">
+    <div class="project-ops-header">
+      <div>
+        <p class="admin-section-kicker">Project Ops</p>
+        <h3 class="access-admin-title">项目运行控制</h3>
+      </div>
+      <button class="refresh-btn" id="refresh-btn" type="button" onclick="refreshStatus()" title="刷新项目状态">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        刷新状态
+      </button>
+    </div>
+
+    {% if projects %}
+    <div class="project-grid project-ops-grid">
+      {% for proj in projects %}
+      <div
+        class="project-card"
+        data-project-id="{{ proj.id }}"
+        data-service-state="{{ proj.service_state or 'unknown' }}"
+        style="--card-color: {{ proj.color }}"
+      >
+        <div class="card-header">
+          <span class="card-icon">{{ proj.icon }}</span>
+          <div class="card-meta">
+            <h3 class="card-name">{{ proj.name }}</h3>
+            <p class="card-desc">{{ proj.description }}</p>
+          </div>
+          <div class="status-badge status-{{ proj.status }}" title="
+            {%- if proj.status == 'up' -%}运行中
+            {%- elif proj.status == 'down' -%}不可达
+            {%- else -%}未知
+            {%- endif -%}
+            {% if proj.response_ms %} · {{ proj.response_ms }}ms{% endif %}
+            {% if proj.last_checked %} · {{ proj.last_checked.strftime('%H:%M:%S') }} 检测{% endif %}
+          ">
+            <span class="status-dot"></span>
+            <span class="status-text">
+              {% if proj.status == 'up' %}运行中
+              {% elif proj.status == 'down' %}不可达
+              {% else %}检测中
+              {% endif %}
+            </span>
+            {% if proj.response_ms and proj.status == 'up' %}
+            <span class="status-ms">{{ proj.response_ms }}ms</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="card-main-actions">
+            <div class="card-stats">
+              <span class="stat-item">
+                <span class="stat-icon">👆</span>
+                <span class="stat-val">{{ proj.total_clicks }}</span>
+                <span class="stat-label">次访问</span>
+              </span>
+            </div>
+            <a class="card-enter-btn" href="/goto/{{ proj.id }}">
+              进入
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+
+          <div class="admin-controls">
+            <label class="power-switch">
+              <input
+                class="power-input"
+                type="checkbox"
+                data-project-toggle
+                {% if proj.service_state == "running" %}checked{% endif %}
+              >
+              <span class="power-slider"></span>
+              <span class="power-text">
+                运行开关
+                <span class="power-state-text">
+                  {% if proj.service_state == "running" %}已开启{% elif proj.service_state == "stopped" %}已关闭{% else %}未知{% endif %}
+                </span>
+              </span>
+            </label>
+            <button class="control-btn log-btn" type="button" data-project-logs title="查看日志与报错">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              日志
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="project-empty-state">
+      当前没有可管理的项目配置。
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="admin-section access-admin-panel" id="user-access-panel">
+    <div class="access-admin-header">
+      <div>
+        <p class="admin-section-kicker">Access Control</p>
+        <h3 class="access-admin-title">用户项目可见性</h3>
+      </div>
+      <p class="access-admin-desc">权限变更会通过 API 写入并返回变更 ID，便于审计。</p>
+    </div>
+    <div class="access-admin-list" id="user-access-list">
+      <p class="access-admin-empty">加载中…</p>
+    </div>
+  </section>
+</div>
+
+<div class="log-modal-overlay" id="log-modal-overlay" aria-hidden="true">
+  <div class="log-modal" role="dialog" aria-modal="true" aria-labelledby="log-modal-title">
+    <div class="log-modal-header">
+      <div class="log-modal-title-row">
+        <h2 class="log-modal-title" id="log-modal-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span id="log-modal-project-name">项目日志</span>
+        </h2>
+        <button class="log-modal-close" id="log-modal-close" aria-label="关闭">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="log-modal-toolbar">
+        <div class="log-level-tabs">
+          <button class="log-tab active" data-level="">全部</button>
+          <button class="log-tab" data-level="INFO">INFO</button>
+          <button class="log-tab" data-level="WARNING">WARNING</button>
+          <button class="log-tab" data-level="ERROR">ERROR</button>
+        </div>
+        <div class="log-toolbar-right">
+          <span class="log-count-badge" id="log-count-badge">— 条</span>
+          <button class="log-refresh-btn" id="log-refresh-btn" title="刷新日志">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="log-modal-body" id="log-modal-body">
+      <p class="log-empty-hint">加载中…</p>
+    </div>
+    <div class="log-modal-footer" id="log-modal-footer">
+      <button class="log-load-more" id="log-load-more" style="display:none">加载更多</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

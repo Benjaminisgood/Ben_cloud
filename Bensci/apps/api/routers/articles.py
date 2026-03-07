@@ -390,11 +390,16 @@ def update_article_tags(article_id: int, payload: ArticleTagUpdate, db: Session 
     return _to_read(article)
 
 
-@router.delete("/{article_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_article_endpoint(article_id: int, db: Session = Depends(get_db)) -> None:
+@router.delete(
+    "/{article_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+def delete_article_endpoint(article_id: int, db: Session = Depends(get_db)) -> Response:
     article = get_article_or_none(db, article_id)
     if article is None:
         raise HTTPException(status_code=404, detail="文献不存在")
 
     delete_article(db, article)
     db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -9,6 +9,7 @@ from ..schemas.projects import ProjectItemStatus, ProjectLogItem, ProjectLogsRes
 from ..schemas.web import SessionUserDTO
 from .health import get_all_health
 from .logs import count_logs, get_logs
+from .project_access import filter_visible_projects_for_user
 from .project_control import get_project_runtime_states
 from .stats import get_all_total_clicks
 
@@ -30,7 +31,11 @@ def assemble_projects_status_response(
     db: Session,
     current_user: SessionUserDTO,
 ) -> ProjectsStatusResponse:
-    projects = get_settings().get_projects()
+    projects = filter_visible_projects_for_user(
+        db=db,
+        current_user=current_user,
+        projects=get_settings().get_projects(),
+    )
     health_map = get_all_health(db)
     clicks_map = get_all_total_clicks(db)
     runtime_states = get_project_runtime_states(p.id for p in projects) if current_user.role == "admin" else {}

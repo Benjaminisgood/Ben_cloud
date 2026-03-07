@@ -52,6 +52,13 @@ def get_approved_bugs(request: Request, db: Session = Depends(get_db)):
     return bug_service.list_approved(db)
 
 
+@router.get("/bugs/archived", response_model=list[BugItem])
+def get_archived_bugs(request: Request, db: Session = Depends(get_db)):
+    """Get all archived bug reports. Admin only."""
+    require_admin_session_user_or_403(request, db)
+    return bug_service.list_archived(db)
+
+
 @router.post("/bugs/{bug_id}/approve", response_model=BugActionResponse)
 def approve_bug(bug_id: int, request: Request, db: Session = Depends(get_db)):
     """Approve a bug report and write it to bug.md. Admin only."""
@@ -69,6 +76,17 @@ def reject_bug(bug_id: int, request: Request, db: Session = Depends(get_db)):
     require_admin_session_user_or_403(request, db)
     try:
         result = bug_service.reject_bug(db, bug_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return {"ok": True, "bug": result}
+
+
+@router.post("/bugs/{bug_id}/archive", response_model=BugActionResponse)
+def archive_bug(bug_id: int, request: Request, db: Session = Depends(get_db)):
+    """Archive an approved bug after manual repair is complete. Admin only."""
+    require_admin_session_user_or_403(request, db)
+    try:
+        result = bug_service.archive_bug(db, bug_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return {"ok": True, "bug": result}

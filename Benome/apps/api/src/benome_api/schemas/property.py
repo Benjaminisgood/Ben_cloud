@@ -40,6 +40,7 @@ class PropertyOut(BaseModel):
     created_by_admin_id: int
     created_at: datetime
     updated_at: datetime
+    cover_image: str | None = None
     # 媒体资源（可选，用于详情接口）
     media: Optional[List[PropertyMediaOut]] = None
 

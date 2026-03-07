@@ -10,6 +10,7 @@ LOG_DIR="${LOG_DIR:-$PROJECT_PATH/logs}"
 PID_FILE="${PID_FILE:-$LOG_DIR/benusy.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/benusy.log}"
 ACCESS_LOG_FILE="${ACCESS_LOG_FILE:-$LOG_DIR/benusy-access.log}"
+HEALTH_PATH="${HEALTH_PATH:-/health}"
 SCHEDULER_PID_FILE="${SCHEDULER_PID_FILE:-$LOG_DIR/benusy-scheduler.pid}"
 SCHEDULER_LOG_FILE="${SCHEDULER_LOG_FILE:-$LOG_DIR/benusy-scheduler.log}"
 SCHEDULER_MODULE="${SCHEDULER_MODULE:-benusy_api.scripts.scheduler_runner}"
@@ -34,6 +35,14 @@ if [ ! -d "$API_DIR" ]; then
   exit 1
 fi
 
+resolve_python_bin() {
+  if command -v python3 >/dev/null 2>&1; then
+    command -v python3
+    return 0
+  fi
+  command -v python
+}
+
 load_env() {
   if [ -f "$ENV_FILE" ]; then
     set -a
@@ -44,9 +53,19 @@ load_env() {
 }
 
 ensure_venv() {
+  local base_python
+  local venv_python="$VENV_DIR/bin/python"
+  base_python="$(resolve_python_bin)"
+
   if [ ! -d "$VENV_DIR" ]; then
     info "Creating virtualenv: $VENV_DIR"
-    python3 -m venv "$VENV_DIR"
+    "$base_python" -m venv "$VENV_DIR"
+  fi
+
+  if [ ! -x "$venv_python" ]; then
+    warn "Virtualenv is incomplete, recreating: $VENV_DIR"
+    rm -rf "$VENV_DIR"
+    "$base_python" -m venv "$VENV_DIR"
   fi
 }
 
@@ -56,15 +75,16 @@ activate_venv() {
 }
 
 ensure_deps() {
-  if ! (cd "$API_DIR" && PYTHONPATH=src python -c "import benusy_api, fastapi, sqlalchemy, gunicorn" >/dev/null 2>&1); then
+  local venv_python="$VENV_DIR/bin/python"
+  if ! (cd "$API_DIR" && PYTHONPATH=src "$venv_python" -c "import benusy_api, fastapi, sqlalchemy, gunicorn" >/dev/null 2>&1); then
     info "Installing/updating dependencies"
-    (cd "$API_DIR" && python -m pip install --upgrade pip && python -m pip install -e '.[dev]')
+    (cd "$API_DIR" && "$venv_python" -m pip install --upgrade pip && "$venv_python" -m pip install -e '.[dev]')
   fi
 }
 
 ensure_db_migrated() {
   info "Applying DB migrations (alembic upgrade head)"
-  (cd "$API_DIR" && PYTHONPATH=src "$VENV_DIR/bin/alembic" upgrade head)
+  (cd "$API_DIR" && PYTHONPATH=src python -m alembic upgrade head)
 }
 
 calc_workers() {
@@ -105,7 +125,7 @@ start_with_gunicorn() {
   local workers="$1"
   (
     cd "$API_DIR"
-    PYTHONPATH=src python -m gunicorn "$APP_MODULE" \
+    PYTHONPATH=src "$VENV_DIR/bin/python" -m gunicorn "$APP_MODULE" \
       --bind "$HOST:$PORT" \
       --workers "$workers" \
       --worker-class "$WORKER_CLASS" \
@@ -121,12 +141,12 @@ start_with_gunicorn() {
 start_with_uvicorn() {
   (
     cd "$API_DIR"
-    PYTHONPATH=src nohup python -m uvicorn "$APP_MODULE" \
+    PYTHONPATH=src nohup "$VENV_DIR/bin/python" -m uvicorn "$APP_MODULE" \
       --host "$HOST" \
       --port "$PORT" \
       --app-dir "$APP_DIR" \
       --log-level "$UVICORN_LOG_LEVEL" \
-      >>"$LOG_FILE" 2>&1 &
+      </dev/null >>"$LOG_FILE" 2>&1 &
     echo "$!" >"$PID_FILE"
   )
 }
@@ -138,6 +158,12 @@ is_running() {
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
       return 0
     fi
+  fi
+  local recovered_pid
+  recovered_pid="$(collect_project_port_pids | head -1 || true)"
+  if [ -n "$recovered_pid" ]; then
+    printf '%s\n' "$recovered_pid" >"$PID_FILE"
+    return 0
   fi
   return 1
 }
@@ -164,7 +190,7 @@ start_scheduler() {
   : >> "$SCHEDULER_LOG_FILE"
   (
     cd "$API_DIR"
-    PYTHONPATH=src nohup python -m "$SCHEDULER_MODULE" \
+    PYTHONPATH=src nohup "$VENV_DIR/bin/python" -m "$SCHEDULER_MODULE" \
       >>"$SCHEDULER_LOG_FILE" 2>&1 &
     echo "$!" >"$SCHEDULER_PID_FILE"
   )
@@ -204,6 +230,26 @@ wait_for_pid() {
   local retries=40
   while [ "$retries" -gt 0 ]; do
     if is_running; then
+      return 0
+    fi
+    sleep 0.25
+    retries=$((retries - 1))
+  done
+  return 1
+}
+
+healthcheck_url() {
+  echo "http://127.0.0.1:$PORT$HEALTH_PATH"
+}
+
+is_healthy() {
+  curl -fsS --max-time 2 "$(healthcheck_url)" >/dev/null 2>&1
+}
+
+wait_for_health() {
+  local retries=40
+  while [ "$retries" -gt 0 ]; do
+    if is_running && is_healthy; then
       return 0
     fi
     sleep 0.25
@@ -355,7 +401,7 @@ start() {
     start_with_uvicorn
   fi
 
-  if wait_for_pid; then
+  if wait_for_health; then
     info "Started (PID=$(cat "$PID_FILE"), mode=$backend)"
     info "Log: $LOG_FILE"
     start_scheduler
@@ -363,6 +409,7 @@ start() {
   fi
 
   error "Failed to start, check log: $LOG_FILE"
+  tail -n 40 "$LOG_FILE" || true
   return 1
 }
 
@@ -405,14 +452,16 @@ stop() {
 }
 
 status() {
-  if is_running; then
+  if is_running && is_healthy; then
     echo "running pid=$(cat "$PID_FILE") port=$PORT"
   else
+    rm -f "$PID_FILE"
     echo "stopped"
   fi
   if is_scheduler_running; then
     echo "scheduler=running pid=$(cat "$SCHEDULER_PID_FILE")"
   else
+    rm -f "$SCHEDULER_PID_FILE"
     echo "scheduler=stopped"
   fi
 }

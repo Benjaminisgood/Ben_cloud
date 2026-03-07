@@ -102,6 +102,18 @@
 
   let isEditing = false;
 
+  function openModal() {
+    userModal.hidden = false;
+    userModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    userModal.hidden = true;
+    userModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
   // 加载用户列表
   async function loadUsers() {
     try {
@@ -180,16 +192,19 @@
     passwordInput.value = '';
     userForm.reset();
     userIdInput.value = '';
-    userModal.hidden = false;
+    openModal();
   });
-
-  // 关闭模态框
-  function closeModal() {
-    userModal.hidden = true;
-  }
 
   btnCloseModal.addEventListener('click', closeModal);
   btnCancel.addEventListener('click', closeModal);
+  userModal.addEventListener('click', (event) => {
+    if (event.target === userModal) closeModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !userModal.hidden) {
+      closeModal();
+    }
+  });
 
   // 提交表单
   userForm.addEventListener('submit', async (e) => {
@@ -270,7 +285,7 @@
       phoneInput.value = user.phone || '';
       roleInput.value = user.role;
       
-      userModal.hidden = false;
+      openModal();
     } catch (err) {
       alert(err.message);
     }
@@ -360,17 +375,6 @@
 </script>
 
 <style>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.table-responsive {
-  overflow-x: auto;
-}
-
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -433,53 +437,6 @@
   background: #ffcdd2;
 }
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-card {
-  background: var(--card);
-  border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--line);
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.2rem;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--muted);
-  padding: 0;
-  line-height: 1;
-}
-
-.icon-btn:hover {
-  color: var(--ink);
-}
-
 #user-form {
   padding: 1.5rem;
 }
@@ -524,6 +481,12 @@
 
 .text-center {
   text-align: center;
+}
+
+@media (max-width: 720px) {
+  .data-table {
+    min-width: 860px;
+  }
 }
 </style>
 {% endblock %}

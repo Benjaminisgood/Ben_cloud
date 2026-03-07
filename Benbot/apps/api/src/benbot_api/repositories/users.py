@@ -16,6 +16,10 @@ def get_user_by_username(db: Session, username: str, *, active_only: bool = Fals
     return query.first()
 
 
+def list_users(db: Session) -> list[User]:
+    return db.query(User).order_by(User.username.asc()).all()
+
+
 def create_user(
     db: Session,
     *,

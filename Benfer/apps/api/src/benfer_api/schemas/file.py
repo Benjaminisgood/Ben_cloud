@@ -30,6 +30,7 @@ class FileUploadResponse(BaseModel):
     content_type: Optional[str]
     created_at: datetime
     expires_at: Optional[datetime]
+    is_public: bool
     download_count: int
     access_token: Optional[str]
     upload_status: str

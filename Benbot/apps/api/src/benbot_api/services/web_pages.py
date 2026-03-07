@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 from fastapi import Request
 from sqlalchemy.orm import Session
@@ -10,12 +10,14 @@ from ..schemas.web import (
     DashboardPageContextDTO,
     FlashMessageDTO,
     LoginPageContextDTO,
+    ManagementPageContextDTO,
     ProjectCardDTO,
     ProjectRedirectTargetDTO,
     RegisterPageContextDTO,
     SessionUserDTO,
 )
 from .health import get_all_health
+from .project_access import can_user_access_project, filter_visible_projects_for_user
 from .project_control import get_project_runtime_states
 from .sso import create_sso_token
 from .stats import get_all_total_clicks, record_click
@@ -47,12 +49,7 @@ def assemble_flash_messages(raw_messages: list[list[str]] | None) -> list[FlashM
     return messages
 
 
-def _resolve_project_entry_base_url(request: Request, public_url: str, port: int) -> str:
-    raw = (public_url or "").strip()
-    parsed = urlsplit(raw)
-    if parsed.scheme and parsed.netloc:
-        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path.rstrip("/"), parsed.query, parsed.fragment))
-
+def _resolve_project_entry_base_url(request: Request, port: int) -> str:
     scheme = request.url.scheme or "http"
     hostname = request.url.hostname or "localhost"
     host_for_url = f"[{hostname}]" if ":" in hostname and not hostname.startswith("[") else hostname
@@ -62,21 +59,17 @@ def _resolve_project_entry_base_url(request: Request, public_url: str, port: int
 def _build_project_redirect_url(
     request: Request,
     *,
-    public_url: str,
     port: int,
     sso_entry_path: str,
     token: str | None,
 ) -> str:
-    base_url = _resolve_project_entry_base_url(request, public_url, port)
+    base_url = _resolve_project_entry_base_url(request, port)
     base = urlsplit(base_url)
     base_path = base.path.rstrip("/")
     entry_path = sso_entry_path if sso_entry_path.startswith("/") else f"/{sso_entry_path}"
     target_path = f"{base_path}{entry_path}" if base_path else entry_path
 
-    query_pairs = parse_qsl(base.query, keep_blank_values=True)
-    if token:
-        query_pairs.append(("token", token))
-    query = urlencode(query_pairs)
+    query = urlencode([("token", token)]) if token else ""
     return urlunsplit((base.scheme, base.netloc, target_path, query, ""))
 
 
@@ -86,8 +79,26 @@ def assemble_dashboard_page_context(
     current_user: SessionUserDTO,
     flash_messages: list[list[str]] | None = None,
 ) -> DashboardPageContextDTO:
+    project_cards = _assemble_project_cards(db=db, current_user=current_user)
+
+    return DashboardPageContextDTO(
+        current_user=current_user,
+        projects=project_cards,
+        flash_messages=assemble_flash_messages(flash_messages),
+    )
+
+
+def _assemble_project_cards(
+    *,
+    db: Session,
+    current_user: SessionUserDTO,
+) -> list[ProjectCardDTO]:
     settings = get_settings()
-    projects = settings.get_projects()
+    projects = filter_visible_projects_for_user(
+        db=db,
+        current_user=current_user,
+        projects=settings.get_projects(),
+    )
     health_map = get_all_health(db)
     clicks_map = get_all_total_clicks(db)
     runtime_states = (
@@ -112,12 +123,7 @@ def assemble_dashboard_page_context(
         )
         for proj in projects
     ]
-
-    return DashboardPageContextDTO(
-        current_user=current_user,
-        projects=project_cards,
-        flash_messages=assemble_flash_messages(flash_messages),
-    )
+    return project_cards
 
 
 def assemble_login_page_context(
@@ -127,6 +133,19 @@ def assemble_login_page_context(
 ) -> LoginPageContextDTO:
     return LoginPageContextDTO(
         next_url=sanitize_next_url(next_url),
+        flash_messages=assemble_flash_messages(flash_messages),
+    )
+
+
+def assemble_management_page_context(
+    *,
+    db: Session,
+    current_user: SessionUserDTO,
+    flash_messages: list[list[str]] | None = None,
+) -> ManagementPageContextDTO:
+    return ManagementPageContextDTO(
+        current_user=current_user,
+        projects=_assemble_project_cards(db=db, current_user=current_user),
         flash_messages=assemble_flash_messages(flash_messages),
     )
 
@@ -152,6 +171,12 @@ def assemble_project_redirect_target(
     project = projects.get(project_id)
     if project is None:
         return None
+    if not can_user_access_project(
+        db=db,
+        current_user=current_user,
+        project_id=project.id,
+    ):
+        raise PermissionError("forbidden")
 
     record_click(db, project_id)
     token = (
@@ -161,7 +186,6 @@ def assemble_project_redirect_target(
     )
     redirect_url = _build_project_redirect_url(
         request,
-        public_url=project.public_url,
         port=project.port,
         sso_entry_path=project.sso_entry_path,
         token=token,

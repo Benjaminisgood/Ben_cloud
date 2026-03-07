@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
+import secrets
+import time
+
+from benome_api.core.config import get_settings
+
 
 def _login_admin(client):
     response = client.post(
@@ -116,3 +125,64 @@ def test_users_profile_and_password_flow(client):
         json={"username": "profile_user", "password": "new-password-123"},
     )
     assert login_with_new_password.status_code == 200
+
+
+def _build_sso_token(username: str, role: str = "admin") -> str:
+    payload = {
+        "u": username,
+        "r": role,
+        "e": int(time.time()) + 60,
+        "n": secrets.token_hex(8),
+    }
+    data = json.dumps(payload, separators=(",", ":"))
+    signature = hmac.new(
+        get_settings().SSO_SECRET.encode(),
+        data.encode(),
+        hashlib.sha256,
+    ).hexdigest()
+    return base64.urlsafe_b64encode(f"{data}.{signature}".encode()).decode()
+
+
+def test_admin_settings_and_system_info_api(client):
+    admin_id = _login_admin(client)
+
+    system_info = client.get("/api/system/info", headers={"X-User-Id": str(admin_id)})
+    assert system_info.status_code == 200
+    assert "version" in system_info.json()
+    assert "python_version" in system_info.json()
+
+    save_settings = client.post(
+        "/api/admin/settings",
+        headers={"X-User-Id": str(admin_id)},
+        json={
+            "platform_name": "Benome Test",
+            "currency": "CNY",
+            "max_advance_days": 120,
+            "min_nights": 2,
+            "check_in_time": "15:00",
+            "check_out_time": "11:00",
+            "email_notifications": "enabled",
+            "sms_notifications": "disabled",
+        },
+    )
+    assert save_settings.status_code == 200
+    assert save_settings.json()["ok"] is True
+    assert save_settings.json()["settings"]["platform_name"] == "Benome Test"
+
+    fetch_settings = client.get("/api/admin/settings", headers={"X-User-Id": str(admin_id)})
+    assert fetch_settings.status_code == 200
+    assert fetch_settings.json()["settings"]["max_advance_days"] == 120
+
+
+def test_admin_pages_render_with_sso_session(client):
+    token = _build_sso_token("admin", role="admin")
+    sso = client.get("/auth/sso", params={"token": token})
+    assert sso.status_code == 200
+
+    users_page = client.get("/admin/users")
+    assert users_page.status_code == 200
+    assert "用户管理" in users_page.text
+
+    bookings_page = client.get("/admin/bookings")
+    assert bookings_page.status_code == 200
+    assert "预订管理" in bookings_page.text

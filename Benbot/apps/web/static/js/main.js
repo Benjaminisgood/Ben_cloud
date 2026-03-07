@@ -2,7 +2,7 @@
 
 const STATUS_LABELS = { up: '运行中', down: '不可达', unknown: '检测中' };
 const SERVICE_LABELS = { running: '已开启', stopped: '已关闭', unknown: '未知' };
-const ACTION_LABELS = { start: '启动', stop: '停止', restart: '重启', status: '刷新' };
+const ACTION_LABELS = { start: '启动', stop: '停止', status: '刷新' };
 
 // ── Auto-fade flash messages ────────────────────────────────────
 document.querySelectorAll('.flash').forEach(el => {
@@ -41,9 +41,7 @@ function setCardBusy(card, busy) {
   if (!card) return;
   card.classList.toggle('control-busy', busy);
   const toggle = card.querySelector('[data-project-toggle]');
-  const restartBtn = card.querySelector('[data-project-restart]');
   if (toggle) toggle.disabled = busy;
-  if (restartBtn) restartBtn.disabled = busy;
 }
 
 function applyProjectStatus(card, proj) {
@@ -146,7 +144,6 @@ async function controlProject(card, action) {
 function bindAdminControls() {
   document.querySelectorAll('.project-card').forEach(card => {
     const toggle = card.querySelector('[data-project-toggle]');
-    const restartBtn = card.querySelector('[data-project-restart]');
 
     if (toggle) {
       toggle.addEventListener('change', async () => {
@@ -154,12 +151,6 @@ function bindAdminControls() {
         const action = intendedState ? 'start' : 'stop';
         const ok = await controlProject(card, action);
         if (!ok) toggle.checked = !intendedState;
-      });
-    }
-
-    if (restartBtn) {
-      restartBtn.addEventListener('click', async () => {
-        await controlProject(card, 'restart');
       });
     }
   });
@@ -315,6 +306,139 @@ if (document.querySelector('.project-grid')) {
   });
 })();
 
+// ── 用户项目可见性管理（管理员专属）────────────────────────────
+(function initUserAccessPanel() {
+  const panel = document.getElementById('user-access-panel');
+  const listEl = document.getElementById('user-access-list');
+  if (!panel || !listEl) return;
+
+  let projects = [];
+  let users = [];
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function render() {
+    if (!users.length) {
+      listEl.innerHTML = '<p class="access-admin-empty">当前暂无用户</p>';
+      return;
+    }
+
+    listEl.innerHTML = users.map(user => {
+      const isAdmin = user.role === 'admin';
+      if (isAdmin) {
+        return `
+          <div class="access-user-row is-admin" data-user-id="${user.id}">
+            <div class="access-user-header">
+              <div class="access-user-meta">
+                <span class="access-user-name">@${escHtml(user.username)}</span>
+                <span class="access-user-role">管理员</span>
+              </div>
+              <span class="access-admin-fixed">固定全量可见</span>
+            </div>
+          </div>`;
+      }
+
+      const granted = Array.isArray(user.project_ids) ? new Set(user.project_ids) : new Set();
+      const checkboxes = projects.map(project => `
+        <label class="access-project-item">
+          <input type="checkbox" value="${escHtml(project.id)}" ${granted.has(project.id) ? 'checked' : ''}>
+          <span>${escHtml(project.name)}</span>
+        </label>`).join('');
+
+      return `
+        <div class="access-user-row" data-user-id="${user.id}" data-username="${escHtml(user.username)}">
+          <div class="access-user-header">
+            <div class="access-user-meta">
+              <span class="access-user-name">@${escHtml(user.username)}</span>
+              <span class="access-user-role">${user.is_active ? '普通用户' : '已禁用账号'}</span>
+            </div>
+          </div>
+          <div class="access-project-grid">
+            ${checkboxes || '<span class="access-admin-empty">暂无可配置项目</span>'}
+          </div>
+          <div class="access-user-actions">
+            <button class="access-save-btn" type="button">保存权限</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    bindRowActions();
+  }
+
+  function selectedProjectIds(row) {
+    return Array.from(row.querySelectorAll('input[type="checkbox"]:checked'))
+      .map(input => input.value.trim().toLowerCase())
+      .filter(Boolean)
+      .sort();
+  }
+
+  async function saveRow(row, button) {
+    const userId = Number(row.dataset.userId);
+    const username = row.dataset.username || String(userId);
+    const projectIds = selectedProjectIds(row);
+
+    row.classList.add('saving');
+    if (button) button.disabled = true;
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/project-access`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_ids: projectIds }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.detail || `HTTP ${res.status}`);
+      }
+
+      users = users.map(user => (
+        user.id === userId
+          ? { ...user, project_ids: Array.isArray(data.project_ids) ? data.project_ids : [] }
+          : user
+      ));
+      showClientFlash(`已保存 @${username} 的项目权限（变更ID: ${data.change_id}）`, 'success');
+    } catch (e) {
+      console.warn('Failed to save project access', e);
+      showClientFlash(`保存 @${username} 权限失败：${e?.message || 'unknown_error'}`, 'error');
+    } finally {
+      row.classList.remove('saving');
+      if (button) button.disabled = false;
+    }
+  }
+
+  function bindRowActions() {
+    listEl.querySelectorAll('.access-save-btn').forEach(button => {
+      const row = button.closest('.access-user-row');
+      if (!row) return;
+      button.addEventListener('click', () => {
+        void saveRow(row, button);
+      });
+    });
+  }
+
+  async function loadOverview() {
+    listEl.innerHTML = '<p class="access-admin-empty">加载中…</p>';
+    try {
+      const res = await fetch('/api/admin/users/project-access');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      projects = Array.isArray(data.projects) ? data.projects : [];
+      users = Array.isArray(data.users) ? data.users : [];
+      render();
+    } catch (e) {
+      console.warn('Failed to load project access overview', e);
+      listEl.innerHTML = '<p class="access-admin-empty">加载失败，请刷新后重试</p>';
+    }
+  }
+
+  void loadOverview();
+})();
+
 // ── Bug 反馈区 ──────────────────────────────────────────────────
 (function initBugSection() {
   const section = document.getElementById('bug-section');
@@ -328,8 +452,12 @@ if (document.querySelector('.project-grid')) {
   const bodyEl = document.getElementById('bug-body');
   const pendingList = document.getElementById('pending-bug-list');
   const approvedList = document.getElementById('approved-bug-list');
+  const archivedList = document.getElementById('archived-bug-list');
+  const archivedSection = document.getElementById('bug-archive-section');
+  const archivedToggle = document.getElementById('bug-archive-toggle');
+  const archivedCount = document.getElementById('archived-bug-count');
+  let approvedBugs = [];
 
-  // ── 渲染工具 ─────────────────────────────────────────
   function emptyHtml(msg) {
     return `<p class="bug-empty">${msg}</p>`;
   }
@@ -341,6 +469,23 @@ if (document.querySelector('.project-grid')) {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/\n/g, '<br>');
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const input = document.createElement('textarea');
+    input.value = text;
+    input.setAttribute('readonly', 'readonly');
+    input.style.position = 'absolute';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    input.remove();
   }
 
   function pendingCardHtml(bug) {
@@ -358,48 +503,47 @@ if (document.querySelector('.project-grid')) {
       </div>`;
   }
 
-  function approvedCardHtml(bug, showVerifyBtn = false) {
-    const repairedClass = bug.repaired ? ' bug-repaired' : '';
-    const verifiedClass = bug.verified ? ' bug-verified' : '';
-    const repairedBadge = bug.repaired ? '<span class="bug-repaired-badge">✅ 已修复</span>' : '';
-    const verifiedBadge = bug.verified ? '<span class="bug-verified-badge">✓ 已确认</span>' : '';
-    
-    let actionButtons = '';
-    if (showVerifyBtn) {
-      if (!bug.verified && bug.repaired) {
-        // Show both verify and reopen buttons for repaired but not verified bugs
-        actionButtons = `
-          <div class="bug-actions">
-            <button class="btn-bug-verify" data-bug-verify="${bug.id}">✓ 确认修复</button>
-            <button class="btn-bug-reopen" data-bug-reopen="${bug.id}">↺ 打回重修复</button>
-          </div>`;
-      } else if (!bug.repaired) {
-        // Show waiting status for unrepaired bugs
-        actionButtons = `
-          <div class="bug-actions">
-            <span class="bug-waiting-hint">⏳ 等待修复中…</span>
-          </div>`;
-      }
-    }
-    
+  function approvedCardHtml(bug, showCopyButton = false) {
+    const actionButtons = showCopyButton
+      ? `
+        <div class="bug-actions">
+          <button class="btn-bug-copy" type="button" data-bug-copy="${bug.id}">复制给 Agent</button>
+          <button class="btn-bug-archive" type="button" data-bug-archive="${bug.id}">标记已归档</button>
+        </div>`
+      : '';
+
     return `
-      <div class="bug-card bug-card-approved${repairedClass}${verifiedClass}" data-bug-id="${bug.id}">
+      <div class="bug-card bug-card-approved" data-bug-id="${bug.id}">
         <div class="bug-card-header">
           <div class="bug-card-meta">
             <span class="bug-reporter">@${bug.reporter}</span>
             <span class="bug-date">${bug.approved_at || bug.created_at}</span>
           </div>
-          <div class="bug-badges">
-            ${repairedBadge}
-            ${verifiedBadge}
-          </div>
+          <span class="bug-approved-badge">已收录</span>
         </div>
         <p class="bug-body-text">${escapeHtml(bug.body)}</p>
         ${actionButtons}
       </div>`;
   }
 
-  // ── 数据加载 ──────────────────────────────────────────
+  function archivedCardHtml(bug) {
+    return `
+      <div class="bug-card bug-card-archived" data-bug-id="${bug.id}">
+        <div class="bug-card-header">
+          <div class="bug-card-meta">
+            <span class="bug-reporter">@${bug.reporter}</span>
+            <span class="bug-date">${bug.approved_at || bug.created_at}</span>
+          </div>
+          <span class="bug-archived-badge">已归档</span>
+        </div>
+        <p class="bug-body-text">${escapeHtml(bug.body)}</p>
+      </div>`;
+  }
+
+  function updateArchivedSummary(count) {
+    if (archivedCount) archivedCount.textContent = String(count);
+  }
+
   async function loadPendingBugs() {
     if (!pendingList) return;
     try {
@@ -424,51 +568,40 @@ if (document.querySelector('.project-grid')) {
       if (!res.ok) throw new Error(res.statusText);
       const data = await res.json();
       if (!Array.isArray(data) || data.length === 0) {
+        approvedBugs = [];
         approvedList.innerHTML = emptyHtml('暂无已收录 Bug');
         return;
       }
-      
-      // Separate by repaired and verified status
-      const unrepaired = data.filter(bug => !bug.repaired);
-      const repairedNotVerified = data.filter(bug => bug.repaired && !bug.verified);
-      const repairedVerified = data.filter(bug => bug.repaired && bug.verified);
-      
-      let html = '';
-      
-      // Show unrepaired bugs first
-      if (unrepaired.length > 0) {
-        html += unrepaired.map(bug => approvedCardHtml(bug, isAdmin)).join('');
-      }
-      
-      // Show repaired but not verified bugs
-      if (repairedNotVerified.length > 0) {
-        html += repairedNotVerified.map(bug => approvedCardHtml(bug, isAdmin)).join('');
-      }
-      
-      // Show verified bugs in a collapsible section
-      if (repairedVerified.length > 0) {
-        html += `
-          <div class="bug-repaired-section">
-            <button class="bug-repaired-toggle" onclick="this.parentElement.classList.toggle('collapsed')">
-              <svg class="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-              <span>已确认修复的 Bug（${repairedVerified.length}）</span>
-            </button>
-            <div class="bug-repaired-list">
-              ${repairedVerified.map(bug => approvedCardHtml(bug, false)).join('')}
-            </div>
-          </div>`;
-      }
-      
-      approvedList.innerHTML = html;
-      if (isAdmin) bindBugVerifyButtons();
+
+      approvedBugs = data;
+      approvedList.innerHTML = data.map(bug => approvedCardHtml(bug, isAdmin)).join('');
+      if (isAdmin) bindApprovedBugButtons();
     } catch (e) {
+      approvedBugs = [];
       approvedList.innerHTML = emptyHtml('加载失败，请刷新重试');
     }
   }
 
-  // ── 提交 Bug ──────────────────────────────────────────
+  async function loadArchivedBugs() {
+    if (!archivedList) return;
+    try {
+      const res = await fetch('/api/bugs/archived');
+      if (!res.ok) throw new Error(res.statusText);
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        updateArchivedSummary(0);
+        archivedList.innerHTML = emptyHtml('暂无已归档 Bug');
+        return;
+      }
+
+      updateArchivedSummary(data.length);
+      archivedList.innerHTML = data.map(archivedCardHtml).join('');
+    } catch (e) {
+      updateArchivedSummary(0);
+      archivedList.innerHTML = emptyHtml('加载失败，请刷新重试');
+    }
+  }
+
   async function submitBug() {
     const body = bodyEl ? bodyEl.value.trim() : '';
     if (!body) {
@@ -494,7 +627,6 @@ if (document.querySelector('.project-grid')) {
     }
   }
 
-  // ── 管理员审核操作 ────────────────────────────────────
   async function doApprove(bugId) {
     try {
       const res = await fetch(`/api/bugs/${bugId}/approve`, { method: 'POST' });
@@ -519,27 +651,40 @@ if (document.querySelector('.project-grid')) {
     }
   }
 
-  async function doVerify(bugId) {
+  async function copyApprovedBug(bugId) {
+    const bug = approvedBugs.find(item => Number(item.id) === Number(bugId));
+    if (!bug) {
+      showClientFlash('未找到要复制的 Bug 内容', 'error');
+      return;
+    }
+
+    const payload = [
+      `【Benbot 已收录 Bug #${bug.id}】`,
+      `提交人: @${bug.reporter}`,
+      `收录时间: ${bug.approved_at || bug.created_at || '-'}`,
+      '',
+      '请根据以下描述进行人工修复，并在完成后自行回归验证：',
+      bug.body,
+    ].join('\n');
+
     try {
-      const res = await fetch(`/api/bugs/${bugId}/verify`, { method: 'POST' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.detail || '操作失败');
-      showClientFlash('已确认该 Bug 已修复 ✓', 'success');
-      await loadApprovedBugs();
+      await copyText(payload);
+      showClientFlash(`已复制 Bug #${bug.id}，可直接粘贴给 Agent`, 'success');
     } catch (e) {
-      showClientFlash(e?.message || '操作失败', 'error');
+      showClientFlash(e?.message || '复制失败', 'error');
     }
   }
 
-  async function doReopen(bugId) {
+  async function doArchive(bugId) {
     try {
-      const res = await fetch(`/api/bugs/${bugId}/reopen`, { method: 'POST' });
+      const res = await fetch(`/api/bugs/${bugId}/archive`, { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.detail || '操作失败');
-      showClientFlash('已打回重新修复，nanobot 将重新处理', 'success');
-      await Promise.all([loadPendingBugs(), loadApprovedBugs()]);
+      const archivedId = data?.bug?.id ?? bugId;
+      showClientFlash(`已归档 Bug #${archivedId}`, 'success');
+      await Promise.all([loadApprovedBugs(), loadArchivedBugs()]);
     } catch (e) {
-      showClientFlash(e?.message || '操作失败', 'error');
+      showClientFlash(e?.message || '归档失败', 'error');
     }
   }
 
@@ -553,18 +698,29 @@ if (document.querySelector('.project-grid')) {
     });
   }
 
-  function bindBugVerifyButtons() {
+  function bindApprovedBugButtons() {
     if (!approvedList) return;
-    approvedList.querySelectorAll('[data-bug-verify]').forEach(btn => {
-      btn.addEventListener('click', () => doVerify(Number(btn.dataset.bugVerify)));
+    approvedList.querySelectorAll('[data-bug-copy]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        void copyApprovedBug(Number(btn.dataset.bugCopy));
+      });
     });
-    approvedList.querySelectorAll('[data-bug-reopen]').forEach(btn => {
-      btn.addEventListener('click', () => doReopen(Number(btn.dataset.bugReopen)));
+    approvedList.querySelectorAll('[data-bug-archive]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        void doArchive(Number(btn.dataset.bugArchive));
+      });
     });
   }
 
-  // ── 事件绑定 & 初始化加载 ─────────────────────────────
   if (submitBtn) submitBtn.addEventListener('click', submitBug);
-  void loadApprovedBugs();
+  if (archivedToggle && archivedSection) {
+    archivedToggle.addEventListener('click', () => {
+      const nextCollapsed = !archivedSection.classList.contains('collapsed');
+      archivedSection.classList.toggle('collapsed', nextCollapsed);
+      archivedToggle.setAttribute('aria-expanded', nextCollapsed ? 'false' : 'true');
+    });
+  }
   if (isAdmin) void loadPendingBugs();
+  if (isAdmin || approvedList) void loadApprovedBugs();
+  if (isAdmin || archivedList) void loadArchivedBugs();
 })();

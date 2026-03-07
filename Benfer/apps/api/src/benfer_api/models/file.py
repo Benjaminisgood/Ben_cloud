@@ -32,6 +32,7 @@ class FileUpload(Base):
     user_id = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     expires_at = Column(DateTime, nullable=True)
+    is_public = Column(Boolean, default=False, nullable=False)
     download_count = Column(Integer, default=0)
     access_token = Column(String(100), unique=True, index=True)  # For public sharing
     upload_status = Column(String(20), default="completed")  # uploading, completed, failed

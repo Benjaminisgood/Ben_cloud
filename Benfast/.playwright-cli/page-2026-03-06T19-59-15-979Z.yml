@@ -1,0 +1,4 @@
+- main [ref=e2]:
+  - heading "当前未登录 Benfast" [level=1] [ref=e3]
+  - paragraph [ref=e4]: 未找到登录凭据。
+  - paragraph [ref=e5]: 请从 Benbot 门户重新进入本项目。

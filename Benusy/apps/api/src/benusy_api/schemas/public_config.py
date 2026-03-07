@@ -4,6 +4,11 @@ from sqlmodel import SQLModel
 class HomepageConfigRead(SQLModel):
     site_name: str
     nav_brand: str
+    nav_features_label: str
+    nav_scenes_label: str
+    nav_workflow_label: str
+    nav_contact_label: str
+    hero_kicker: str
     hero_title: str
     hero_subtitle: str
     hero_image_url: str
@@ -11,6 +16,58 @@ class HomepageConfigRead(SQLModel):
     hero_primary_button_href: str
     hero_secondary_button_text: str
     hero_secondary_button_href: str
+    hero_photo_primary_caption: str
+    hero_photo_secondary_caption: str
+    hero_photo_tertiary_caption: str
+    hero_proof_primary_title: str
+    hero_proof_primary_body: str
+    hero_proof_secondary_title: str
+    hero_proof_secondary_body: str
+    hero_top_note_label: str
+    hero_top_note_title: str
+    hero_bottom_note_label: str
+    hero_bottom_note_title: str
+    showcase_label: str
+    showcase_title: str
+    showcase_subtitle: str
+    showcase_primary_title: str
+    showcase_primary_body: str
+    showcase_secondary_title: str
+    showcase_secondary_body: str
+    showcase_tertiary_title: str
+    showcase_tertiary_body: str
+    capabilities_label: str
+    capabilities_title: str
+    capabilities_subtitle: str
+    capability_highlight_one: str
+    capability_highlight_two: str
+    capability_highlight_three: str
+    capability_spotlight_label: str
+    capability_spotlight_title: str
+    capability_spotlight_body: str
+    capability_card_one_label: str
+    capability_card_one_title: str
+    capability_card_one_body: str
+    capability_card_two_label: str
+    capability_card_two_title: str
+    capability_card_two_body: str
+    capability_card_three_label: str
+    capability_card_three_title: str
+    capability_card_three_body: str
+    workflow_label: str
+    workflow_title: str
+    workflow_subtitle: str
+    workflow_step_one_title: str
+    workflow_step_one_body: str
+    workflow_step_two_title: str
+    workflow_step_two_body: str
+    workflow_step_three_title: str
+    workflow_step_three_body: str
+    workflow_step_four_title: str
+    workflow_step_four_body: str
+    workflow_summary_label: str
+    workflow_summary_title: str
+    workflow_summary_body: str
     merchant_notice_title: str
     merchant_notice_text: str
     merchant_service_publish_text: str
@@ -19,11 +76,29 @@ class HomepageConfigRead(SQLModel):
     merchant_contact_phone: str
     merchant_contact_wechat: str
     merchant_contact_email: str
+    contact_section_label: str
     contact_section_title: str
     contact_section_subtitle: str
+    contact_info_title: str
+    contact_form_label: str
+    contact_form_title: str
+    contact_form_subtitle: str
+    contact_form_button_text: str
     contact_address: str
     contact_phone: str
     contact_email: str
+    footer_about_title: str
+    footer_about_body: str
+    footer_links_title: str
+    footer_legal_title: str
+    footer_privacy_label: str
+    footer_terms_label: str
+    footer_cookie_label: str
+    footer_subscribe_title: str
+    footer_subscribe_body: str
+    footer_subscribe_placeholder: str
+    footer_subscribe_button: str
+    footer_copyright: str
 
 
 class OSSPublicConfigRead(SQLModel):

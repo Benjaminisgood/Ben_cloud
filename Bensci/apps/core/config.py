@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
 
-from pydantic import BeforeValidator, Field
-from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _split_csv(value: str | list[str] | tuple[str, ...]) -> list[str]:
@@ -13,9 +12,6 @@ def _split_csv(value: str | list[str] | tuple[str, ...]) -> list[str]:
     if isinstance(value, (list, tuple)):
         return [str(item).strip() for item in value if str(item).strip()]
     return []
-
-
-CsvList = Annotated[list[str], NoDecode, BeforeValidator(_split_csv)]
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 
@@ -51,15 +47,16 @@ class Settings(BaseSettings):
     aliyun_ai_model: str = "qwen-plus"
     aliyun_ai_embedding_model: str = "text-embedding-v4"
     aliyun_ai_embedding_dimensions: int = 1024
-    query_filter_llm_fallback_models: CsvList = Field(default_factory=list)
+    query_filter_llm_fallback_models_raw: str = Field(default="", validation_alias="query_filter_llm_fallback_models")
 
     default_query: str = (
         '(("temporal analysis of products" OR TAP) AND (catalysis OR catalytic)) '
         'OR ((catalysis OR microkinetic OR kinetics) AND (energy OR CO2 OR hydrogen OR methane OR ammonia))'
     )
 
-    default_providers: CsvList = Field(
-        default_factory=lambda: ["crossref", "openalex", "pubmed", "springer", "elsevier", "arxiv"]
+    default_providers_raw: str = Field(
+        default="crossref,openalex,pubmed,springer,elsevier,arxiv",
+        validation_alias="default_providers",
     )
 
     springer_meta_api_key: str | None = None
@@ -67,7 +64,7 @@ class Settings(BaseSettings):
 
     elsevier_api_key: str | None = None
 
-    cors_origins: CsvList = Field(default_factory=lambda: ["*"])
+    cors_origins_raw: str = Field(default="*", validation_alias="cors_origins")
     sso_secret: str = "benbot-sso-secret-2025"
 
     @property
@@ -82,6 +79,42 @@ class Settings(BaseSettings):
         db_path = self.resolved_base_dir / self.sqlite_filename
         db_path.parent.mkdir(parents=True, exist_ok=True)
         return f"sqlite:///{db_path}"
+
+    @property
+    def query_filter_llm_fallback_models(self) -> list[str]:
+        return _split_csv(self.query_filter_llm_fallback_models_raw)
+
+    @query_filter_llm_fallback_models.setter
+    def query_filter_llm_fallback_models(self, value: str | list[str] | tuple[str, ...]) -> None:
+        object.__setattr__(self, "query_filter_llm_fallback_models_raw", ",".join(_split_csv(value)))
+
+    @query_filter_llm_fallback_models.deleter
+    def query_filter_llm_fallback_models(self) -> None:
+        object.__setattr__(self, "query_filter_llm_fallback_models_raw", "")
+
+    @property
+    def default_providers(self) -> list[str]:
+        return _split_csv(self.default_providers_raw)
+
+    @default_providers.setter
+    def default_providers(self, value: str | list[str] | tuple[str, ...]) -> None:
+        object.__setattr__(self, "default_providers_raw", ",".join(_split_csv(value)))
+
+    @default_providers.deleter
+    def default_providers(self) -> None:
+        object.__setattr__(self, "default_providers_raw", "")
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return _split_csv(self.cors_origins_raw)
+
+    @cors_origins.setter
+    def cors_origins(self, value: str | list[str] | tuple[str, ...]) -> None:
+        object.__setattr__(self, "cors_origins_raw", ",".join(_split_csv(value)))
+
+    @cors_origins.deleter
+    def cors_origins(self) -> None:
+        object.__setattr__(self, "cors_origins_raw", "")
 
 
 settings = Settings()

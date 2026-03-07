@@ -312,9 +312,11 @@
             
             // 加载封面图片
             if (property.media && property.media.length > 0) {
-                const cover = property.media.find(m => m.is_cover) || property.media[0];
-                document.getElementById('cover-preview').src = cover.oss_url;
-                document.getElementById('image-preview-container').style.display = 'block';
+                const cover = property.media.find(m => m.is_cover && m.public_url) || property.media.find(m => m.public_url) || property.media[0];
+                if (cover && cover.public_url) {
+                    document.getElementById('cover-preview').src = cover.public_url;
+                    document.getElementById('image-preview-container').style.display = 'block';
+                }
             }
         }
 

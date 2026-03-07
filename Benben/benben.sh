@@ -144,7 +144,7 @@ cmd_start() {
   local occupy_pid
   occupy_pid="$(port_listener_pid || true)"
   if [ -n "$occupy_pid" ]; then
-    warn "端口 $PORT 已被占用（pid=$occupy_pid），尝试继续启动可能失败"
+    warn "端口 $PORT 已被占用（pid=${occupy_pid}），尝试继续启动可能失败"
   fi
 
   info "启动 Benben (port=$PORT)"

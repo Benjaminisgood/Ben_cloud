@@ -112,10 +112,11 @@ def _ensure_user_relations_loaded(user: User) -> None:
     _ = user.weibo_accounts
 
 
-def _ensure_assignment_relations_loaded(assignment: Assignment) -> None:
-    _ = assignment.task
+def _ensure_assignment_relations_loaded(assignment: Assignment) -> bool:
+    task = assignment.task
     _ = assignment.metrics
     _ = assignment.manual_metric_submissions
+    return task is not None
 
 
 def _to_admin_activity(assignment: Assignment) -> DashboardActivityRead:
@@ -1071,9 +1072,18 @@ def list_assignments(
         statement = statement.where(Assignment.status == status_filter)
 
     assignments = db.exec(statement).all()
+    valid_assignments: list[Assignment] = []
     for assignment in assignments:
-        _ensure_assignment_relations_loaded(assignment)
-    return assignments
+        if _ensure_assignment_relations_loaded(assignment):
+            valid_assignments.append(assignment)
+        else:
+            logger.warning(
+                "Skip orphan assignment in admin view: assignment_id=%s task_id=%s user_id=%s",
+                assignment.id,
+                assignment.task_id,
+                assignment.user_id,
+            )
+    return valid_assignments
 
 
 @router.post("/assignments/{assignment_id}/approve", response_model=AssignmentRead)
@@ -1104,7 +1114,8 @@ def approve_assignment(
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
-    _ensure_assignment_relations_loaded(assignment)
+    if not _ensure_assignment_relations_loaded(assignment):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Assignment task is missing")
     return assignment
 
 
@@ -1132,7 +1143,8 @@ def reject_assignment(
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
-    _ensure_assignment_relations_loaded(assignment)
+    if not _ensure_assignment_relations_loaded(assignment):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Assignment task is missing")
     return assignment
 
 

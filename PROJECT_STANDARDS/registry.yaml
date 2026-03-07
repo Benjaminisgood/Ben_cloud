@@ -53,6 +53,12 @@ apps:
     port: 8600
     workdir: /Users/ben/Desktop/Ben_cloud/Benben
     agent_instructions: /Users/ben/Desktop/Ben_cloud/Benben/AGENTS.md
+  - id: benfast
+    name: Benfast
+    mission: fastapi backend template with rbac and benbot sso integration
+    port: 8700
+    workdir: /Users/ben/Desktop/Ben_cloud/Benfast
+    agent_instructions: /Users/ben/Desktop/Ben_cloud/Benfast/AGENTS.md
 
 new_app_onboarding_template:
   required_fields:

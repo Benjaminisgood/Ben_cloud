@@ -73,7 +73,9 @@
             font-size: 0.9rem;
         }
         .btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             background: var(--primary);
             color: white;
             padding: 0.75rem 1.5rem;
@@ -84,6 +86,34 @@
             font-size: 1rem;
         }
         .btn:hover { opacity: 0.9; }
+        .action-row {
+            margin-top: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+            .header nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.75rem;
+            }
+            .header nav a {
+                margin-left: 0;
+            }
+            .action-row {
+                flex-direction: column;
+            }
+            .action-row .btn {
+                width: 100%;
+            }
+        }
         .flash-message {
             background: #d4edda;
             color: #155724;
@@ -142,9 +172,9 @@
                 </div>
             </div>
             
-            <div style="margin-top: 2rem;">
+            <div class="action-row">
                 <a href="/properties" class="btn">浏览房源</a>
-                <a href="/bookings" class="btn" style="margin-left: 1rem;">我的预订</a>
+                <a href="/bookings" class="btn">我的预订</a>
             </div>
         </div>
     </div>

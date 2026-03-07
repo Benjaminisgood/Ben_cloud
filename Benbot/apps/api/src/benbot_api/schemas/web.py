@@ -56,6 +56,14 @@ class DashboardPageContextDTO(TemplateContextDTO):
     flash_messages: list[FlashMessageDTO] = Field(default_factory=list)
 
 
+class ManagementPageContextDTO(TemplateContextDTO):
+    title: str = "Benbot · 管理页"
+    page: str = "manage"
+    current_user: SessionUserDTO
+    projects: list[ProjectCardDTO]
+    flash_messages: list[FlashMessageDTO] = Field(default_factory=list)
+
+
 class LoginPageContextDTO(TemplateContextDTO):
     title: str = "登录 · Benbot"
     page: str = "login"

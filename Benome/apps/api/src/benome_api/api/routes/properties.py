@@ -27,6 +27,17 @@ from ..deps import get_current_admin, get_db
 router = APIRouter(tags=["properties"])
 
 
+def _resolve_cover_image(db: Session, property_id: int) -> str | None:
+    media_list = get_property_media_list(db, property_id)
+    if not media_list:
+        return None
+    cover = next((media for media in media_list if media.is_cover and media.public_url), None)
+    if cover is not None:
+        return cover.public_url
+    first_image = next((media for media in media_list if media.public_url), None)
+    return first_image.public_url if first_image is not None else None
+
+
 @router.get("/properties", response_model=list[PropertyOut])
 def list_properties(db: Session = Depends(get_db)):
     items = list_public_properties(db)
@@ -43,6 +54,7 @@ def list_properties(db: Session = Depends(get_db)):
             created_by_admin_id=item.created_by_admin_id,
             created_at=item.created_at,
             updated_at=item.updated_at,
+            cover_image=_resolve_cover_image(db, item.id),
         )
         for item in items
     ]
@@ -65,6 +77,7 @@ def list_public_properties_api(db: Session = Depends(get_db)):
             created_by_admin_id=item.created_by_admin_id,
             created_at=item.created_at,
             updated_at=item.updated_at,
+            cover_image=_resolve_cover_image(db, item.id),
         )
         for item in items
     ]
@@ -111,6 +124,7 @@ def property_detail(property_id: int, db: Session = Depends(get_db)):
         created_by_admin_id=item.created_by_admin_id,
         created_at=item.created_at,
         updated_at=item.updated_at,
+        cover_image=_resolve_cover_image(db, item.id),
         media=media_out,
     )
 
