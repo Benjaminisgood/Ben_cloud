@@ -83,6 +83,7 @@ ensure_deps() {
 }
 
 ensure_db_migrated() {
+  mkdir -p "$LOG_DIR" "$PROJECT_PATH/data"
   info "Applying DB migrations (alembic upgrade head)"
   (cd "$API_DIR" && PYTHONPATH=src python -m alembic upgrade head)
 }

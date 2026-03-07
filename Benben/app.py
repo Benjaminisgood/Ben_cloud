@@ -3,7 +3,9 @@ from __future__ import annotations
 
 try:
     from apps.main import app, settings
-except ModuleNotFoundError:  # backward compatibility for legacy package layout
+except ModuleNotFoundError as exc:  # backward compatibility for legacy package layout
+    if exc.name not in {"apps", "apps.main"}:
+        raise
     from benben_api.main import app, settings  # type: ignore[no-redef]
 
 __all__ = ["app", "settings"]

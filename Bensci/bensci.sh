@@ -1,15 +1,60 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CATAPEDIA Metadata Service Startup Script
 
-set -e
+set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 cd "$SCRIPT_DIR"
+API_DIR="$SCRIPT_DIR/apps/api"
 
-# Load environment variables
-if [ -f ".env" ]; then
-    export $(grep -v '^#' .env | xargs)
+if [ -z "${VENV_DIR:-}" ]; then
+    if [ -x "$SCRIPT_DIR/venv/bin/python" ]; then
+        VENV_DIR="$SCRIPT_DIR/venv"
+    elif [ -x "$SCRIPT_DIR/.venv/bin/python" ]; then
+        VENV_DIR="$SCRIPT_DIR/.venv"
+    else
+        VENV_DIR="$SCRIPT_DIR/venv"
+    fi
 fi
+
+resolve_python() {
+    if command -v python3 >/dev/null 2>&1; then
+        command -v python3
+        return 0
+    fi
+    command -v python
+}
+
+PYTHON_BIN="$(resolve_python)"
+
+load_env() {
+    [ -f "$SCRIPT_DIR/.env" ] || return 0
+
+    while IFS= read -r raw_line || [ -n "$raw_line" ]; do
+        local line key value
+        line="${raw_line#"${raw_line%%[![:space:]]*}"}"
+        case "$line" in
+            ""|\#*) continue ;;
+        esac
+        [[ "$line" == *=* ]] || continue
+
+        key="${line%%=*}"
+        value="${line#*=}"
+        key="${key%"${key##*[![:space:]]}"}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
+
+        if [ "${#value}" -ge 2 ]; then
+            case "$value" in
+                \"*\"|\'*\')
+                    value="${value:1:${#value}-2}"
+                    ;;
+            esac
+        fi
+
+        export "$key=$value"
+    done < "$SCRIPT_DIR/.env"
+}
 
 # Default values
 PORT=${PORT:-8300}
@@ -24,11 +69,42 @@ ACCESS_LOG_FILE="$SCRIPT_DIR/logs/metadata_service_access.log"
 # Ensure runtime directories exist
 mkdir -p "$SCRIPT_DIR/logs" "$SCRIPT_DIR/data" "$SCRIPT_DIR/data/exports"
 
+ensure_venv() {
+    if [ ! -x "$VENV_DIR/bin/python" ]; then
+        echo "[INFO] Creating virtualenv: $VENV_DIR"
+        "$PYTHON_BIN" -m venv "$VENV_DIR"
+    fi
+}
+
+ensure_deps() {
+    if ! (cd "$SCRIPT_DIR" && PYTHONPATH=. "$VENV_DIR/bin/python" -c "import fastapi, gunicorn, apps.main" >/dev/null 2>&1); then
+        echo "[INFO] Installing/updating dependencies"
+        (
+            cd "$API_DIR"
+            "$VENV_DIR/bin/python" -m pip install -q --upgrade pip
+            "$VENV_DIR/bin/python" -m pip install -q -e ".[dev]"
+        )
+    fi
+}
+
+wait_for_health() {
+    local retries=60
+    while [ "$retries" -gt 0 ]; do
+        if is_running && curl -fsS --max-time 2 "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 0.5
+        retries=$((retries - 1))
+    done
+    return 1
+}
+
 # Function to check if service is running
 is_running() {
     if [ -f "$PID_FILE" ]; then
-        PID=$(cat "$PID_FILE")
-        if ps -p $PID > /dev/null 2>&1; then
+        local pid
+        pid=$(cat "$PID_FILE")
+        if ps -p "$pid" > /dev/null 2>&1; then
             return 0
         fi
     fi
@@ -37,20 +113,19 @@ is_running() {
 
 # Function to start the service
 start() {
+    load_env
+    ensure_venv
+    ensure_deps
+
     if is_running; then
         echo "[WARN] Service is already running (PID=$(cat $PID_FILE))"
         exit 1
     fi
 
     echo "[INFO] Starting CATAPEDIA Metadata Service on $HOST:$PORT with $WORKERS workers..."
-    
-    # Activate virtual environment if exists
-    if [ -d "$SCRIPT_DIR/venv" ]; then
-        source "$SCRIPT_DIR/venv/bin/activate"
-    fi
-    
+
     # Start gunicorn with uvicorn workers
-    nohup python -m gunicorn apps.main:app \
+    "$VENV_DIR/bin/python" -m gunicorn apps.main:app \
         --bind $HOST:$PORT \
         --workers $WORKERS \
         --worker-class uvicorn.workers.UvicornWorker \
@@ -59,17 +134,15 @@ start() {
         --daemon \
         --log-file $LOG_FILE \
         --access-logfile $ACCESS_LOG_FILE \
-        --capture-output \
-        2>&1
-    
-    sleep 2
-    
-    if is_running; then
+        --capture-output
+
+    if wait_for_health; then
         echo "[OK] Service started successfully (PID=$(cat $PID_FILE))"
         echo "[INFO] Logs: $LOG_FILE"
         echo "[INFO] Access logs: $ACCESS_LOG_FILE"
     else
         echo "[ERROR] Failed to start service"
+        [ -f "$LOG_FILE" ] && tail -n 40 "$LOG_FILE"
         exit 1
     fi
 }

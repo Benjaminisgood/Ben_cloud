@@ -4,6 +4,7 @@
 set -euo pipefail
 
 PROJECT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+VENV_DIR="${VENV_DIR:-$PROJECT_PATH/venv}"
 ENV_FILE="$PROJECT_PATH/.env"
 ENV_EXAMPLE_FILE="$PROJECT_PATH/.env.example"
 LOG_DIR="$PROJECT_PATH/logs"
@@ -93,6 +94,25 @@ PORT="${PORT:-8600}"
 
 mkdir -p "$LOG_DIR"
 load_env
+PORT="${BENBEN_PORT:-$PORT}"
+
+ensure_venv() {
+  if [ ! -x "$VENV_DIR/bin/python" ]; then
+    info "创建虚拟环境: $VENV_DIR"
+    "$PYTHON_BIN" -m venv "$VENV_DIR"
+  fi
+}
+
+ensure_deps() {
+  if ! (cd "$PROJECT_PATH" && PYTHONPATH=. "$VENV_DIR/bin/python" -c "import fastapi, uvicorn, itsdangerous" >/dev/null 2>&1); then
+    info "安装/更新依赖"
+    (
+      cd "$PROJECT_PATH/apps/api"
+      "$VENV_DIR/bin/python" -m pip install -q --upgrade pip
+      "$VENV_DIR/bin/python" -m pip install -q -e ".[dev]"
+    )
+  fi
+}
 
 is_running() {
   [ -f "$PID_FILE" ] || return 1
@@ -122,17 +142,20 @@ wait_health() {
 }
 
 cmd_install() {
+  ensure_venv
   info "安装依赖"
   (
     cd "$PROJECT_PATH/apps/api"
-    "$PYTHON_BIN" -m pip install -q --upgrade pip
-    "$PYTHON_BIN" -m pip install -q -e ".[dev]"
+    "$VENV_DIR/bin/python" -m pip install -q --upgrade pip
+    "$VENV_DIR/bin/python" -m pip install -q -e ".[dev]"
   )
   info "依赖安装完成"
 }
 
 cmd_start() {
   ensure_runtime_env || exit 1
+  ensure_venv
+  ensure_deps
 
   if is_running; then
     local pid
@@ -150,7 +173,7 @@ cmd_start() {
   info "启动 Benben (port=$PORT)"
   (
     cd "$PROJECT_PATH"
-    BENBEN_PORT="$PORT" nohup "$PYTHON_BIN" app.py >>"$LOG_FILE" 2>&1 &
+    BENBEN_PORT="$PORT" nohup "$VENV_DIR/bin/python" app.py >>"$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
   )
 
@@ -206,8 +229,10 @@ cmd_ip() {
 }
 
 cmd_check() {
+  ensure_venv
+  ensure_deps
   info "执行 Benben 自检"
-  (cd "$PROJECT_PATH" && "$PYTHON_BIN" -m compileall -q app.py apps)
+  (cd "$PROJECT_PATH" && "$VENV_DIR/bin/python" -m compileall -q app.py apps)
   info "代码编译检查通过"
 
   if curl -fsS --max-time 2 "http://127.0.0.1:$PORT/health/ready" >/dev/null 2>&1; then

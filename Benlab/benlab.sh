@@ -10,6 +10,7 @@ LOG_DIR="${LOG_DIR:-$PROJECT_PATH/logs}"
 PID_FILE="${PID_FILE:-$LOG_DIR/benlab.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/benlab.log}"
 ACCESS_LOG_FILE="${ACCESS_LOG_FILE:-$LOG_DIR/benlab-access.log}"
+HEALTH_PATH="${HEALTH_PATH:-/health}"
 
 HOST="${HOST:-${BIND_HOST:-0.0.0.0}}"
 PORT="${PORT:-${UVICORN_PORT:-9000}}"
@@ -56,6 +57,16 @@ ensure_deps() {
   fi
 }
 
+ensure_runtime_dirs() {
+  mkdir -p "$LOG_DIR" "$PROJECT_PATH/data"
+}
+
+ensure_db_migrated() {
+  ensure_runtime_dirs
+  info "应用数据库迁移 (alembic upgrade head)"
+  (cd "$API_DIR" && PYTHONPATH=src python -m alembic upgrade head)
+}
+
 calc_workers() {
   if [ -n "$WORKERS" ]; then
     echo "$WORKERS"
@@ -83,6 +94,26 @@ wait_for_pid() {
   local retries=40
   while [ "$retries" -gt 0 ]; do
     if is_running; then
+      return 0
+    fi
+    sleep 0.25
+    retries=$((retries - 1))
+  done
+  return 1
+}
+
+healthcheck_url() {
+  echo "http://127.0.0.1:$PORT$HEALTH_PATH"
+}
+
+is_healthy() {
+  curl -fsS --max-time 2 "$(healthcheck_url)" >/dev/null 2>&1
+}
+
+wait_for_health() {
+  local retries=40
+  while [ "$retries" -gt 0 ]; do
+    if is_running && is_healthy; then
       return 0
     fi
     sleep 0.25
@@ -186,6 +217,15 @@ install_cmd() {
   info "依赖安装完成"
 }
 
+db_upgrade_cmd() {
+  load_env
+  ensure_venv
+  activate_venv
+  ensure_deps
+  ensure_db_migrated
+  info "数据库 schema 已更新到最新版本"
+}
+
 start() {
   load_env
   ensure_venv
@@ -201,10 +241,11 @@ start() {
 
   rm -f "$PID_FILE"
   check_port_free
+  ensure_db_migrated
 
   local workers
   workers=$(calc_workers)
-  mkdir -p "$LOG_DIR"
+  ensure_runtime_dirs
   : > "$LOG_FILE"
   : > "$ACCESS_LOG_FILE"
 
@@ -223,13 +264,14 @@ start() {
       --capture-output
   )
 
-  if wait_for_pid; then
+  if wait_for_health; then
     info "启动成功 (PID=$(cat "$PID_FILE"))"
     info "日志: $LOG_FILE"
     return 0
   fi
 
   error "启动失败，请检查日志: $LOG_FILE"
+  tail -n 40 "$LOG_FILE" || true
   return 1
 }
 
@@ -317,6 +359,7 @@ update() {
 
 case "${1:-}" in
   install) install_cmd ;;
+  db-upgrade) db_upgrade_cmd ;;
   start) start ;;
   stop) stop ;;
   restart) restart ;;
@@ -325,7 +368,7 @@ case "${1:-}" in
   ip) ip ;;
   update) update ;;
   *)
-    echo "用法: $0 {install|start|stop|restart|status|logs|ip|update}"
+    echo "用法: $0 {install|db-upgrade|start|stop|restart|status|logs|ip|update}"
     exit 1
     ;;
 esac

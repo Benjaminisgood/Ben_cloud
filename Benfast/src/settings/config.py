@@ -6,10 +6,25 @@ from pathlib import Path
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _normalize_repo_local_path(raw_value: str, *, app_name: str) -> str:
+    candidate = Path(raw_value).expanduser()
+    if not candidate.is_absolute():
+        return str((_REPO_ROOT / candidate).resolve())
+
+    parts = candidate.parts
+    for idx in range(len(parts) - 1):
+        if parts[idx].lower() == "ben_cloud" and parts[idx + 1].lower() == app_name.lower():
+            suffix = Path(*parts[idx + 2 :])
+            return str((_REPO_ROOT / suffix).resolve())
+    return str(candidate)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_REPO_ROOT / ".env"),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",
@@ -170,6 +185,20 @@ class Settings(BaseSettings):
             except json.JSONDecodeError:
                 return {"default": []}
         return v
+
+    @field_validator(
+        "SQLITE_DB_PATH",
+        "DOCS_SITE_DIR",
+        "LABDOCS_LOCAL_ROOT",
+        "LABDOCS_DOCS_SOURCE_ROOT",
+        "LABDOCS_PUBLISH_ROOT",
+        mode="before",
+    )
+    @classmethod
+    def normalize_repo_local_paths(cls, v):
+        if not isinstance(v, str) or not v.strip():
+            return v
+        return _normalize_repo_local_path(v.strip(), app_name="Benfast")
 
     @field_validator("DB_PASSWORD")
     @classmethod
