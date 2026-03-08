@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 7 days for refresh token
     PORT: int = int(os.getenv("PORT", "8700"))
     SSO_SECRET: str = os.getenv("SSO_SECRET", "")
-    SSO_REDIRECT_PATH: str = os.getenv("SSO_REDIRECT_PATH", "/portal")
+    SSO_REDIRECT_PATH: str = os.getenv("SSO_REDIRECT_PATH", "/")
     SSO_TOKEN_COOKIE_NAME: str = os.getenv(
         "SSO_TOKEN_COOKIE_NAME", "benfast_access_token"
     )
@@ -238,7 +238,7 @@ class Settings(BaseSettings):
     def validate_sso_redirect_path(cls, v):
         path = str(v or "").strip()
         if not path:
-            return "/portal"
+            return "/"
         if not path.startswith("/"):
             return f"/{path}"
         return path

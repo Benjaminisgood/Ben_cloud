@@ -64,6 +64,7 @@ def event_loop():
     os.environ["TESTING"] = "true"
 
     loop = asyncio.new_event_loop()
+    setattr(loop, "__pytest_asyncio", True)
     yield loop
     loop.close()
 

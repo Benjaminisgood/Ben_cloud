@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import secrets
 import time
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
@@ -107,68 +108,227 @@ async def _find_or_create_user(*, username: str, role: str) -> User:
     return user
 
 
-def _portal_html(*, username: str, role: str, user_id: int) -> str:
+def _home_html(*, username: str, role_label: str) -> str:
     safe_username = html.escape(username)
-    safe_role = html.escape(role)
+    safe_role = html.escape(role_label)
     return f"""<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Benfast Portal</title>
+    <title>Benfast Home</title>
     <style>
       body {{
         margin: 0;
+        min-height: 100vh;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: linear-gradient(120deg, #f4f6f8 0%, #e8eff8 100%);
+        background:
+          radial-gradient(circle at top right, rgba(96, 165, 250, 0.32), transparent 32%),
+          radial-gradient(circle at bottom left, rgba(45, 212, 191, 0.24), transparent 36%),
+          linear-gradient(135deg, #07111f 0%, #0f1f38 56%, #12315f 100%);
         color: #0f172a;
       }}
       .wrap {{
-        max-width: 720px;
-        margin: 56px auto;
-        background: #ffffff;
-        border-radius: 14px;
-        padding: 28px;
-        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 48px 20px 64px;
+      }}
+      .hero {{
+        background: rgba(248, 250, 252, 0.95);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 28px;
+        padding: 32px;
+        box-shadow: 0 24px 80px rgba(2, 6, 23, 0.34);
+        backdrop-filter: blur(14px);
+      }}
+      .eyebrow {{
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.06);
+        color: #1e3a8a;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
       }}
       h1 {{
-        margin: 0 0 10px;
+        margin: 0;
+        font-size: clamp(34px, 5vw, 56px);
+        line-height: 1.04;
+        letter-spacing: -0.03em;
+        color: #0f172a;
+      }}
+      .hero p {{
+        margin: 14px 0 0;
+        max-width: 720px;
+        font-size: 17px;
+        line-height: 1.7;
+        color: #334155;
+      }}
+      .meta {{
+        margin-top: 22px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }}
+      .meta span {{
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 600;
+      }}
+      .grid {{
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 28px;
+      }}
+      .card {{
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 24px;
+        border-radius: 22px;
+        text-decoration: none;
+        color: inherit;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      }}
+      .card:hover {{
+        transform: translateY(-3px);
+        box-shadow: 0 24px 56px rgba(15, 23, 42, 0.18);
+        border-color: rgba(37, 99, 235, 0.34);
+      }}
+      .card-top {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }}
+      .card-badge {{
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        background: rgba(37, 99, 235, 0.1);
+      }}
+      .card-arrow {{
+        color: #2563eb;
+        font-size: 24px;
+        font-weight: 700;
+      }}
+      .card h2 {{
+        margin: 0;
         font-size: 28px;
       }}
-      p {{
-        margin: 6px 0;
+      .card p {{
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.7;
+        color: #475569;
       }}
-      code {{
-        background: #f1f5f9;
-        border-radius: 6px;
-        padding: 2px 6px;
+      .card ul {{
+        margin: 0;
+        padding-left: 20px;
+        color: #334155;
+        line-height: 1.7;
       }}
-      .links {{
+      .toolbar {{
         margin-top: 18px;
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
       }}
-      .links a {{
+      .toolbar a {{
         text-decoration: none;
+        padding: 12px 16px;
+        border-radius: 999px;
+        font-weight: 600;
+      }}
+      .toolbar .primary {{
         color: #ffffff;
-        background: #2563eb;
-        border-radius: 8px;
-        padding: 10px 14px;
+        background: #0f172a;
+      }}
+      .toolbar .secondary {{
+        color: #0f172a;
+        background: #e2e8f0;
+      }}
+      @media (max-width: 780px) {{
+        .hero {{
+          padding: 24px;
+        }}
+        .grid {{
+          grid-template-columns: 1fr;
+        }}
+        h1 {{
+          font-size: 34px;
+        }}
       }}
     </style>
   </head>
   <body>
     <main class="wrap">
-      <h1>Benfast 已通过 Benbot SSO 登录</h1>
-      <p><strong>用户:</strong> <code>{safe_username}</code></p>
-      <p><strong>角色:</strong> <code>{safe_role}</code></p>
-      <p><strong>本地用户ID:</strong> <code>{user_id}</code></p>
-      <div class="links">
-        <a href="/api/v1/base/userinfo">查看当前用户信息</a>
-        <a href="/api/v1/base/health">查看 API 健康状态</a>
-        <a href="/auth/logout">退出当前会话</a>
-      </div>
+      <section class="hero">
+        <span class="eyebrow">Benfast / Home</span>
+        <h1>选择进入后台写作管理，或前台文档阅读。</h1>
+        <p>Benfast 现在把管理工作台和公开阅读站拆成两个明确入口。你可以直接进入 <strong>/app</strong> 做文档编写与发布，也可以进入 <strong>/kb</strong> 预览实际对外呈现的阅读体验。</p>
+        <div class="meta">
+          <span>当前用户：{safe_username}</span>
+          <span>权限角色：{safe_role}</span>
+        </div>
+        <div class="grid">
+          <a class="card" href="/app/">
+            <div class="card-top">
+              <span class="card-badge">APP</span>
+              <span class="card-arrow">&gt;</span>
+            </div>
+            <div>
+              <h2>进入后台 /app</h2>
+              <p>面向写作、协作和发布管理。适合维护文档库、编辑页面结构、执行预览与发布。</p>
+            </div>
+            <ul>
+              <li>文档库总览与新建</li>
+              <li>章节目录与页面编辑</li>
+              <li>发布前预览与配置</li>
+            </ul>
+          </a>
+          <a class="card" href="/kb/">
+            <div class="card-top">
+              <span class="card-badge">KB</span>
+              <span class="card-arrow">&gt;</span>
+            </div>
+            <div>
+              <h2>进入前台 /kb</h2>
+              <p>面向阅读和展示。适合从访客视角检查已发布文档、首页栏目和正文排版效果。</p>
+            </div>
+            <ul>
+              <li>阅读文档站首页</li>
+              <li>查看已发布书籍与页面</li>
+              <li>验证目录、样式和附件</li>
+            </ul>
+          </a>
+        </div>
+        <div class="toolbar">
+          <a class="primary" href="/api/v1/base/userinfo">查看当前用户信息</a>
+          <a class="secondary" href="/auth/logout">退出当前会话</a>
+        </div>
+      </section>
     </main>
   </body>
 </html>
@@ -293,6 +453,25 @@ def _app_not_ready_html() -> str:
 """
 
 
+def _sanitize_redirect_path(raw: str | None, *, fallback: str) -> str:
+    candidate = str(raw or "").strip()
+    if not candidate:
+        return fallback
+
+    parsed = urlsplit(candidate)
+    if parsed.scheme or parsed.netloc:
+        return fallback
+    if not parsed.path.startswith("/") or parsed.path.startswith("//"):
+        return fallback
+
+    redirect_path = parsed.path
+    if parsed.query:
+        redirect_path = f"{redirect_path}?{parsed.query}"
+    if parsed.fragment:
+        redirect_path = f"{redirect_path}#{parsed.fragment}"
+    return redirect_path
+
+
 async def _get_authenticated_user(request: Request) -> tuple[User | None, str | None]:
     token = request.cookies.get(settings.SSO_TOKEN_COOKIE_NAME, "")
     if not token:
@@ -389,7 +568,7 @@ async def health() -> dict[str, str]:
 
 
 @router.get("/auth/sso")
-async def sso_callback(token: str) -> RedirectResponse:
+async def sso_callback(token: str, next: str | None = None) -> RedirectResponse:
     if not settings.SSO_SECRET.strip():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -409,7 +588,11 @@ async def sso_callback(token: str) -> RedirectResponse:
     await user_repository.update_last_login(user.id)
 
     access_token, refresh_token = create_token_pair(user.id)
-    response = RedirectResponse(url=settings.SSO_REDIRECT_PATH, status_code=302)
+    redirect_target = _sanitize_redirect_path(
+        next,
+        fallback=settings.SSO_REDIRECT_PATH,
+    )
+    response = RedirectResponse(url=redirect_target, status_code=302)
     response.set_cookie(
         key=settings.SSO_TOKEN_COOKIE_NAME,
         value=access_token,
@@ -441,10 +624,11 @@ async def logout() -> RedirectResponse:
 
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def root_page(request: Request):
-    _, error = await _get_authenticated_user(request)
+    user, error = await _get_authenticated_user(request)
     if error:
         return HTMLResponse(_portal_error_html(error), status_code=401)
-    return RedirectResponse(url="/kb/", status_code=302)
+    role_label = "管理员" if bool(getattr(user, "is_superuser", False)) else "成员"
+    return HTMLResponse(_home_html(username=str(user.username), role_label=role_label))
 
 
 @router.get("/portal", response_class=HTMLResponse)
@@ -452,7 +636,7 @@ async def portal(request: Request) -> HTMLResponse:
     _, error = await _get_authenticated_user(request)
     if error:
         return HTMLResponse(_portal_error_html(error), status_code=401)
-    return RedirectResponse(url="/kb/", status_code=302)
+    return RedirectResponse(url="/", status_code=302)
 
 
 @router.get("/kb", include_in_schema=False)

@@ -1524,15 +1524,30 @@ class LabDocsService:
     def _mkdocs_command(self) -> list[str]:
         direct_binary = Path(settings.BASE_DIR) / ".venv" / "bin" / "mkdocs"
         if direct_binary.exists():
-            return [str(direct_binary)]
+            try:
+                shebang = direct_binary.read_text(encoding="utf-8").splitlines()[0].strip()
+            except (OSError, IndexError, UnicodeDecodeError):
+                shebang = ""
+            if shebang.startswith("#!"):
+                interpreter = Path(shebang[2:].strip().split(" ", 1)[0])
+                if interpreter.exists():
+                    return [str(direct_binary)]
+            else:
+                return [str(direct_binary)]
         return ["uv", "run", "--group", "docs", "mkdocs"]
 
     def _run_unified_site_build(self, config_path: Path) -> None:
         command = [*self._mkdocs_command(), "build", "--clean", "-f", str(config_path)]
+        uv_cache_dir = Path(settings.DATA_DIR) / "uv-cache"
+        uv_cache_dir.mkdir(parents=True, exist_ok=True)
         result = subprocess.run(
             command,
             cwd=settings.BASE_DIR,
-            env={**os.environ, "PYTHONUTF8": "1"},
+            env={
+                **os.environ,
+                "PYTHONUTF8": "1",
+                "UV_CACHE_DIR": str(uv_cache_dir),
+            },
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,

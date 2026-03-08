@@ -10,6 +10,23 @@ from settings import settings
 
 
 class TestCollabAppRoutes:
+    async def test_home_requires_cookie_session(self, async_client: AsyncClient) -> None:
+        response = await async_client.get("/")
+        assert response.status_code == 401
+
+    async def test_home_selector_renders_with_valid_cookie(
+        self,
+        async_client: AsyncClient,
+        admin_token: str,
+    ) -> None:
+        async_client.cookies.set(settings.SSO_TOKEN_COOKIE_NAME, admin_token)
+        response = await async_client.get("/")
+        assert response.status_code == 200
+        assert "进入后台 /app" in response.text
+        assert "进入前台 /kb" in response.text
+        assert 'href="/app/"' in response.text
+        assert 'href="/kb/"' in response.text
+
     async def test_app_requires_cookie_session(self, async_client: AsyncClient) -> None:
         response = await async_client.get("/app/")
         assert response.status_code == 401
@@ -100,6 +117,16 @@ class TestCollabAppRoutes:
         response = await async_client.get("/workspace", follow_redirects=False)
         assert response.status_code == 302
         assert response.headers["location"] == "/app/"
+
+    async def test_portal_redirects_to_home(
+        self,
+        async_client: AsyncClient,
+        admin_token: str,
+    ) -> None:
+        async_client.cookies.set(settings.SSO_TOKEN_COOKIE_NAME, admin_token)
+        response = await async_client.get("/portal", follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["location"] == "/"
 
     async def test_published_book_is_served_under_kb(
         self,

@@ -39,7 +39,7 @@ class TestBenbotSso:
         self, async_client: AsyncClient, monkeypatch
     ) -> None:
         monkeypatch.setattr(settings, "SSO_SECRET", "test-benbot-sso", raising=False)
-        monkeypatch.setattr(settings, "SSO_REDIRECT_PATH", "/portal", raising=False)
+        monkeypatch.setattr(settings, "SSO_REDIRECT_PATH", "/", raising=False)
 
         token = _build_sso_token(
             secret=settings.SSO_SECRET,
@@ -53,7 +53,7 @@ class TestBenbotSso:
             follow_redirects=False,
         )
         assert response.status_code == 302
-        assert response.headers["location"] == "/portal"
+        assert response.headers["location"] == "/"
 
         cookie_header = "; ".join(response.headers.get_list("set-cookie"))
         assert settings.SSO_TOKEN_COOKIE_NAME in cookie_header
@@ -63,6 +63,46 @@ class TestBenbotSso:
         assert user is not None
         assert user.is_superuser is True
         assert user.is_active is True
+
+    async def test_sso_login_uses_safe_next_path_when_provided(
+        self, async_client: AsyncClient, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(settings, "SSO_SECRET", "test-benbot-sso", raising=False)
+        monkeypatch.setattr(settings, "SSO_REDIRECT_PATH", "/", raising=False)
+
+        token = _build_sso_token(
+            secret=settings.SSO_SECRET,
+            username="portal_user",
+        )
+
+        response = await async_client.get(
+            "/auth/sso",
+            params={"token": token, "next": "/app/"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 302
+        assert response.headers["location"] == "/app/"
+
+    async def test_sso_login_rejects_unsafe_next_path(
+        self, async_client: AsyncClient, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(settings, "SSO_SECRET", "test-benbot-sso", raising=False)
+        monkeypatch.setattr(settings, "SSO_REDIRECT_PATH", "/", raising=False)
+
+        token = _build_sso_token(
+            secret=settings.SSO_SECRET,
+            username="portal_user",
+        )
+
+        response = await async_client.get(
+            "/auth/sso",
+            params={"token": token, "next": "https://evil.example/steal"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 302
+        assert response.headers["location"] == "/"
 
     async def test_sso_rejects_invalid_token(
         self, async_client: AsyncClient, monkeypatch
