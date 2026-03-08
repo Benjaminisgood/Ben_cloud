@@ -92,7 +92,7 @@ is_running() {
 }
 
 list_listening_pids() {
-  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | awk '!seen[$0]++'
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | awk '!seen[$0]++' || true
 }
 
 wait_for_port_release() {
