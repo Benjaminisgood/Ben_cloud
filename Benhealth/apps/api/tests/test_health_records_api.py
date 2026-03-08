@@ -98,11 +98,78 @@ def test_health_record_requires_admin_review(client):
     _login_admin(client)
     reviewed = client.post(
         f"/api/health-records/{created.json()['id']}/review",
-        json={"review_status": "approved", "review_note": "确认纳入正式健康追踪"},
+        json={"review_status": "approved"},
     )
     assert reviewed.status_code == 200
     payload = reviewed.json()
     assert payload["review_status"] == "approved"
-    assert payload["review_note"] == "确认纳入正式健康追踪"
     assert payload["reviewed_by"] == "benbenbuben"
     assert payload["reviewed_at"]
+
+
+def test_health_record_reject_deletes_record(client):
+    _login_user(client)
+    created = client.post(
+        "/api/health-records",
+        json={
+            "domain": "habit",
+            "title": "熬夜补工作",
+            "summary": "连续几天超过一点睡觉。",
+        },
+    )
+    assert created.status_code == 201
+
+    _login_admin(client)
+    rejected = client.post(
+        f"/api/health-records/{created.json()['id']}/review",
+        json={"review_status": "rejected"},
+    )
+    assert rejected.status_code == 204
+
+    detail = client.get(f"/api/health-records/{created.json()['id']}")
+    assert detail.status_code == 404
+
+
+def test_health_record_web_review_flow(client):
+    _login_user(client)
+    created = client.post(
+        "/api/health-records",
+        json={
+            "domain": "mental",
+            "title": "会议后低能量",
+            "summary": "下午长会后恢复速度偏慢。",
+        },
+    )
+    assert created.status_code == 201
+
+    _login_admin(client)
+    approved = client.post(
+        f"/health-records/{created.json()['id']}/review",
+        data={"review_status": "approved"},
+        follow_redirects=False,
+    )
+    assert approved.status_code == 303
+
+    detail = client.get(f"/api/health-records/{created.json()['id']}")
+    assert detail.status_code == 200
+    assert detail.json()["review_status"] == "approved"
+
+    created = client.post(
+        "/api/health-records",
+        json={
+            "domain": "diet",
+            "title": "深夜奶茶",
+            "summary": "晚上高糖饮料影响睡眠。",
+        },
+    )
+    assert created.status_code == 201
+
+    rejected = client.post(
+        f"/health-records/{created.json()['id']}/review",
+        data={"review_status": "rejected"},
+        follow_redirects=False,
+    )
+    assert rejected.status_code == 303
+
+    detail = client.get(f"/api/health-records/{created.json()['id']}")
+    assert detail.status_code == 404

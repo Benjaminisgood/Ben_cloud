@@ -3,77 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Benben 分视图工作台</title>
+    <title>Benben Editor</title>
     <link rel="stylesheet" href="/static/editor.css">
 </head>
 <body>
-    <div class="app-shell">
-        <header class="topbar card animate">
-            <div class="topbar-brand">
-                <div class="brand-mark">Bb</div>
-                <div>
-                    <p class="eyebrow">Benben Workspace</p>
-                    <h1>分视图临时写作台</h1>
-                    <p class="brand-copy">文库、写作、预演拆开，各做一件事。单独一行写 <code>---</code>，预演页会自动分页。</p>
+    <div class="app-shell" data-view="template">
+        <header class="menu-bar">
+            <div class="menu-cluster menu-cluster--left">
+                <div class="brand-lockup">
+                    <div class="brand-mark">Bb</div>
+                    <div class="brand-copy">
+                        <strong>Benben</strong>
+                        <span>Markdown + Slides</span>
+                    </div>
+                </div>
+
+                <label class="menu-field">
+                    <span>文件</span>
+                    <select id="file-switcher">
+                        <option value="__none__">未选择文件</option>
+                    </select>
+                </label>
+
+                <button type="button" class="ghost-btn compact-btn" id="refresh-files-btn">刷新</button>
+
+                <div class="status-chip">
+                    <span>路径</span>
+                    <strong id="current-path-chip">未保存</strong>
                 </div>
             </div>
 
-            <nav class="view-nav" aria-label="Benben 主视图">
-                <button type="button" id="view-overview-btn" class="active">工作台</button>
+            <nav class="module-nav" aria-label="模块切换">
+                <button type="button" id="view-template-btn" class="active">模版</button>
                 <button type="button" id="view-write-btn">写作</button>
-                <button type="button" id="view-present-btn">预演</button>
+                <button type="button" id="view-document-btn">文档</button>
+                <button type="button" id="view-slides-btn">幻灯片</button>
             </nav>
 
-            <div class="topbar-actions">
-                <div class="signal-stack">
-                    <div class="signal-pill">
-                        <span>会话</span>
-                        <strong id="session-meta">未登录</strong>
-                    </div>
-                    <div class="signal-pill">
-                        <span>草稿</span>
-                        <strong id="autosave-meta">草稿未缓存</strong>
-                    </div>
+            <div class="menu-cluster menu-cluster--right">
+                <div class="status-chip">
+                    <span>会话</span>
+                    <strong id="session-meta">未登录</strong>
+                </div>
+
+                <div class="status-chip">
+                    <span>草稿</span>
+                    <strong id="autosave-meta">草稿未缓存</strong>
                 </div>
 
                 <div class="action-stack">
                     <button type="button" class="ghost-btn" data-action="new-blank">新建空白</button>
                     <button type="button" class="secondary-btn" data-action="save">保存</button>
-                    <button type="button" class="primary-btn" data-action="present">开始放映</button>
+                    <button type="button" class="ghost-btn" id="export-btn">导出</button>
+                    <button type="button" class="primary-btn" data-action="present">放映</button>
                     <button type="button" class="danger-btn" id="delete-btn" disabled>删除</button>
                 </div>
             </div>
         </header>
 
-        <main class="view-stage">
-            <section class="app-view" id="overview-view">
-                <div class="overview-grid">
-                    <section class="panel library-panel animate">
+        <main class="module-stage">
+            <section class="module-panel" id="template-view">
+                <div class="template-layout">
+                    <section class="panel template-catalog-panel">
                         <div class="panel-heading">
                             <div>
-                                <p class="section-kicker">Library</p>
-                                <h2>文档库</h2>
-                                <p class="view-helper">先选文档，再决定去写还是去预演。</p>
+                                <p class="section-kicker">Templates</p>
+                                <h1>模版</h1>
                             </div>
-                            <button type="button" class="ghost-btn compact-btn" id="refresh-files-btn">刷新</button>
                         </div>
 
-                        <label class="field">
-                            <span>筛选文件</span>
-                            <input id="file-filter" type="text" placeholder="输入关键字，快速筛选 Markdown">
-                        </label>
-
-                        <div class="file-list" id="file-list">
-                            <div class="empty-list">正在加载文件列表...</div>
-                        </div>
+                        <div class="template-catalog" id="template-catalog"></div>
                     </section>
 
-                    <section class="panel launch-panel animate">
+                    <section class="panel template-compose-panel">
                         <div class="panel-heading">
                             <div>
-                                <p class="section-kicker">Launch Pad</p>
-                                <h2>模板与速写</h2>
-                                <p class="view-helper">从模板起草，或者直接塞进一套临时汇报骨架。</p>
+                                <p class="section-kicker">Compose</p>
+                                <h2 id="selected-template-name">选择一个模板</h2>
+                                <p class="panel-copy" id="selected-template-desc">选择左侧模板后，在这里填写路径并创建文稿。</p>
                             </div>
                         </div>
 
@@ -83,184 +90,87 @@
                         </label>
 
                         <label class="field">
-                            <span>模板</span>
-                            <select id="template-select">
-                                <option value="">选择模板...</option>
-                            </select>
-                        </label>
-
-                        <label class="field">
-                            <span>项目名（可选）</span>
+                            <span>项目名</span>
                             <input id="template-project" type="text" placeholder="例如：Benoss 协作周报">
                         </label>
 
+                        <select id="template-select" hidden>
+                            <option value="">选择模板...</option>
+                        </select>
+
                         <div class="action-row">
-                            <button type="button" class="secondary-btn" id="template-create-btn">模板新建</button>
+                            <button type="button" class="secondary-btn" id="template-create-btn">用模板创建</button>
+                            <button type="button" class="ghost-btn" data-action="new-blank">新建空白</button>
                             <button type="button" class="ghost-btn" id="insert-report-btn">插入汇报骨架</button>
                         </div>
 
-                        <div class="tip-stack">
-                            <div class="tip-card">
-                                <strong>分页规则</strong>
-                                <span>单独一行写 <code>---</code>，预演页会自动拆成下一页。</span>
+                        <div class="template-meta-block">
+                            <div class="meta-row">
+                                <span>分类</span>
+                                <strong id="selected-template-category">-</strong>
                             </div>
-                            <div class="tip-card">
-                                <strong>适合场景</strong>
-                                <span>站会同步、周报快写、实验记录、临时汇报。</span>
-                            </div>
-                            <div class="tip-card">
-                                <strong>操作节奏</strong>
-                                <span>工作台选文档，写作页专心写，预演页专心看。</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="panel summary-panel animate">
-                        <div class="panel-heading">
-                            <div>
-                                <p class="section-kicker">Current Note</p>
-                                <h2 id="overview-file-name">未选择文件</h2>
-                                <p class="view-helper" id="overview-file-state">从文档库打开一个 Markdown，或者直接新建。</p>
-                            </div>
-                        </div>
-
-                        <div class="summary-metrics">
-                            <div class="summary-kpi">
-                                <span>路径</span>
-                                <strong id="overview-current-path">未保存</strong>
-                            </div>
-                            <div class="summary-kpi">
-                                <span>内容量</span>
-                                <strong id="overview-word-count">0</strong>
-                            </div>
-                            <div class="summary-kpi">
-                                <span>幻灯片</span>
-                                <strong id="overview-slide-count">1</strong>
-                            </div>
-                            <div class="summary-kpi">
-                                <span>预计阅读</span>
-                                <strong id="overview-read-time">0 分钟</strong>
-                            </div>
-                        </div>
-
-                        <div class="overview-summary" id="overview-summary">
-                            这里会显示当前文档的摘要。当前还没有打开任何笔记。
-                        </div>
-
-                        <div class="action-row">
-                            <button type="button" class="ghost-btn" id="go-write-btn">进入写作</button>
-                            <button type="button" class="primary-btn" id="go-present-btn">进入预演</button>
-                        </div>
-                    </section>
-                </div>
-            </section>
-
-            <section class="app-view hidden" id="write-view">
-                <div class="write-layout">
-                    <section class="panel writer-panel animate">
-                        <div class="panel-heading compact">
-                            <div>
-                                <p class="section-kicker">Writing View</p>
-                                <h2 id="editor-title">未命名文档</h2>
-                                <p class="view-helper" id="editor-state">未选择文件</p>
-                            </div>
-                            <div class="panel-meta">
-                                <span class="meta-pill" id="version-state">version: -</span>
-                                <span class="meta-pill" id="draft-state">草稿未缓存</span>
-                            </div>
-                        </div>
-
-                        <div class="toolbar-strip">
-                            <button type="button" class="chip-btn" id="insert-slide-btn">插入分页</button>
-                            <button type="button" class="chip-btn" id="insert-heading-btn">标题块</button>
-                            <button type="button" class="chip-btn" id="insert-summary-btn">结论块</button>
-                            <button type="button" class="chip-btn" id="insert-checklist-btn">待办清单</button>
-                            <button type="button" class="chip-btn" id="upload-image-btn">上传图片</button>
-                        </div>
-
-                        <div class="writer-metrics">
-                            <div class="writer-chip">
-                                <span>当前文件</span>
-                                <strong id="current-path">未保存</strong>
-                            </div>
-                            <div class="writer-chip">
-                                <span>内容量</span>
-                                <strong id="word-count">0</strong>
-                            </div>
-                            <div class="writer-chip">
-                                <span>幻灯片</span>
-                                <strong id="slide-count">1</strong>
-                            </div>
-                            <div class="writer-chip">
-                                <span>预计阅读</span>
-                                <strong id="read-time">0 分钟</strong>
-                            </div>
-                        </div>
-
-                        <textarea id="editor" placeholder="# 今日同步&#10;&#10;一句话结论...&#10;&#10;---&#10;&#10;## 关键进展&#10;- ..."></textarea>
-
-                        <div class="editor-footer">
-                            <div class="footer-help">写作页只负责写。需要看效果时，再切去预演页。</div>
-                            <div class="footer-actions">
-                                <button type="button" class="ghost-btn compact-btn" data-switch-view="overview">回工作台</button>
-                                <button type="button" class="secondary-btn compact-btn" data-action="save">保存</button>
-                                <button type="button" class="ghost-btn compact-btn" data-switch-view="present">去预演</button>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </section>
-
-            <section class="app-view hidden" id="present-view">
-                <div class="present-layout">
-                    <section class="panel preview-panel animate">
-                        <div class="panel-heading compact">
-                            <div>
-                                <p class="section-kicker">Preview View</p>
-                                <h2>文档与幻灯片预演</h2>
-                                <p class="view-helper">预演页只看效果，不和编辑器抢空间。</p>
-                            </div>
-                            <div class="segmented-control" role="tablist" aria-label="预览模式">
-                                <button type="button" id="mode-document-btn" class="active" aria-pressed="true">文档</button>
-                                <button type="button" id="mode-slides-btn" aria-pressed="false">幻灯片</button>
-                            </div>
-                        </div>
-
-                        <div class="preview-actions">
-                            <button type="button" class="ghost-btn compact-btn" data-switch-view="write">回写作</button>
-                            <button type="button" class="ghost-btn compact-btn" id="focus-slide-btn">定位当前页</button>
-                            <button type="button" class="primary-btn compact-btn" data-action="present">开始放映</button>
-                            <select id="export-format">
-                                <option value="txt">导出 TXT</option>
-                                <option value="md">导出 Markdown</option>
-                                <option value="html">导出 HTML</option>
-                                <option value="png">导出 PNG 图片</option>
-                            </select>
-                            <button type="button" class="ghost-btn compact-btn" id="export-btn">导出</button>
-                        </div>
-
-                        <div class="preview-mode" id="document-preview-mode">
-                            <div class="doc-preview-frame">
-                                <div id="preview" class="markdown-body"></div>
-                            </div>
-                        </div>
-
-                        <div class="preview-mode hidden" id="slides-preview-mode">
-                            <div class="slide-stage-wrap">
-                                <div class="slide-stage-header">
-                                    <span id="slide-position">第 1 / 1 页</span>
-                                    <div class="slide-nav-buttons">
-                                        <button type="button" class="ghost-btn compact-btn" id="prev-slide-btn">上一页</button>
-                                        <button type="button" class="ghost-btn compact-btn" id="next-slide-btn">下一页</button>
-                                    </div>
+                            <div class="meta-row">
+                                <span>变量</span>
+                                <div class="chip-row" id="selected-template-variables">
+                                    <span class="token-chip">暂无</span>
                                 </div>
-                                <div class="slide-stage" id="slide-stage"></div>
                             </div>
-
-                            <div class="slide-strip" id="slide-strip"></div>
                         </div>
                     </section>
                 </div>
+            </section>
+
+            <section class="module-panel hidden" id="write-view">
+                <section class="panel editor-panel">
+                    <div class="editor-head">
+                        <div>
+                            <p class="section-kicker">Writing</p>
+                            <h1 id="editor-title">未命名文档</h1>
+                            <p class="panel-copy" id="editor-state">未选择文件</p>
+                        </div>
+
+                        <div class="chip-row chip-row--stats">
+                            <span class="token-chip" id="version-state">version: -</span>
+                            <span class="token-chip" id="draft-state">草稿未缓存</span>
+                            <span class="token-chip">字数 <strong id="word-count">0</strong></span>
+                            <span class="token-chip">分页 <strong id="slide-count">1</strong></span>
+                            <span class="token-chip">阅读 <strong id="read-time">0 分钟</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="slash-hint-bar">
+                        <span>输入 <code>/</code> 唤出命令，例如 <code>/assets</code>、<code>/slide</code>、<code>/summary</code></span>
+                    </div>
+
+                    <div class="editor-frame">
+                        <textarea id="editor" placeholder="# 今日同步&#10;&#10;一句话结论&#10;&#10;输入 /slide 或直接写 --- 来分页"></textarea>
+
+                        <div id="slash-panel" class="slash-panel hidden" aria-hidden="true">
+                            <div class="slash-panel-head">
+                                <span>命令</span>
+                                <strong id="slash-query">/</strong>
+                            </div>
+                            <div class="slash-list" id="slash-list"></div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <section class="module-panel hidden" id="document-view">
+                <section class="panel document-panel">
+                    <div class="doc-preview-frame">
+                        <div id="preview" class="markdown-body"></div>
+                    </div>
+                </section>
+            </section>
+
+            <section class="module-panel hidden" id="slides-view">
+                <section class="panel slides-panel">
+                    <div class="slides-layout">
+                        <div class="slide-stage" id="slide-stage"></div>
+                        <div class="slide-strip" id="slide-strip"></div>
+                    </div>
+                </section>
             </section>
         </main>
 
@@ -268,6 +178,33 @@
     </div>
 
     <div id="status" class="status"></div>
+
+    <div id="asset-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-head">
+                <div>
+                    <p class="section-kicker">Assets</p>
+                    <h2>插入资源</h2>
+                </div>
+                <button type="button" class="ghost-btn compact-btn" id="asset-cancel-btn">关闭</button>
+            </div>
+
+            <label class="field">
+                <span>资源地址</span>
+                <input id="asset-url" type="url" placeholder="https://example.com/image.png">
+            </label>
+
+            <label class="field">
+                <span>Alt / 标题</span>
+                <input id="asset-alt" type="text" placeholder="例如：流程图">
+            </label>
+
+            <div class="action-row">
+                <button type="button" class="secondary-btn" id="asset-insert-btn">插入网络资源</button>
+                <button type="button" class="ghost-btn" id="asset-upload-btn">上传本地图片</button>
+            </div>
+        </div>
+    </div>
 
     <div id="presentation-overlay" class="presentation-overlay" aria-hidden="true">
         <div class="presentation-toolbar">

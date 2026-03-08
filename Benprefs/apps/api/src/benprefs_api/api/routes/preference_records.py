@@ -15,6 +15,7 @@ from benprefs_api.services.preference_records import (
     create_preference_record,
     delete_preference_record,
     list_preference_records,
+    reject_preference_record,
     require_preference_record,
     review_preference_record,
     update_preference_record,
@@ -86,7 +87,10 @@ def post_preference_record_review(
     payload: PreferenceRecordReview,
     user: dict[str, str] = Depends(require_admin),
     db: Session = Depends(get_db),
-) -> PreferenceRecordRead:
+) -> PreferenceRecordRead | Response:
+    if payload.review_status == "rejected":
+        reject_preference_record(db, record_id=record_id, actor=user["username"])
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     return review_preference_record(db, record_id=record_id, payload=payload, actor=user["username"])
 
 

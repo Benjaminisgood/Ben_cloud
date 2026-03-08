@@ -30,8 +30,11 @@ def client(tmp_path: Path):
     os.environ["SECRET_KEY"] = "test-secret-key"
     os.environ["SSO_SECRET"] = "test-sso-secret"
     os.environ["ALIYUN_OSS_ENDPOINT"] = "oss-cn-shanghai.aliyuncs.com"
+    os.environ["ALIYUN_OSS_ACCESS_KEY_ID"] = ""
+    os.environ["ALIYUN_OSS_ACCESS_KEY_SECRET"] = ""
     os.environ["ALIYUN_OSS_BUCKET"] = "00ling"
     os.environ["ALIYUN_OSS_PREFIX"] = "benphoto"
+    os.environ["ALIYUN_OSS_PUBLIC_BASE_URL"] = ""
     os.environ["DAILY_PHOTO_COUNT"] = "6"
 
     import benphoto_api.core.config as config_module

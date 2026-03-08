@@ -29,6 +29,11 @@ def client(tmp_path: Path):
     os.environ["SECRET_KEY"] = "test-secret-key"
     os.environ["SSO_SECRET"] = "test-sso-secret"
     os.environ["BENBOT_BASE_URL"] = "http://localhost:80"
+    os.environ["ALIYUN_OSS_ENDPOINT"] = ""
+    os.environ["ALIYUN_OSS_ACCESS_KEY_ID"] = ""
+    os.environ["ALIYUN_OSS_ACCESS_KEY_SECRET"] = ""
+    os.environ["ALIYUN_OSS_BUCKET"] = ""
+    os.environ["ALIYUN_OSS_PREFIX"] = ""
     os.environ["ALIYUN_OSS_PUBLIC_BASE_URL"] = "https://media.example.com"
 
     import benvinyl_api.core.config as config_module

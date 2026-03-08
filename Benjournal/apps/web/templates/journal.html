@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block body %}
 <div class="page-shell journal-shell">
-    <header class="hero-card">
-        <div class="hero-copy">
+    <header class="journal-topbar">
+        <div class="hero-copy hero-copy--compact">
             <p class="eyebrow">Daily Voice Journal</p>
-            <h1>把每天的碎片语音，压成一条完整日记。</h1>
+            <h1>先录下来，再整理成文。</h1>
             <p class="subtitle">
-                手动切换日期后录音或上传音频。系统会把当天片段合并成单个文件，归档到 OSS，并把转写文本落进 SQLite。
+                录音区现在就是今天的主工作台。切换日期后直接录音或上传片段，系统会自动合并当天音频、归档到 OSS，并把转写文本落进 SQLite。
             </p>
         </div>
         <div class="session-card session-card--journal">
@@ -23,80 +23,126 @@
         </div>
     </header>
 
-    <section class="summary-grid summary-grid--journal">
-        {% for card in snapshot.summary %}
-        <article class="metric-card">
-            <p class="metric-label">{{ card.label }}</p>
-            <p class="metric-value">{{ card.value }}</p>
-            <p class="metric-hint">{{ card.hint }}</p>
-        </article>
-        {% endfor %}
-    </section>
+    <section class="recording-stage">
+        <section class="stage-card stage-card--capture">
+            <div class="section-heading section-heading--stage">
+                <p class="eyebrow">Recording Stage</p>
+                <h2>{{ snapshot.selected_date }}</h2>
+                <p>先把语音稳稳录进来，再去下面补文字和修订。录音完成后页面会自动刷新，方便立刻回听当天合并音频。</p>
+            </div>
 
-    <section class="journal-layout">
-        <main class="journal-main">
-            <section class="editor-card">
-                <div class="section-heading">
-                    <p class="eyebrow">Selected Day</p>
-                    <h2>{{ snapshot.selected_date }}</h2>
-                    <p>今天可以先录一段，再回来补文字。手工修订不会被后续自动转写直接覆盖。</p>
-                </div>
+            <div class="status-row">
+                <span class="status-pill status-pill--{{ snapshot.selected_day.storage_status if snapshot.selected_day else 'idle' }}">
+                    OSS {{ snapshot.selected_day.storage_status if snapshot.selected_day else 'idle' }}
+                </span>
+                <span class="status-pill status-pill--{{ snapshot.selected_day.transcript_status if snapshot.selected_day else 'idle' }}">
+                    STT {{ snapshot.selected_day.transcript_status if snapshot.selected_day else 'idle' }}
+                </span>
+                <span class="status-pill status-pill--neutral">
+                    {{ snapshot.selected_day.segment_count if snapshot.selected_day else 0 }} 段语音
+                </span>
+            </div>
 
-                <div class="status-row">
-                    <span class="status-pill status-pill--{{ snapshot.selected_day.storage_status if snapshot.selected_day else 'idle' }}">
-                        OSS {{ snapshot.selected_day.storage_status if snapshot.selected_day else 'idle' }}
-                    </span>
-                    <span class="status-pill status-pill--{{ snapshot.selected_day.transcript_status if snapshot.selected_day else 'idle' }}">
-                        STT {{ snapshot.selected_day.transcript_status if snapshot.selected_day else 'idle' }}
-                    </span>
-                    <span class="status-pill status-pill--neutral">
-                        {{ snapshot.selected_day.segment_count if snapshot.selected_day else 0 }} 段语音
-                    </span>
-                </div>
-
-                <div class="capture-panel">
-                    <div class="capture-actions">
-                        <button type="button" id="record-start">开始录音</button>
-                        <button type="button" id="record-stop" class="secondary-button" disabled>停止并上传</button>
+            <div id="capture-studio" class="capture-studio" data-state="idle">
+                <div class="capture-hero">
+                    <div class="recording-orb" aria-hidden="true">
+                        <span class="recording-orb__ring"></span>
+                        <span class="recording-orb__core"></span>
                     </div>
-                    <div class="upload-strip">
-                        <input id="audio-file" type="file" accept="audio/*">
+                    <div class="capture-hero__copy">
+                        <p class="capture-kicker">当前状态</p>
+                        <p id="recording-phase" class="capture-mode">待开始</p>
+                        <p id="recording-elapsed" class="capture-timer">00:00</p>
+                    </div>
+                </div>
+
+                <div class="capture-controls">
+                    <div class="capture-actions capture-actions--primary">
+                        <button type="button" id="record-start" class="button--record">开始录音</button>
+                        <button type="button" id="record-stop" class="secondary-button button--stop" disabled>停止并上传</button>
+                    </div>
+                    <div class="upload-strip upload-strip--stage">
+                        <label class="file-picker" for="audio-file">
+                            <span>选择已有音频</span>
+                            <input id="audio-file" type="file" accept="audio/*">
+                        </label>
                         <button type="button" id="upload-file" class="secondary-button">上传现有音频</button>
                     </div>
-                    <p id="client-status" class="client-status">浏览器支持麦克风时可直接录制 WAV；也可以手动上传音频文件。</p>
+                    <p id="client-status" class="client-status" aria-live="polite">
+                        浏览器支持麦克风时可直接录制 WAV；也可以手动上传音频文件。
+                    </p>
                 </div>
+            </div>
 
-                {% if snapshot.selected_day and snapshot.selected_day.playback_url %}
-                <div class="audio-card">
-                    <p class="audio-label">当天合并音频</p>
-                    <audio controls preload="none" src="{{ snapshot.selected_day.playback_url }}"></audio>
+            {% if snapshot.selected_day and snapshot.selected_day.playback_url %}
+            <div class="audio-card audio-card--stage">
+                <div class="audio-card__header">
+                    <div>
+                        <p class="audio-label">当天合并音频</p>
+                        <p class="audio-meta">上传后会自动替换为最新合并结果，可直接回听当天完整轨道。</p>
+                    </div>
                     {% if snapshot.selected_day.combined_audio_object_key %}
                     <p class="audio-meta">OSS Key: {{ snapshot.selected_day.combined_audio_object_key }}</p>
                     {% endif %}
                 </div>
-                {% endif %}
+                <audio controls preload="none" src="{{ snapshot.selected_day.playback_url }}"></audio>
+            </div>
+            {% endif %}
+        </section>
+
+        <aside class="stage-card stage-card--support">
+            <section class="summary-grid summary-grid--stage">
+                {% for card in snapshot.summary %}
+                <article class="metric-card">
+                    <p class="metric-label">{{ card.label }}</p>
+                    <p class="metric-value">{{ card.value }}</p>
+                    <p class="metric-hint">{{ card.hint }}</p>
+                </article>
+                {% endfor %}
+            </section>
+
+            <section class="support-card">
+                <p class="eyebrow">Capture Flow</p>
+                <h3>今天怎么录更稳</h3>
+                <ul class="support-list">
+                    <li>想到一件事就录一段，别等内容攒太长。</li>
+                    <li>上传后页面会自动刷新，确认合并音频和状态是否更新。</li>
+                    <li>录完再去下方文本区补充背景、修正口误和细节。</li>
+                </ul>
+            </section>
+        </aside>
+    </section>
+
+    <section class="journal-content">
+        <main class="journal-main">
+            <section class="editor-card">
+                <div class="section-heading">
+                    <p class="eyebrow">Written Layer</p>
+                    <h2>当天文本</h2>
+                    <p>录音转写会先落为原始文本；你可以在这里手动修订、补充上下文，后续自动转写不会直接覆盖手工内容。</p>
+                </div>
 
                 <label class="journal-textarea-wrap">
-                    <span>当天文本</span>
+                    <span>原始日记文本</span>
                     <textarea id="entry-text" rows="14" placeholder="录音转写会落在这里，你也可以直接手写补充。">{% if snapshot.selected_day %}{{ snapshot.selected_day.entry_text }}{% endif %}</textarea>
                 </label>
                 <div class="editor-actions">
                     <button type="button" id="save-entry">保存文本</button>
                     <p class="editor-note">未来 agent 会基于这里的原始日记做结构化事实提取，但这部分逻辑不在当前项目内。</p>
                 </div>
+            </section>
 
-                <div class="transcript-columns">
-                    <article class="info-card">
-                        <p class="eyebrow">Raw STT</p>
-                        <h3>自动转写原文</h3>
-                        <p>{% if snapshot.selected_day and snapshot.selected_day.stt_text %}{{ snapshot.selected_day.stt_text }}{% else %}还没有自动转写结果。{% endif %}</p>
-                    </article>
-                    <article class="info-card">
-                        <p class="eyebrow">Sync Notes</p>
-                        <h3>状态与错误</h3>
-                        <p>{% if snapshot.selected_day and snapshot.selected_day.last_error_message %}{{ snapshot.selected_day.last_error_message }}{% else %}当前没有同步错误。{% endif %}</p>
-                    </article>
-                </div>
+            <section class="transcript-columns">
+                <article class="info-card">
+                    <p class="eyebrow">Raw STT</p>
+                    <h3>自动转写原文</h3>
+                    <p>{% if snapshot.selected_day and snapshot.selected_day.stt_text %}{{ snapshot.selected_day.stt_text }}{% else %}还没有自动转写结果。{% endif %}</p>
+                </article>
+                <article class="info-card">
+                    <p class="eyebrow">Sync Notes</p>
+                    <h3>状态与错误</h3>
+                    <p>{% if snapshot.selected_day and snapshot.selected_day.last_error_message %}{{ snapshot.selected_day.last_error_message }}{% else %}当前没有同步错误。{% endif %}</p>
+                </article>
             </section>
         </main>
 

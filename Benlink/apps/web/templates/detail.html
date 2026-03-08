@@ -6,48 +6,37 @@
     <title>{{ link.title or link.url }} · Benlink</title>
     <link rel="stylesheet" href="{{ request.url_for('static', path='app.css') }}" />
   </head>
-  <body data-app="benlink">
+  <body data-app="benlink" data-priority="{{ link.priority }}">
+    <div class="paper paper-a"></div>
+    <div class="paper paper-b"></div>
+
     <main class="detail-shell">
-      <a class="back-link" href="/">返回审核台</a>
-      <section class="detail-hero">
-        <div>
-          <p class="eyebrow">Benlink Detail</p>
+      <header class="detail-bar">
+        <a class="back-link" href="/">返回</a>
+        <div class="frame-meta">
+          <span>{{ link.domain or "unknown" }}</span>
+          <span>{{ link.priority }}</span>
+          <span>{{ link.review_status }}</span>
+        </div>
+      </header>
+
+      <section class="detail-layout">
+        <article class="detail-card hero-card">
+          {% if link.og_image %}
+            <div class="hero-image" style="background-image: url('{{ link.og_image }}')"></div>
+          {% endif %}
           <h1>{{ link.title or link.url }}</h1>
-          <p class="lede">{{ link.domain or "unknown domain" }} · {{ link.review_status }} · {{ link.priority }}</p>
-        </div>
-        <div class="detail-badges">
-          <span>{{ link.category or "uncategorized" }}</span>
-          <span>{{ link.status }}</span>
-          <span>{{ link.source }}</span>
-        </div>
-      </section>
-
-      {% if link.og_image %}
-        <section class="hero-image" style="background-image: url('{{ link.og_image }}')"></section>
-      {% endif %}
-
-      <section class="detail-grid">
-        <article class="panel">
-          <h2>链接信息</h2>
-          <dl class="detail-list">
-            <div><dt>URL</dt><dd><a href="{{ link.url }}" target="_blank" rel="noreferrer">{{ link.url }}</a></dd></div>
-            <div><dt>描述</dt><dd>{{ link.description or "-" }}</dd></div>
-            <div><dt>标签</dt><dd>{{ link.tags|join(", ") if link.tags else "-" }}</dd></div>
-            <div><dt>备注</dt><dd>{{ link.notes or "-" }}</dd></div>
-            <div><dt>最后检查</dt><dd>{{ link.last_checked_at or "-" }}</dd></div>
-            <div><dt>收藏</dt><dd>{{ "yes" if link.is_favorite else "no" }}</dd></div>
-          </dl>
+          <p class="detail-summary">{{ link.description or link.notes or link.url }}</p>
+          <a class="approve-btn" href="{{ link.url }}" target="_blank" rel="noreferrer">打开原文</a>
         </article>
 
-        <article class="panel">
-          <h2>审核信息</h2>
+        <article class="detail-card meta-card">
+          <p class="rail-label">INDEX</p>
           <dl class="detail-list">
-            <div><dt>审核状态</dt><dd>{{ link.review_status }}</dd></div>
-            <div><dt>审核人</dt><dd>{{ link.reviewed_by or "-" }}</dd></div>
-            <div><dt>审核时间</dt><dd>{{ link.reviewed_at or "-" }}</dd></div>
-            <div><dt>审核备注</dt><dd>{{ link.review_notes or "-" }}</dd></div>
-            <div><dt>创建时间</dt><dd>{{ link.created_at }}</dd></div>
-            <div><dt>更新时间</dt><dd>{{ link.updated_at }}</dd></div>
+            <div><dt>URL</dt><dd>{{ link.url }}</dd></div>
+            <div><dt>分类</dt><dd>{{ link.category or "-" }}</dd></div>
+            <div><dt>标签</dt><dd>{{ link.tags|join(" / ") if link.tags else "-" }}</dd></div>
+            <div><dt>来源</dt><dd>{{ link.source }}</dd></div>
           </dl>
         </article>
       </section>

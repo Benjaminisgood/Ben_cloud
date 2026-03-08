@@ -67,6 +67,12 @@ def client(tmp_path: Path):
     os.environ["APP_ENV"] = "test"
     os.environ["SECRET_KEY"] = "test-secret-key"
     os.environ["SSO_SECRET"] = "test-sso-secret"
+    os.environ["ALIYUN_OSS_PUBLIC_BASE_URL"] = ""
+    os.environ["ALIYUN_OSS_ENDPOINT"] = ""
+    os.environ["ALIYUN_OSS_ACCESS_KEY_ID"] = ""
+    os.environ["ALIYUN_OSS_ACCESS_KEY_SECRET"] = ""
+    os.environ["ALIYUN_OSS_BUCKET"] = ""
+    os.environ["ALIYUN_OSS_PREFIX"] = ""
 
     import benreel_api.core.config as config_module
 

@@ -1,76 +1,193 @@
-function parseTags(raw) {
-  return raw
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 async function postJson(url, payload) {
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(detail || "request failed");
   }
+
   return response.json();
 }
 
-async function reviewCredential(button, reviewStatus) {
-  const card = button.closest("[data-credential-id]");
-  const credentialId = card.dataset.credentialId;
-  const payload = {
-    review_status: reviewStatus,
-    review_notes: card.querySelector("[name='review_notes']").value || null,
-    reviewed_by: card.querySelector("[name='reviewed_by']").value || null,
-    agent_access: card.querySelector("[name='agent_access']").value || null,
-    sensitivity: card.querySelector("[name='sensitivity']").value || null,
-  };
+const body = document.body;
+const approvedList = document.querySelector("[data-approved-list]");
+const pendingCount = document.querySelector('[data-count-role="pending"]');
+const approvedCount = document.querySelector('[data-count-role="approved"]');
+const activeCounter = document.querySelector("[data-active-counter]");
+const emptyStates = Array.from(document.querySelectorAll("[data-empty-state]"));
+const deckStack = document.querySelector("[data-deck-stack]");
+const stageFooter = document.querySelector("[data-stage-footer]");
+
+let activeIndex = 0;
+
+function cards() {
+  return Array.from(document.querySelectorAll(".vault-card"));
+}
+
+function dots() {
+  return Array.from(document.querySelectorAll(".reel-dot"));
+}
+
+function updateCounts(deltaPending, deltaApproved) {
+  if (pendingCount) {
+    pendingCount.textContent = String(Math.max(0, Number(pendingCount.textContent) + deltaPending));
+  }
+
+  if (approvedCount) {
+    approvedCount.textContent = String(Math.max(0, Number(approvedCount.textContent) + deltaApproved));
+  }
+}
+
+function mountApprovedCard(card) {
+  if (!approvedList) {
+    return;
+  }
+
+  approvedList.querySelector(".memory-empty")?.remove();
+
+  const link = document.createElement("a");
+  link.className = "memory-item";
+  link.href = `/credentials/${card.dataset.credentialId}`;
+  link.innerHTML = `
+    <strong>${card.dataset.title}</strong>
+    <span>${card.dataset.subtitle}</span>
+    <em>${card.dataset.tail}</em>
+  `;
+  approvedList.prepend(link);
+}
+
+function toggleEmptyState(show) {
+  emptyStates.forEach((node) => {
+    node.classList.toggle("is-hidden", !show);
+  });
+
+  if (deckStack) {
+    deckStack.classList.toggle("is-hidden", show);
+  }
+
+  if (stageFooter) {
+    stageFooter.classList.toggle("is-hidden", show);
+  }
+}
+
+function syncDeck(nextIndex = activeIndex) {
+  const list = cards();
+  const reel = dots();
+
+  if (!list.length) {
+    body.dataset.tone = "neutral";
+    toggleEmptyState(true);
+    if (activeCounter) {
+      activeCounter.textContent = "00 / 00";
+    }
+    return;
+  }
+
+  toggleEmptyState(false);
+  activeIndex = Math.max(0, Math.min(nextIndex, list.length - 1));
+
+  list.forEach((card, index) => {
+    card.classList.remove("is-active", "is-next", "is-back", "is-past", "is-hidden");
+
+    if (index < activeIndex) {
+      card.classList.add("is-past");
+    } else if (index === activeIndex) {
+      card.classList.add("is-active");
+    } else if (index === activeIndex + 1) {
+      card.classList.add("is-next");
+    } else if (index === activeIndex + 2) {
+      card.classList.add("is-back");
+    } else {
+      card.classList.add("is-hidden");
+    }
+  });
+
+  reel.forEach((button, index) => {
+    button.classList.toggle("is-active", index === activeIndex);
+  });
+
+  body.dataset.tone = list[activeIndex].dataset.tone || "neutral";
+
+  if (activeCounter) {
+    activeCounter.textContent = `${String(activeIndex + 1).padStart(2, "0")} / ${String(list.length).padStart(2, "0")}`;
+  }
+}
+
+async function approveCard(card, button) {
+  if (!card || !button) {
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "处理中";
+  card.classList.add("is-approving");
 
   try {
-    button.disabled = true;
-    await postJson(`/api/v1/credentials/${credentialId}/review`, payload);
-    window.location.reload();
+    await postJson(`/api/v1/credentials/${card.dataset.credentialId}/review`, {
+      review_status: "approved",
+      reviewed_by: "admin",
+    });
+
+    mountApprovedCard(card);
+    updateCounts(-1, 1);
+
+    const reelButton = dots()[Number(card.dataset.cardIndex)];
+    reelButton?.remove();
+
+    window.setTimeout(() => {
+      card.remove();
+      cards().forEach((item, index) => {
+        item.dataset.cardIndex = String(index);
+      });
+      dots().forEach((item, index) => {
+        item.dataset.cardTarget = String(index);
+      });
+      syncDeck(activeIndex);
+    }, 260);
   } catch (error) {
+    card.classList.remove("is-approving");
     button.disabled = false;
+    button.textContent = "同意";
     window.alert(`审核失败: ${error.message}`);
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("credential-create-form");
-  if (!form) {
+document.addEventListener("click", (event) => {
+  const targetButton = event.target.closest("[data-card-target]");
+  if (targetButton) {
+    syncDeck(Number(targetButton.dataset.cardTarget));
     return;
   }
 
-  const message = document.getElementById("credential-create-message");
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const formData = new FormData(form);
-    const payload = {
-      name: String(formData.get("name") || "").trim(),
-      credential_type: String(formData.get("credential_type") || "").trim(),
-      secret_data: String(formData.get("secret_data") || ""),
-      service_name: String(formData.get("service_name") || "").trim() || null,
-      username: String(formData.get("username") || "").trim() || null,
-      endpoint: String(formData.get("endpoint") || "").trim() || null,
-      category: String(formData.get("category") || "").trim() || null,
-      tags: parseTags(String(formData.get("tags") || "")),
-      source: String(formData.get("source") || "agent"),
-      source_detail: String(formData.get("source_detail") || "").trim() || null,
-      sensitivity: String(formData.get("sensitivity") || "high"),
-      agent_access: String(formData.get("agent_access") || "approval_required"),
-      review_status: "pending",
-    };
+  const approveButton = event.target.closest('[data-action="approve"]');
+  if (approveButton) {
+    approveCard(approveButton.closest(".vault-card"), approveButton);
+  }
+});
 
-    try {
-      message.textContent = "正在提交...";
-      await postJson("/api/v1/credentials", payload);
-      window.location.href = "/?view=pending";
-    } catch (error) {
-      message.textContent = `提交失败: ${error.message}`;
+document.addEventListener("keydown", (event) => {
+  if (event.defaultPrevented) {
+    return;
+  }
+
+  if (event.key === "ArrowRight") {
+    syncDeck(activeIndex + 1);
+  } else if (event.key === "ArrowLeft") {
+    syncDeck(activeIndex - 1);
+  } else if (event.key.toLowerCase() === "a") {
+    const activeCard = cards()[activeIndex];
+    const button = activeCard?.querySelector('[data-action="approve"]');
+    if (button instanceof HTMLButtonElement) {
+      approveCard(activeCard, button);
     }
-  });
+  }
+});
+
+syncDeck(0);
+window.requestAnimationFrame(() => {
+  document.body.classList.add("is-ready");
 });

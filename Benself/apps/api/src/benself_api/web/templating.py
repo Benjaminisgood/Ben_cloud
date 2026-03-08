@@ -20,4 +20,4 @@ def render_template(
     payload = {"request": request}
     if context:
         payload.update(context)
-    return templates.TemplateResponse(template_name, payload, status_code=status_code)
+    return templates.TemplateResponse(request, template_name, payload, status_code=status_code)

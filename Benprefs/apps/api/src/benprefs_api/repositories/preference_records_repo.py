@@ -147,7 +147,7 @@ def review_preference_record(
     actor: str,
 ) -> PreferenceRecord:
     item.review_status = payload.review_status
-    item.review_note = payload.review_note
+    item.review_note = None
     item.reviewed_by = actor
     item.reviewed_at = datetime.now(UTC)
     item.updated_by = actor

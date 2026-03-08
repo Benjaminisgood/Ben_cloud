@@ -69,3 +69,8 @@ def delete_health_record(db: Session, *, record_id: int) -> None:
 def review_health_record(db: Session, *, record_id: int, payload: HealthRecordReview, actor: str):
     item = require_health_record(db, record_id=record_id, viewer_username=actor, viewer_is_admin=True)
     return repo_review_health_record(db, item=item, payload=payload, actor=actor)
+
+
+def reject_health_record(db: Session, *, record_id: int, actor: str) -> None:
+    item = require_health_record(db, record_id=record_id, viewer_username=actor, viewer_is_admin=True)
+    repo_delete_health_record(db, item=item)

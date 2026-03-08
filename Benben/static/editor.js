@@ -1,6 +1,64 @@
 const DRAFT_PREFIX = "benben:draft:";
 const NEW_DRAFT_KEY = `${DRAFT_PREFIX}__new__`;
-const VIEW_NAMES = ["overview", "write", "present"];
+const VIEW_NAMES = ["template", "write", "document", "slides"];
+const FILE_SWITCHER_NONE = "__none__";
+
+const SLASH_COMMANDS = [
+    {
+        id: "assets",
+        label: "/assets",
+        aliases: ["asset", "image", "img", "essets"],
+        description: "插入资源或上传图片",
+        kind: "asset",
+    },
+    {
+        id: "slide",
+        label: "/slide",
+        aliases: ["page", "split"],
+        description: "插入分页符 ---",
+        kind: "insert",
+        snippet: "---\n\n",
+    },
+    {
+        id: "heading",
+        label: "/heading",
+        aliases: ["section", "title"],
+        description: "插入小节标题和要点",
+        kind: "insert",
+        snippet: "## 小节标题\n\n- 要点 1\n- 要点 2\n",
+    },
+    {
+        id: "summary",
+        label: "/summary",
+        aliases: ["result", "conclusion"],
+        description: "插入结论块",
+        kind: "insert",
+        snippet: "> 核心结论：\n> \n",
+    },
+    {
+        id: "checklist",
+        label: "/checklist",
+        aliases: ["todo", "tasks", "check"],
+        description: "插入待办清单",
+        kind: "insert",
+        snippet: "- [ ] 待办项 1\n- [ ] 待办项 2\n",
+    },
+    {
+        id: "deck",
+        label: "/deck",
+        aliases: ["report", "slides"],
+        description: "插入汇报骨架",
+        kind: "deck",
+    },
+    {
+        id: "template",
+        label: "/template",
+        aliases: ["module", "templates"],
+        description: "切换到模版模块",
+        kind: "switch",
+        target: "template",
+    },
+];
 
 const state = {
     currentFile: "",
@@ -9,76 +67,76 @@ const state = {
     isDirty: false,
     autoSaveTimer: null,
     cachedFiles: [],
+    templates: [],
+    selectedTemplateId: "",
     previewMode: "document",
     slides: [],
     activeSlideIndex: 0,
     overlayOpen: false,
+    activeView: "template",
     statusTimer: null,
-    activeView: "overview",
+    slashOpen: false,
+    slashRange: null,
+    slashMatches: [],
+    slashActiveIndex: 0,
+    pendingInsertRange: null,
 };
 
 const els = {
-    overviewView: document.getElementById("overview-view"),
+    appShell: document.querySelector(".app-shell"),
+    templateView: document.getElementById("template-view"),
     writeView: document.getElementById("write-view"),
-    presentView: document.getElementById("present-view"),
-    viewOverviewBtn: document.getElementById("view-overview-btn"),
+    documentView: document.getElementById("document-view"),
+    slidesView: document.getElementById("slides-view"),
+    viewTemplateBtn: document.getElementById("view-template-btn"),
     viewWriteBtn: document.getElementById("view-write-btn"),
-    viewPresentBtn: document.getElementById("view-present-btn"),
-    goWriteBtn: document.getElementById("go-write-btn"),
-    goPresentBtn: document.getElementById("go-present-btn"),
-    editor: document.getElementById("editor"),
-    preview: document.getElementById("preview"),
-    fileList: document.getElementById("file-list"),
-    fileFilter: document.getElementById("file-filter"),
+    viewDocumentBtn: document.getElementById("view-document-btn"),
+    viewSlidesBtn: document.getElementById("view-slides-btn"),
+    fileSwitcher: document.getElementById("file-switcher"),
+    refreshFilesBtn: document.getElementById("refresh-files-btn"),
+    currentPathChip: document.getElementById("current-path-chip"),
+    sessionMeta: document.getElementById("session-meta"),
+    autosaveMeta: document.getElementById("autosave-meta"),
+    deleteBtn: document.getElementById("delete-btn"),
+    templateCatalog: document.getElementById("template-catalog"),
     templateSelect: document.getElementById("template-select"),
-    templateProject: document.getElementById("template-project"),
+    selectedTemplateName: document.getElementById("selected-template-name"),
+    selectedTemplateDesc: document.getElementById("selected-template-desc"),
+    selectedTemplateCategory: document.getElementById("selected-template-category"),
+    selectedTemplateVariables: document.getElementById("selected-template-variables"),
     newFilePath: document.getElementById("new-file-path"),
-    exportFormat: document.getElementById("export-format"),
-    versionState: document.getElementById("version-state"),
-    editorState: document.getElementById("editor-state"),
+    templateProject: document.getElementById("template-project"),
+    templateCreateBtn: document.getElementById("template-create-btn"),
+    insertReportBtn: document.getElementById("insert-report-btn"),
+    editor: document.getElementById("editor"),
     editorTitle: document.getElementById("editor-title"),
-    currentPath: document.getElementById("current-path"),
+    editorState: document.getElementById("editor-state"),
+    versionState: document.getElementById("version-state"),
+    draftState: document.getElementById("draft-state"),
     wordCount: document.getElementById("word-count"),
     slideCount: document.getElementById("slide-count"),
     readTime: document.getElementById("read-time"),
-    overviewFileName: document.getElementById("overview-file-name"),
-    overviewFileState: document.getElementById("overview-file-state"),
-    overviewCurrentPath: document.getElementById("overview-current-path"),
-    overviewWordCount: document.getElementById("overview-word-count"),
-    overviewSlideCount: document.getElementById("overview-slide-count"),
-    overviewReadTime: document.getElementById("overview-read-time"),
-    overviewSummary: document.getElementById("overview-summary"),
-    sessionMeta: document.getElementById("session-meta"),
-    autosaveMeta: document.getElementById("autosave-meta"),
-    draftState: document.getElementById("draft-state"),
-    status: document.getElementById("status"),
-    deleteBtn: document.getElementById("delete-btn"),
-    imageUpload: document.getElementById("image-upload"),
-    documentMode: document.getElementById("document-preview-mode"),
-    slidesMode: document.getElementById("slides-preview-mode"),
-    modeDocumentBtn: document.getElementById("mode-document-btn"),
-    modeSlidesBtn: document.getElementById("mode-slides-btn"),
+    slashPanel: document.getElementById("slash-panel"),
+    slashQuery: document.getElementById("slash-query"),
+    slashList: document.getElementById("slash-list"),
+    preview: document.getElementById("preview"),
     slideStage: document.getElementById("slide-stage"),
     slideStrip: document.getElementById("slide-strip"),
-    slidePosition: document.getElementById("slide-position"),
+    exportBtn: document.getElementById("export-btn"),
+    imageUpload: document.getElementById("image-upload"),
+    assetModal: document.getElementById("asset-modal"),
+    assetUrl: document.getElementById("asset-url"),
+    assetAlt: document.getElementById("asset-alt"),
+    assetInsertBtn: document.getElementById("asset-insert-btn"),
+    assetUploadBtn: document.getElementById("asset-upload-btn"),
+    assetCancelBtn: document.getElementById("asset-cancel-btn"),
+    status: document.getElementById("status"),
     presentationOverlay: document.getElementById("presentation-overlay"),
     presentationStage: document.getElementById("presentation-stage"),
     presentationPosition: document.getElementById("presentation-position"),
     presentationCloseBtn: document.getElementById("presentation-close-btn"),
-    prevSlideBtn: document.getElementById("prev-slide-btn"),
-    nextSlideBtn: document.getElementById("next-slide-btn"),
     presentationPrevBtn: document.getElementById("presentation-prev-btn"),
     presentationNextBtn: document.getElementById("presentation-next-btn"),
-    refreshFilesBtn: document.getElementById("refresh-files-btn"),
-    templateCreateBtn: document.getElementById("template-create-btn"),
-    insertReportBtn: document.getElementById("insert-report-btn"),
-    insertSlideBtn: document.getElementById("insert-slide-btn"),
-    insertHeadingBtn: document.getElementById("insert-heading-btn"),
-    insertSummaryBtn: document.getElementById("insert-summary-btn"),
-    insertChecklistBtn: document.getElementById("insert-checklist-btn"),
-    uploadImageBtn: document.getElementById("upload-image-btn"),
-    focusSlideBtn: document.getElementById("focus-slide-btn"),
-    exportBtn: document.getElementById("export-btn"),
 };
 
 if (window.marked && typeof window.marked.setOptions === "function") {
@@ -89,7 +147,20 @@ if (window.marked && typeof window.marked.setOptions === "function") {
 }
 
 function normalizeView(view) {
-    return VIEW_NAMES.includes(view) ? view : "overview";
+    return VIEW_NAMES.includes(view) ? view : "template";
+}
+
+function resolveExportMode() {
+    if (state.activeView === "write") {
+        return "md";
+    }
+    if (state.activeView === "document") {
+        return "html";
+    }
+    if (state.activeView === "slides") {
+        return "png";
+    }
+    return "";
 }
 
 function escapeHtml(value) {
@@ -127,6 +198,7 @@ function showStatus(message, type = "success") {
     if (state.statusTimer) {
         clearTimeout(state.statusTimer);
     }
+
     els.status.textContent = message;
     els.status.className = `status show ${type}`;
     state.statusTimer = window.setTimeout(() => {
@@ -229,7 +301,7 @@ function parseSlides(content) {
             index: slides.length,
             rawMarkdown,
             title: deriveSlideTitle(rawMarkdown, slides.length + 1),
-            summary: markdownToPlainText(rawMarkdown).slice(0, 82) || "继续补充这一页的要点",
+            summary: markdownToPlainText(rawMarkdown).slice(0, 88) || "继续补充这一页的要点",
             startLine,
             startOffset,
         });
@@ -292,6 +364,30 @@ function describeDocState(displayPath) {
     return "未选择文件";
 }
 
+function renderFileSwitcher() {
+    const currentValue = state.currentFile || FILE_SWITCHER_NONE;
+    const options = [{ value: FILE_SWITCHER_NONE, label: "未选择文件" }];
+
+    state.cachedFiles.forEach((file) => {
+        options.push({
+            value: file,
+            label: file,
+        });
+    });
+
+    if (state.currentFile && !state.cachedFiles.includes(state.currentFile)) {
+        options.push({
+            value: state.currentFile,
+            label: `${state.currentFile}（当前）`,
+        });
+    }
+
+    els.fileSwitcher.innerHTML = options.map((item) => (
+        `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`
+    )).join("");
+    els.fileSwitcher.value = currentValue;
+}
+
 function updateDocumentMeta() {
     const displayPath = state.currentFile || els.newFilePath.value.trim();
     const title = baseName(displayPath) || (els.editor.value.trim() ? "未命名文档" : "未选择文件");
@@ -299,14 +395,9 @@ function updateDocumentMeta() {
 
     els.editorTitle.textContent = title;
     els.editorState.textContent = stateText;
-    els.currentPath.textContent = displayPath || "未保存";
-
-    els.overviewFileName.textContent = title;
-    els.overviewFileState.textContent = state.currentFile
-        ? stateText
-        : (els.editor.value.trim() ? "你有一份未保存草稿。" : "从文档库打开一个 Markdown，或者直接新建。");
-    els.overviewCurrentPath.textContent = displayPath || "未保存";
+    els.currentPathChip.textContent = displayPath || "未保存";
     els.deleteBtn.disabled = !state.currentFile;
+    renderFileSwitcher();
 }
 
 function setDirty(nextDirty) {
@@ -318,17 +409,11 @@ function updateMetrics(content) {
     const density = countContentDensity(content);
     const totalSlides = state.slides.length || 1;
     const readLabel = `${estimateReadMinutes(density)} 分钟`;
-    const densityLabel = density ? `${density} 字` : "0";
+    const densityLabel = density ? `${density}` : "0";
 
     els.wordCount.textContent = densityLabel;
     els.slideCount.textContent = String(totalSlides);
     els.readTime.textContent = readLabel;
-
-    els.overviewWordCount.textContent = densityLabel;
-    els.overviewSlideCount.textContent = String(totalSlides);
-    els.overviewReadTime.textContent = readLabel;
-    els.overviewSummary.textContent = markdownToPlainText(content).slice(0, 220)
-        || "这里会显示当前文档的摘要。当前还没有打开任何笔记。";
 }
 
 function renderDocumentPreview(content) {
@@ -355,19 +440,17 @@ function renderSlideWorkspace() {
     const activeSlide = state.slides[state.activeSlideIndex];
     const totalSlides = state.slides.length;
 
-    els.slidePosition.textContent = `第 ${state.activeSlideIndex + 1} / ${totalSlides} 页`;
     els.presentationPosition.textContent = `第 ${state.activeSlideIndex + 1} / ${totalSlides} 页`;
-    els.modeSlidesBtn.textContent = totalSlides > 1 ? `幻灯片 (${totalSlides})` : "幻灯片";
 
     renderSlideStage(
         els.slideStage,
         activeSlide,
-        "## 空白页\n\n继续在写作页补这一页内容。",
+        "## 空白页\n\n继续在写作模块补这一页内容。",
     );
     renderSlideStage(
         els.presentationStage,
         activeSlide,
-        "# 空白页\n\n继续在写作页补充内容。",
+        "# 空白页\n\n继续在写作模块补充内容。",
     );
 
     els.slideStrip.innerHTML = "";
@@ -398,13 +481,30 @@ function refreshDerivedState(content) {
 
 function setActiveView(view, { updateHash = true } = {}) {
     state.activeView = normalizeView(view);
-    els.overviewView.classList.toggle("hidden", state.activeView !== "overview");
-    els.writeView.classList.toggle("hidden", state.activeView !== "write");
-    els.presentView.classList.toggle("hidden", state.activeView !== "present");
+    if (state.activeView === "document") {
+        state.previewMode = "document";
+    } else if (state.activeView === "slides") {
+        state.previewMode = "slides";
+    }
+    els.appShell.dataset.view = state.activeView;
 
-    els.viewOverviewBtn.classList.toggle("active", state.activeView === "overview");
+    els.templateView.classList.toggle("hidden", state.activeView !== "template");
+    els.writeView.classList.toggle("hidden", state.activeView !== "write");
+    els.documentView.classList.toggle("hidden", state.activeView !== "document");
+    els.slidesView.classList.toggle("hidden", state.activeView !== "slides");
+
+    els.viewTemplateBtn.classList.toggle("active", state.activeView === "template");
     els.viewWriteBtn.classList.toggle("active", state.activeView === "write");
-    els.viewPresentBtn.classList.toggle("active", state.activeView === "present");
+    els.viewDocumentBtn.classList.toggle("active", state.activeView === "document");
+    els.viewSlidesBtn.classList.toggle("active", state.activeView === "slides");
+
+    if (state.activeView !== "write") {
+        closeSlashMenu();
+    }
+
+    const exportMode = resolveExportMode();
+    els.exportBtn.disabled = !exportMode;
+    els.exportBtn.textContent = exportMode ? `导出 ${exportMode.toUpperCase()}` : "导出";
 
     if (updateHash) {
         history.replaceState(null, "", `${window.location.pathname}#${state.activeView}`);
@@ -438,6 +538,7 @@ function maybeRestoreDraftForPath(path, serverContent) {
             clearDraft(path);
             return { content: serverContent, restored: false };
         }
+
         const recover = window.confirm(
             `检测到本地草稿（${new Date(draft.updated_at).toLocaleString("zh-CN")}），是否恢复？`,
         );
@@ -497,6 +598,16 @@ async function requestJSON(url, options = {}) {
     const res = await fetch(url, options);
     const data = await res.json().catch(() => ({}));
     return { res, data };
+}
+
+function resolveTargetPath(defaultValue, promptMessage) {
+    const inlineValue = els.newFilePath.value.trim();
+    const initial = inlineValue || defaultValue;
+    const picked = inlineValue || window.prompt(promptMessage, initial);
+    if (!picked) {
+        return "";
+    }
+    return picked.endsWith(".md") ? picked : `${picked}.md`;
 }
 
 function resolveExportBaseName() {
@@ -574,11 +685,19 @@ function buildWrappedLines(ctx, text, maxWidth) {
 }
 
 async function exportCurrentNote() {
-    const format = els.exportFormat.value || "txt";
+    const format = resolveExportMode();
+    if (!format) {
+        showStatus("当前模块不支持导出", "warn");
+        return;
+    }
+
     if (format === "png") {
+        state.previewMode = "slides";
         exportAsPng();
         return;
     }
+
+    state.previewMode = format === "html" ? "document" : state.previewMode;
 
     const payload = {
         format,
@@ -641,30 +760,30 @@ function exportAsPng() {
     canvas.height = height;
 
     const background = ctx.createLinearGradient(0, 0, width, height);
-    background.addColorStop(0, "#fbf6ef");
-    background.addColorStop(1, "#ecf4ef");
+    background.addColorStop(0, "#f7fbff");
+    background.addColorStop(1, "#edf7f7");
     ctx.fillStyle = background;
     ctx.fillRect(0, 0, width, height);
 
     let y = padding;
-    ctx.fillStyle = "#1b1814";
+    ctx.fillStyle = "#15202b";
     ctx.font = "bold 38px 'PingFang SC', 'Microsoft YaHei', sans-serif";
     ctx.fillText(title, padding, y);
     y += lineHeight + 12;
 
     ctx.font = "18px 'PingFang SC', 'Microsoft YaHei', sans-serif";
-    ctx.fillStyle = "#6f6458";
+    ctx.fillStyle = "#5b6876";
     ctx.fillText(`导出时间：${new Date().toLocaleString("zh-CN")}`, padding, y);
     y += lineHeight + 8;
 
-    ctx.strokeStyle = "#d2c9ba";
+    ctx.strokeStyle = "#c9d6e5";
     ctx.beginPath();
     ctx.moveTo(padding, y);
     ctx.lineTo(width - padding, y);
     ctx.stroke();
     y += lineHeight;
 
-    ctx.fillStyle = "#1b1814";
+    ctx.fillStyle = "#15202b";
     ctx.font = state.previewMode === "slides"
         ? "26px 'PingFang SC', 'Microsoft YaHei', sans-serif"
         : "20px 'PingFang SC', 'Microsoft YaHei', sans-serif";
@@ -699,6 +818,52 @@ async function loadSession() {
     els.sessionMeta.textContent = `${data.username} · ${data.role}`;
 }
 
+function selectTemplate(templateId) {
+    state.selectedTemplateId = templateId || "";
+    els.templateSelect.value = templateId || "";
+
+    const selected = state.templates.find((template) => template.id === templateId);
+    if (!selected) {
+        els.selectedTemplateName.textContent = "选择一个模板";
+        els.selectedTemplateDesc.textContent = "选择左侧模板后，在这里填写路径并创建文稿。";
+        els.selectedTemplateCategory.textContent = "-";
+        els.selectedTemplateVariables.innerHTML = '<span class="token-chip">暂无</span>';
+        return;
+    }
+
+    els.selectedTemplateName.textContent = selected.name;
+    els.selectedTemplateDesc.textContent = selected.description;
+    els.selectedTemplateCategory.textContent = selected.category;
+    els.selectedTemplateVariables.innerHTML = selected.variables.map((item) => (
+        `<span class="token-chip">${escapeHtml(item)}</span>`
+    )).join("");
+}
+
+function renderTemplateCatalog() {
+    els.templateCatalog.innerHTML = "";
+    if (!state.templates.length) {
+        els.templateCatalog.innerHTML = '<div class="panel-copy">暂无模板</div>';
+        selectTemplate("");
+        return;
+    }
+
+    state.templates.forEach((template) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `template-card${template.id === state.selectedTemplateId ? " active" : ""}`;
+        button.innerHTML = `
+            <strong>${escapeHtml(template.name)}</strong>
+            <p>${escapeHtml(template.description)}</p>
+            <small>${escapeHtml(template.category)} · ${template.variables.length} 个变量</small>
+        `;
+        button.addEventListener("click", () => {
+            selectTemplate(template.id);
+            renderTemplateCatalog();
+        });
+        els.templateCatalog.appendChild(button);
+    });
+}
+
 async function loadTemplates() {
     const { res, data } = await requestJSON("/api/templates");
     if (!res.ok) {
@@ -706,86 +871,48 @@ async function loadTemplates() {
         return;
     }
 
+    state.templates = data.templates || [];
     els.templateSelect.innerHTML = '<option value="">选择模板...</option>';
-    for (const tpl of data.templates || []) {
+    state.templates.forEach((template) => {
         const option = document.createElement("option");
-        option.value = tpl.id;
-        option.textContent = `${tpl.name} · ${tpl.description}`;
+        option.value = template.id;
+        option.textContent = `${template.name} · ${template.description}`;
         els.templateSelect.appendChild(option);
-    }
-}
-
-function renderFileList() {
-    const keyword = els.fileFilter.value.trim().toLowerCase();
-    const filtered = state.cachedFiles.filter((file) => file.toLowerCase().includes(keyword));
-    els.fileList.innerHTML = "";
-
-    if (!filtered.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty-list";
-        empty.textContent = keyword ? "没有匹配的文件" : "还没有 Markdown 文件";
-        els.fileList.appendChild(empty);
-        return;
-    }
-
-    filtered.forEach((file) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = `file-item${file === state.currentFile ? " active" : ""}`;
-        button.innerHTML = `
-            <strong>${escapeHtml(baseName(file) || file)}</strong>
-            <small>${escapeHtml(file)}</small>
-        `;
-        button.addEventListener("click", () => {
-            openFile(file);
-        });
-        els.fileList.appendChild(button);
     });
+
+    if (!state.selectedTemplateId && state.templates.length) {
+        state.selectedTemplateId = state.templates[0].id;
+    }
+
+    selectTemplate(state.selectedTemplateId);
+    renderTemplateCatalog();
 }
 
 async function loadFileList() {
     const { res, data } = await requestJSON("/api/files");
     if (!res.ok) {
-        const detail = extractErrorDetail(data, "未知错误");
-        els.fileList.innerHTML = `<div class="empty-list">${escapeHtml(detail)}</div>`;
-        showStatus(`加载文件列表失败：${detail}`, "error");
+        showStatus(`加载文件失败：${extractErrorDetail(data, "未知错误")}`, "error");
         return;
     }
     state.cachedFiles = data.files || [];
-    renderFileList();
-}
-
-function resolveTargetPath(defaultValue, promptMessage) {
-    const inlineValue = els.newFilePath.value.trim();
-    const initial = inlineValue || defaultValue;
-    const picked = inlineValue || window.prompt(promptMessage, initial);
-    if (!picked) {
-        return "";
-    }
-    return picked.endsWith(".md") ? picked : `${picked}.md`;
+    renderFileSwitcher();
 }
 
 async function openFile(path) {
-    if (state.isDirty && !window.confirm("当前内容未保存，确认切换文件？")) {
+    if (!path || path === FILE_SWITCHER_NONE) {
+        renderFileSwitcher();
         return;
     }
 
-    if (!path) {
-        state.currentFile = "";
-        els.newFilePath.value = "";
-        updateVersion(null);
-        els.editor.value = "";
-        setDirty(false);
-        setDraftLabel("草稿未缓存");
-        refreshDerivedState("");
-        renderFileList();
-        setActiveView("overview");
+    if (state.isDirty && !window.confirm("当前内容未保存，确认切换文件？")) {
+        renderFileSwitcher();
         return;
     }
 
     const { res, data } = await requestJSON(`/api/files/${encodeURIComponent(path)}`);
     if (!res.ok) {
         showStatus(`加载失败：${extractErrorDetail(data, "未知错误")}`, "error");
+        renderFileSwitcher();
         return;
     }
 
@@ -799,8 +926,8 @@ async function openFile(path) {
     if (!restored.restored) {
         setDraftLabel("草稿未缓存");
     }
+
     refreshDerivedState(restored.content);
-    renderFileList();
     setActiveView("write");
 }
 
@@ -887,6 +1014,7 @@ async function createBlankFile() {
     setDraftLabel("草稿未缓存");
     refreshDerivedState(initialContent);
     setActiveView("write");
+    els.editor.focus();
     showStatus("已创建空白草稿", "success");
 }
 
@@ -895,7 +1023,7 @@ async function createFromTemplate() {
         return;
     }
 
-    const templateId = els.templateSelect.value;
+    const templateId = state.selectedTemplateId || els.templateSelect.value;
     if (!templateId) {
         showStatus("请先选择模板", "warn");
         return;
@@ -945,108 +1073,29 @@ async function createFromTemplate() {
     await openFile(filePath);
 }
 
-function uploadImage() {
-    els.imageUpload.click();
-}
-
-async function handleImageUpload(event) {
-    const file = event.target.files[0];
-    event.target.value = "";
-    if (!file) {
-        return;
+function setEditorContent(content, { moveCursorToEnd = true } = {}) {
+    els.editor.value = content;
+    if (moveCursorToEnd) {
+        const pos = content.length;
+        els.editor.setSelectionRange(pos, pos);
     }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const { res, data } = await requestJSON("/api/upload", {
-        method: "POST",
-        body: formData,
-    });
-
-    if (!res.ok) {
-        showStatus(`上传失败：${extractErrorDetail(data, "未知错误")}`, "error");
-        return;
-    }
-
-    insertAtCursor(`![${file.name}](${data.url})`);
-    showStatus("图片已上传", "success");
-}
-
-async function deleteFile() {
-    if (!state.currentFile) {
-        showStatus("请先选择文件", "warn");
-        return;
-    }
-
-    if (!window.confirm(`确定删除 ${state.currentFile} 吗？`)) {
-        return;
-    }
-
-    const { res, data } = await requestJSON(`/api/files/${encodeURIComponent(state.currentFile)}`, {
-        method: "DELETE",
-    });
-    if (!res.ok) {
-        showStatus(`删除失败：${extractErrorDetail(data, "未知错误")}`, "error");
-        return;
-    }
-
-    clearDraft(state.currentFile);
-    state.currentFile = "";
-    els.newFilePath.value = "";
-    updateVersion(null);
-    els.editor.value = "";
-    setDirty(false);
-    setDraftLabel("草稿未缓存");
-    refreshDerivedState("");
-    await loadFileList();
-    setActiveView("overview");
-    showStatus("文件已删除", "success");
-}
-
-function handleEditorInput() {
-    refreshDerivedState(els.editor.value);
+    refreshDerivedState(content);
     setDirty(true);
     scheduleDraftAutoSave();
 }
 
-function insertAtCursor(snippet) {
-    const start = els.editor.selectionStart;
-    const end = els.editor.selectionEnd;
+function replaceEditorRange(start, end, replacement) {
     const before = els.editor.value.slice(0, start);
     const after = els.editor.value.slice(end);
-    const nextValue = before + snippet + after;
-
+    const nextValue = before + replacement + after;
     els.editor.value = nextValue;
-    const nextCursor = start + snippet.length;
+
+    const nextCursor = start + replacement.length;
     els.editor.focus();
     els.editor.setSelectionRange(nextCursor, nextCursor);
-    handleEditorInput();
-}
-
-function insertSlideBreak() {
-    if (state.activeView !== "write") {
-        setActiveView("write");
-    }
-    const needsLeadingBreak = els.editor.selectionStart > 0
-        && !els.editor.value.slice(0, els.editor.selectionStart).endsWith("\n\n");
-    const prefix = needsLeadingBreak ? "\n\n" : "";
-    insertAtCursor(`${prefix}---\n\n`);
-}
-
-function insertHeadingBlock() {
-    setActiveView("write");
-    insertAtCursor("## 小节标题\n\n- 要点 1\n- 要点 2\n");
-}
-
-function insertSummaryBlock() {
-    setActiveView("write");
-    insertAtCursor("> 核心结论：\n> \n");
-}
-
-function insertChecklistBlock() {
-    setActiveView("write");
-    insertAtCursor("- [ ] 待办项 1\n- [ ] 待办项 2\n");
+    refreshDerivedState(nextValue);
+    setDirty(true);
+    scheduleDraftAutoSave();
 }
 
 function insertReportDeck() {
@@ -1078,9 +1127,7 @@ function insertReportDeck() {
 
     setActiveView("write");
     if (!els.editor.value.trim()) {
-        els.editor.value = deck;
-        els.editor.focus();
-        handleEditorInput();
+        setEditorContent(deck);
         showStatus("已插入汇报骨架", "success");
         return;
     }
@@ -1089,8 +1136,284 @@ function insertReportDeck() {
     if (!append) {
         return;
     }
-    insertAtCursor(`\n\n${deck}`);
+
+    replaceEditorRange(els.editor.selectionStart, els.editor.selectionEnd, `\n\n${deck}`);
     showStatus("已插入汇报骨架", "success");
+}
+
+async function deleteFile() {
+    if (!state.currentFile) {
+        showStatus("请先选择文件", "warn");
+        return;
+    }
+
+    if (!window.confirm(`确定删除 ${state.currentFile} 吗？`)) {
+        return;
+    }
+
+    const { res, data } = await requestJSON(`/api/files/${encodeURIComponent(state.currentFile)}`, {
+        method: "DELETE",
+    });
+    if (!res.ok) {
+        showStatus(`删除失败：${extractErrorDetail(data, "未知错误")}`, "error");
+        return;
+    }
+
+    clearDraft(state.currentFile);
+    state.currentFile = "";
+    els.newFilePath.value = "";
+    updateVersion(null);
+    els.editor.value = "";
+    setDirty(false);
+    setDraftLabel("草稿未缓存");
+    refreshDerivedState("");
+    await loadFileList();
+    setActiveView("template");
+    showStatus("文件已删除", "success");
+}
+
+function getSlashCommandMatches(query, { exact = false } = {}) {
+    const normalized = String(query || "").trim().toLowerCase();
+    const matches = SLASH_COMMANDS.filter((command) => {
+        const keys = [command.id, ...(command.aliases || [])].map((item) => item.toLowerCase());
+        return exact
+            ? keys.includes(normalized)
+            : (!normalized || keys.some((item) => item.includes(normalized)));
+    });
+
+    return matches.sort((left, right) => left.label.localeCompare(right.label, "zh-CN"));
+}
+
+function getSlashContext() {
+    if (state.activeView !== "write") {
+        return null;
+    }
+    if (els.editor.selectionStart !== els.editor.selectionEnd) {
+        return null;
+    }
+
+    const cursor = els.editor.selectionStart || 0;
+    const before = els.editor.value.slice(0, cursor);
+    const match = before.match(/(^|\s)\/([a-zA-Z0-9_-]*)$/);
+    if (!match) {
+        return null;
+    }
+
+    return {
+        query: match[2].toLowerCase(),
+        start: cursor - match[2].length - 1,
+        end: cursor,
+    };
+}
+
+function getCompletedSlashContext() {
+    const cursor = els.editor.selectionStart || 0;
+    if (els.editor.selectionStart !== els.editor.selectionEnd) {
+        return null;
+    }
+
+    const before = els.editor.value.slice(0, cursor);
+    const match = before.match(/(^|\s)\/([a-zA-Z0-9_-]+)\s$/);
+    if (!match) {
+        return null;
+    }
+
+    const command = getSlashCommandMatches(match[2], { exact: true })[0];
+    if (!command) {
+        return null;
+    }
+
+    return {
+        command,
+        start: cursor - match[2].length - 2,
+        end: cursor,
+    };
+}
+
+function renderSlashMenu() {
+    els.slashQuery.textContent = `/${state.slashRange?.query || ""}`;
+    if (!state.slashMatches.length) {
+        els.slashList.innerHTML = '<div class="slash-item"><div>#</div><div><strong>没有匹配命令</strong><br><small>继续输入或按 Esc 关闭</small></div></div>';
+        return;
+    }
+
+    els.slashList.innerHTML = "";
+    state.slashMatches.forEach((command, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `slash-item${index === state.slashActiveIndex ? " active" : ""}`;
+        button.innerHTML = `
+            <div>${escapeHtml(command.label)}</div>
+            <div>
+                <strong>${escapeHtml(command.description)}</strong><br>
+                <small>${escapeHtml((command.aliases || []).join(" · ") || command.id)}</small>
+            </div>
+        `;
+        button.addEventListener("click", () => {
+            applySlashCommand(command);
+        });
+        els.slashList.appendChild(button);
+    });
+}
+
+function openSlashMenu(context, matches) {
+    state.slashOpen = true;
+    state.slashRange = context;
+    state.slashMatches = matches;
+    state.slashActiveIndex = Math.min(state.slashActiveIndex, Math.max(matches.length - 1, 0));
+    els.slashPanel.classList.remove("hidden");
+    els.slashPanel.setAttribute("aria-hidden", "false");
+    renderSlashMenu();
+}
+
+function closeSlashMenu() {
+    state.slashOpen = false;
+    state.slashRange = null;
+    state.slashMatches = [];
+    state.slashActiveIndex = 0;
+    els.slashPanel.classList.add("hidden");
+    els.slashPanel.setAttribute("aria-hidden", "true");
+}
+
+function syncSlashMenu() {
+    const context = getSlashContext();
+    if (!context) {
+        closeSlashMenu();
+        return;
+    }
+
+    const matches = getSlashCommandMatches(context.query);
+    state.slashActiveIndex = 0;
+    openSlashMenu({ ...context, query: context.query }, matches);
+}
+
+function moveSlashSelection(delta) {
+    if (!state.slashMatches.length) {
+        return;
+    }
+    const total = state.slashMatches.length;
+    state.slashActiveIndex = (state.slashActiveIndex + delta + total) % total;
+    renderSlashMenu();
+}
+
+function openAssetModal(range = null) {
+    const cursor = els.editor.selectionStart || 0;
+    state.pendingInsertRange = range
+        ? { start: range.start, end: range.start }
+        : { start: cursor, end: cursor };
+    els.assetUrl.value = "";
+    els.assetAlt.value = "";
+    els.assetModal.classList.remove("hidden");
+    els.assetModal.setAttribute("aria-hidden", "false");
+    els.assetUrl.focus();
+}
+
+function closeAssetModal() {
+    els.assetModal.classList.add("hidden");
+    els.assetModal.setAttribute("aria-hidden", "true");
+    els.editor.focus();
+}
+
+function insertPendingAsset(markdown) {
+    const range = state.pendingInsertRange || {
+        start: els.editor.selectionStart || 0,
+        end: els.editor.selectionEnd || 0,
+    };
+    replaceEditorRange(range.start, range.end, markdown);
+    state.pendingInsertRange = null;
+    closeAssetModal();
+}
+
+function insertRemoteAsset() {
+    const url = els.assetUrl.value.trim();
+    if (!url) {
+        showStatus("请输入资源地址", "warn");
+        return;
+    }
+
+    const alt = els.assetAlt.value.trim() || "asset";
+    const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(url);
+    const markdown = isImage ? `![${alt}](${url})` : `[${alt}](${url})`;
+    insertPendingAsset(markdown);
+    showStatus("已插入资源", "success");
+}
+
+function applySlashCommand(command = null, explicitRange = null) {
+    const targetCommand = command || state.slashMatches[state.slashActiveIndex];
+    const range = explicitRange || state.slashRange;
+    if (!targetCommand || !range) {
+        closeSlashMenu();
+        return;
+    }
+
+    closeSlashMenu();
+
+    if (targetCommand.kind === "asset") {
+        replaceEditorRange(range.start, range.end, "");
+        openAssetModal({ start: range.start, end: range.start });
+        return;
+    }
+
+    if (targetCommand.kind === "insert") {
+        replaceEditorRange(range.start, range.end, targetCommand.snippet);
+        return;
+    }
+
+    if (targetCommand.kind === "deck") {
+        replaceEditorRange(range.start, range.end, "");
+        insertReportDeck();
+        return;
+    }
+
+    if (targetCommand.kind === "switch") {
+        replaceEditorRange(range.start, range.end, "");
+        setActiveView(targetCommand.target || "template");
+    }
+}
+
+async function handleImageUpload(event) {
+    const file = event.target.files[0];
+    event.target.value = "";
+    if (!file) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const { res, data } = await requestJSON("/api/upload", {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!res.ok) {
+        showStatus(`上传失败：${extractErrorDetail(data, "未知错误")}`, "error");
+        return;
+    }
+
+    const markdown = `![${file.name}](${data.url})`;
+    if (state.pendingInsertRange) {
+        insertPendingAsset(markdown);
+    } else {
+        replaceEditorRange(els.editor.selectionStart, els.editor.selectionEnd, markdown);
+    }
+    showStatus("图片已上传", "success");
+}
+
+function handleEditorInput() {
+    const completedSlash = getCompletedSlashContext();
+    if (completedSlash) {
+        applySlashCommand(completedSlash.command, {
+            start: completedSlash.start,
+            end: completedSlash.end,
+        });
+        return;
+    }
+
+    refreshDerivedState(els.editor.value);
+    setDirty(true);
+    scheduleDraftAutoSave();
+    syncSlashMenu();
 }
 
 function jumpToSlide(index) {
@@ -1104,13 +1427,6 @@ function changeSlide(delta) {
 
 function setPreviewMode(mode) {
     state.previewMode = mode;
-    const documentActive = mode === "document";
-    els.documentMode.classList.toggle("hidden", !documentActive);
-    els.slidesMode.classList.toggle("hidden", documentActive);
-    els.modeDocumentBtn.classList.toggle("active", documentActive);
-    els.modeSlidesBtn.classList.toggle("active", !documentActive);
-    els.modeDocumentBtn.setAttribute("aria-pressed", documentActive ? "true" : "false");
-    els.modeSlidesBtn.setAttribute("aria-pressed", documentActive ? "false" : "true");
 }
 
 function focusCurrentSlideInEditor() {
@@ -1136,6 +1452,7 @@ function syncActiveSlideFromCursor() {
         state.activeSlideIndex = clampSlideIndex(index);
         renderSlideWorkspace();
     }
+    syncSlashMenu();
 }
 
 function startPresentation() {
@@ -1144,7 +1461,7 @@ function startPresentation() {
         return;
     }
 
-    setActiveView("present");
+    setActiveView("slides");
     setPreviewMode(state.slides.length > 1 ? "slides" : "document");
     state.overlayOpen = true;
     els.presentationOverlay.classList.add("show");
@@ -1166,15 +1483,39 @@ function stopPresentation() {
 }
 
 function handleGlobalShortcuts(event) {
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+    if (!els.assetModal.classList.contains("hidden") && event.key === "Escape") {
         event.preventDefault();
-        saveFile();
+        closeAssetModal();
+        state.pendingInsertRange = null;
         return;
     }
 
-    if (event.altKey && event.shiftKey && event.key.toLowerCase() === "s") {
+    if (state.slashOpen) {
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            moveSlashSelection(1);
+            return;
+        }
+        if (event.key === "ArrowUp") {
+            event.preventDefault();
+            moveSlashSelection(-1);
+            return;
+        }
+        if (event.key === "Enter" || event.key === "Tab") {
+            event.preventDefault();
+            applySlashCommand();
+            return;
+        }
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeSlashMenu();
+            return;
+        }
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        insertSlideBreak();
+        saveFile();
         return;
     }
 
@@ -1182,6 +1523,19 @@ function handleGlobalShortcuts(event) {
         event.preventDefault();
         startPresentation();
         return;
+    }
+
+    if (!state.overlayOpen && state.activeView === "slides") {
+        if (event.key === "ArrowRight" || event.key === "PageDown") {
+            event.preventDefault();
+            changeSlide(1);
+            return;
+        }
+        if (event.key === "ArrowLeft" || event.key === "PageUp") {
+            event.preventDefault();
+            changeSlide(-1);
+            return;
+        }
     }
 
     if (!state.overlayOpen) {
@@ -1220,22 +1574,18 @@ function bindActionButtons() {
 }
 
 function bindViewButtons() {
-    els.viewOverviewBtn.addEventListener("click", () => setActiveView("overview"));
-    els.viewWriteBtn.addEventListener("click", () => setActiveView("write"));
-    els.viewPresentBtn.addEventListener("click", () => setActiveView("present"));
-    els.goWriteBtn.addEventListener("click", () => setActiveView("write"));
-    els.goPresentBtn.addEventListener("click", () => {
-        setActiveView("present");
-        if (state.slides.length > 1) {
-            setPreviewMode("slides");
-        }
+    els.viewTemplateBtn.addEventListener("click", () => setActiveView("template"));
+    els.viewWriteBtn.addEventListener("click", () => {
+        setActiveView("write");
+        els.editor.focus();
     });
-
-    document.querySelectorAll("[data-switch-view]").forEach((button) => {
-        button.addEventListener("click", () => {
-            const target = normalizeView(button.getAttribute("data-switch-view"));
-            setActiveView(target);
-        });
+    els.viewDocumentBtn.addEventListener("click", () => {
+        setPreviewMode("document");
+        setActiveView("document");
+    });
+    els.viewSlidesBtn.addEventListener("click", () => {
+        setPreviewMode("slides");
+        setActiveView("slides");
     });
 }
 
@@ -1243,24 +1593,14 @@ function bindEvents() {
     bindActionButtons();
     bindViewButtons();
 
-    els.fileFilter.addEventListener("input", renderFileList);
     els.refreshFilesBtn.addEventListener("click", loadFileList);
+    els.fileSwitcher.addEventListener("change", () => {
+        openFile(els.fileSwitcher.value);
+    });
     els.templateCreateBtn.addEventListener("click", createFromTemplate);
     els.insertReportBtn.addEventListener("click", insertReportDeck);
-    els.insertSlideBtn.addEventListener("click", insertSlideBreak);
-    els.insertHeadingBtn.addEventListener("click", insertHeadingBlock);
-    els.insertSummaryBtn.addEventListener("click", insertSummaryBlock);
-    els.insertChecklistBtn.addEventListener("click", insertChecklistBlock);
-    els.uploadImageBtn.addEventListener("click", uploadImage);
     els.deleteBtn.addEventListener("click", deleteFile);
     els.exportBtn.addEventListener("click", exportCurrentNote);
-    els.focusSlideBtn.addEventListener("click", focusCurrentSlideInEditor);
-
-    els.modeDocumentBtn.addEventListener("click", () => setPreviewMode("document"));
-    els.modeSlidesBtn.addEventListener("click", () => setPreviewMode("slides"));
-
-    els.prevSlideBtn.addEventListener("click", () => changeSlide(-1));
-    els.nextSlideBtn.addEventListener("click", () => changeSlide(1));
     els.presentationPrevBtn.addEventListener("click", () => changeSlide(-1));
     els.presentationNextBtn.addEventListener("click", () => changeSlide(1));
     els.presentationCloseBtn.addEventListener("click", stopPresentation);
@@ -1268,10 +1608,28 @@ function bindEvents() {
     els.editor.addEventListener("input", handleEditorInput);
     els.editor.addEventListener("click", syncActiveSlideFromCursor);
     els.editor.addEventListener("keyup", syncActiveSlideFromCursor);
+
+    els.assetInsertBtn.addEventListener("click", insertRemoteAsset);
+    els.assetUploadBtn.addEventListener("click", () => {
+        els.imageUpload.click();
+    });
+    els.assetCancelBtn.addEventListener("click", () => {
+        closeAssetModal();
+        state.pendingInsertRange = null;
+    });
     els.imageUpload.addEventListener("change", handleImageUpload);
 
     document.addEventListener("selectionchange", syncActiveSlideFromCursor);
     document.addEventListener("keydown", handleGlobalShortcuts);
+    document.addEventListener("click", (event) => {
+        if (state.slashOpen && !els.slashPanel.contains(event.target) && event.target !== els.editor) {
+            closeSlashMenu();
+        }
+        if (!els.assetModal.classList.contains("hidden") && event.target === els.assetModal) {
+            closeAssetModal();
+            state.pendingInsertRange = null;
+        }
+    });
     window.addEventListener("hashchange", () => {
         setActiveView(normalizeView(window.location.hash.replace("#", "")), { updateHash: false });
     });
@@ -1289,6 +1647,7 @@ async function bootstrap() {
     updateVersion(null);
     setDraftLabel("草稿未缓存");
     refreshDerivedState("");
+    renderFileSwitcher();
     setActiveView(normalizeView(window.location.hash.replace("#", "")), { updateHash: false });
     await loadSession();
     await loadTemplates();

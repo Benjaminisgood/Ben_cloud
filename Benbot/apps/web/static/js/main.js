@@ -3,6 +3,8 @@
 const STATUS_LABELS = { up: '运行中', down: '不可达', unknown: '检测中' };
 const SERVICE_LABELS = { running: '已开启', stopped: '已关闭', unknown: '未知' };
 const ACTION_LABELS = { start: '启动', stop: '停止', status: '刷新' };
+const POST_CONTROL_REFRESH_DELAYS = [1500, 4500];
+const postControlRefreshTimers = new Map();
 
 // ── Auto-fade flash messages ────────────────────────────────────
 document.querySelectorAll('.flash').forEach(el => {
@@ -111,6 +113,21 @@ async function refreshStatus(showSpinner = true) {
   }
 }
 
+function schedulePostControlRefresh(projectId) {
+  if (!projectId) return;
+
+  const existingTimers = postControlRefreshTimers.get(projectId) || [];
+  existingTimers.forEach(timerId => window.clearTimeout(timerId));
+
+  const nextTimers = POST_CONTROL_REFRESH_DELAYS.map(delay =>
+    window.setTimeout(() => {
+      void refreshStatus(false);
+    }, delay)
+  );
+
+  postControlRefreshTimers.set(projectId, nextTimers);
+}
+
 async function controlProject(card, action) {
   const projectId = card?.dataset?.projectId;
   if (!projectId) return false;
@@ -131,6 +148,9 @@ async function controlProject(card, action) {
 
     showClientFlash(`${projectId} ${ACTION_LABELS[action] || action}成功`, 'success');
     await refreshStatus(false);
+    if (action === 'start' || action === 'stop') {
+      schedulePostControlRefresh(projectId);
+    }
     return true;
   } catch (e) {
     console.warn('Project control failed', e);

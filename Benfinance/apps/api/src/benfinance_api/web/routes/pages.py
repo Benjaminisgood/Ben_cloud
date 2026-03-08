@@ -11,6 +11,7 @@ from benfinance_api.db.session import get_db
 from benfinance_api.schemas.finance_record import FinanceRecordCreate
 from benfinance_api.services.finance_records import create_finance_record, list_finance_records
 from benfinance_api.services.legacy_data import get_dashboard_snapshot
+from benfinance_api.services.finance_workspace import build_finance_workspace
 
 from ..deps import get_session_user
 from ..templating import render_template
@@ -24,26 +25,28 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
     settings = get_settings()
-    dashboard = get_dashboard_snapshot(settings.SOURCE_DATABASE_PATH).model_dump()
     finance_records = list_finance_records(
         db,
         viewer_username=user["username"],
         viewer_is_admin=user["role"] == "admin",
-        limit=12,
+        limit=50,
     )
+    dashboard = get_dashboard_snapshot(settings.SOURCE_DATABASE_PATH).model_dump()
+    finance_workspace = build_finance_workspace(settings.SOURCE_DATABASE_PATH, finance_records)
     return render_template(
         request,
         "dashboard.html",
         {
             "title": "Benfinance",
             "nav_label": "Finance",
-            "hero_title": "💹 财务洞察站",
-            "hero_subtitle": "把账户、交易、预算和储蓄目标收束成一套可持续追踪的资金看板。",
+            "hero_title": "资金作战室",
+            "hero_subtitle": "余额、流向、待决策，一屏盯住。",
             "collections_title": "财务切片",
-            "collections_subtitle": "账户、流水、预算与储蓄目标",
+            "collections_subtitle": "账户、流水、目标",
             "records_label": "财务记录",
-            "records_hint": "让 agent 填收支、预算、账单、债务、订阅和财务决策，管理员再做修改、清理和归档。",
+            "records_hint": "财务动作队列",
             "dashboard": dashboard,
+            "finance_workspace": finance_workspace,
             "finance_records": finance_records,
             "current_user": user,
             "theme": {

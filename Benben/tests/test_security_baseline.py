@@ -180,9 +180,13 @@ def test_editor_home_page_contains_workspace_and_slide_support(client: TestClien
 
     page = client.get("/")
     assert page.status_code == 200
-    assert "分视图临时写作台" in page.text
-    assert "工作台" in page.text
-    assert "预演页会自动分页" in page.text
+    assert "模版" in page.text
+    assert "写作" in page.text
+    assert "文档" in page.text
+    assert "幻灯片" in page.text
+    assert "导出" in page.text
+    assert "/assets" in page.text
+    assert "Markdown + Slides" in page.text
     assert "/static/editor.css" in page.text
     assert "/static/editor.js" in page.text
 

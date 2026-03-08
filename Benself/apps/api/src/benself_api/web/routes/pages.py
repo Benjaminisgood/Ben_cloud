@@ -6,10 +6,9 @@ from sqlalchemy.orm import Session
 
 from benself_api.core.config import get_settings
 from benself_api.db.session import get_db
-from benself_api.repositories.graph_sync_runs_repo import create_graph_sync_run, list_graph_sync_runs
+from benself_api.repositories.graph_sync_runs_repo import create_graph_sync_run
 from benself_api.schemas.graph import GraphSyncRunCreate
 from benself_api.services.graphiti_sync import GraphitiUnavailableError, run_graph_sync, search_graphiti
-from benself_api.services.self_context import build_dashboard_snapshot
 
 from ..deps import get_session_user
 from ..templating import render_template
@@ -18,13 +17,12 @@ router = APIRouter(tags=["pages"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, db: Session = Depends(get_db)):
+async def dashboard(request: Request):
     user = get_session_user(request)
     if not user:
         return RedirectResponse("/login", status_code=303)
 
     settings = get_settings()
-    snapshot = build_dashboard_snapshot(settings)
     graph_query = str(request.query_params.get("q", "")).strip()
     graph_results = None
     graph_error = None
@@ -38,21 +36,15 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         request,
         "dashboard.html",
         {
-            "title": "Benself",
-            "nav_label": "AI Self",
-            "hero_title": "让 AI 理解我",
-            "hero_subtitle": "Benself 把 raw journal、确认事实和 Graphiti 记忆层接成一个可审计的数字我闭环。",
-            "snapshot": snapshot.model_dump(),
-            "graph_runs": [item for item in list_graph_sync_runs(db)],
+            "title": "Benself | Memory Search",
             "graph_query": graph_query,
             "graph_results": graph_results.model_dump() if graph_results else None,
             "graph_error": graph_error,
-            "current_user": user,
             "theme": {
-                "primary": "#0c4f67",
-                "secondary": "#22a699",
-                "canvas": "#eaf5f4",
-                "ink": "#13222b",
+                "primary": "#123b42",
+                "secondary": "#ff9f6e",
+                "canvas": "#f3ecdf",
+                "ink": "#172229",
             },
         },
     )

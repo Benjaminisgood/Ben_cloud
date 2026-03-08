@@ -1,195 +1,387 @@
-
 {% extends "base.html" %}
 {% block body %}
-<div class="page-shell">
-    <header class="topbar">
-        <div>
+{% set planning_labels = {
+    "planned": "计划中",
+    "pending": "待处理",
+    "active": "进行中",
+    "settled": "已结清",
+    "cancelled": "已取消",
+    "archived": "归档",
+} %}
+{% set risk_labels = {
+    "low": "低",
+    "medium": "中",
+    "high": "高",
+    "critical": "关键",
+} %}
+{% set review_labels = {
+    "pending_review": "待审",
+    "approved": "通过",
+    "rejected": "驳回",
+} %}
+<div class="page-shell finance-shell">
+    <section class="hero-band">
+        <div class="hero-copy">
             <p class="eyebrow">{{ nav_label }}</p>
             <h1>{{ hero_title }}</h1>
-            <p class="subtitle">{{ hero_subtitle }}</p>
-        </div>
-        <div class="session-card">
-            <p class="session-role">{{ current_user.role }}</p>
-            <p class="session-user">{{ current_user.username }}</p>
-            <a class="ghost-link" href="/logout">退出</a>
-        </div>
-    </header>
+            <p class="hero-line">{{ hero_subtitle }}</p>
 
-    <section class="summary-grid">
-        {% for card in dashboard.summary %}
-        <article class="metric-card">
-            <p class="metric-label">{{ card.label }}</p>
-            <p class="metric-value">{{ card.value }}</p>
-            <p class="metric-hint">{{ card.hint }}</p>
-        </article>
-        {% endfor %}
+            <div class="metric-ribbon">
+                {% for item in finance_workspace.hero_metrics %}
+                <article class="hero-metric tone-{{ item.tone }}">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.value }}</strong>
+                    <small>{{ item.hint }}</small>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+
+        <aside class="command-card">
+            <div>
+                <p class="mini-label">Desk</p>
+                <h2>{{ current_user.username }}</h2>
+                <p class="session-role">{{ current_user.role }}</p>
+            </div>
+
+            <div class="command-kpis">
+                <div>
+                    <span>buffer</span>
+                    <strong>{{ finance_workspace.free_cash_label }}</strong>
+                </div>
+                <div>
+                    <span>coverage</span>
+                    <strong>{{ finance_workspace.coverage_ratio }}</strong>
+                </div>
+            </div>
+
+            <a class="ghost-link" href="/logout">退出</a>
+        </aside>
     </section>
 
-    <section class="content-grid">
-        <div class="collections-panel">
-            <div class="section-heading">
-                <p class="eyebrow">{{ collections_title }}</p>
-                <h2>{{ collections_subtitle }}</h2>
+    <section class="workspace-grid">
+        <div class="focus-stack">
+            <div class="focus-nav" role="tablist" aria-label="Finance focus">
+                {% for panel in finance_workspace.focus_panels %}
+                <button
+                    class="focus-tab{% if loop.first %} is-active{% endif %}"
+                    type="button"
+                    data-focus-tab="{{ panel.id }}"
+                    aria-pressed="{{ 'true' if loop.first else 'false' }}"
+                >
+                    <span>{{ panel.label }}</span>
+                    <strong>{{ panel.headline }}</strong>
+                </button>
+                {% endfor %}
             </div>
-            {% for table in dashboard.collections %}
-            <article class="data-card">
-                <div class="card-header">
-                    <h3>{{ table.title }}</h3>
-                    <p>{{ table.subtitle }}</p>
+
+            <div class="focus-panels">
+                {% for panel in finance_workspace.focus_panels %}
+                <article class="focus-panel{% if loop.first %} is-active{% endif %}" data-focus-panel="{{ panel.id }}">
+                    <header class="panel-head">
+                        <div>
+                            <p class="eyebrow">{{ panel.label }}</p>
+                            <h2>{{ panel.headline }}</h2>
+                        </div>
+                        <p>{{ panel.caption }}</p>
+                    </header>
+
+                    <div class="panel-stats">
+                        {% for stat in panel.stats %}
+                        <div class="stat-chip">
+                            <span>{{ stat.label }}</span>
+                            <strong>{{ stat.value }}</strong>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="signal-list">
+                        {% for track in panel.tracks %}
+                        <article class="signal-row">
+                            <div class="signal-meta">
+                                <span>{{ track.label }}</span>
+                                <strong>{{ track.value }}</strong>
+                            </div>
+                            <div class="signal-bar">
+                                <span style="width: {{ track.width }}%"></span>
+                            </div>
+                            <p>{{ track.aux }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+
+            <section class="accounts-panel">
+                <header class="panel-head compact">
+                    <div>
+                        <p class="eyebrow">Accounts</p>
+                        <h2>资金分布</h2>
+                    </div>
+                    <p>点击账户，动作队列会联动筛选</p>
+                </header>
+
+                <div class="account-bars">
+                    <button class="account-pill is-active" type="button" data-account-filter="">
+                        <span>全部</span>
+                        <strong>{{ finance_workspace.hero_metrics[0].value }}</strong>
+                    </button>
+                    {% for account in finance_workspace.account_distribution %}
+                    <button class="account-pill" type="button" data-account-filter="{{ account.name }}">
+                        <div class="account-topline">
+                            <span>{{ account.name }}</span>
+                            <strong>{{ account.value }}</strong>
+                        </div>
+                        <div class="account-bar">
+                            <span style="width: {{ account.width }}%"></span>
+                        </div>
+                        <p>{{ account.institution }} · {{ account.share }}%</p>
+                    </button>
+                    {% endfor %}
                 </div>
-                {% if table.rows %}
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                {% for column in table.columns %}
-                                <th>{{ column.label }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in table.rows %}
-                            <tr>
-                                {% for column in table.columns %}
-                                <td>{{ row[column.key] }}</td>
-                                {% endfor %}
-                            </tr>
+
+                <div class="account-contexts">
+                    {% for context in finance_workspace.account_contexts %}
+                    <article class="account-context{% if loop.first %} is-active{% endif %}" data-account-context="{{ context.key }}">
+                        <div class="account-context-head">
+                            <div>
+                                <p class="eyebrow">{{ context.title }}</p>
+                                <h3>{{ context.balance_label }}</h3>
+                            </div>
+                            <p>{{ context.institution }} · 覆盖 {{ context.coverage_ratio }}</p>
+                        </div>
+
+                        <div class="account-context-stats">
+                            {% for stat in context.stats %}
+                            <div class="stat-chip">
+                                <span>{{ stat.label }}</span>
+                                <strong>{{ stat.value }}</strong>
+                            </div>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                        </div>
+
+                        <div class="signal-list compact-list">
+                            {% for track in context.tracks %}
+                            <article class="signal-row">
+                                <div class="signal-meta">
+                                    <span>{{ track.label }}</span>
+                                    <strong>{{ track.value }}</strong>
+                                </div>
+                                <div class="signal-bar">
+                                    <span style="width: {{ track.width }}%"></span>
+                                </div>
+                                <p>{{ track.aux }}</p>
+                            </article>
+                            {% endfor %}
+                        </div>
+
+                        {% if context.highlights %}
+                        <div class="account-highlights">
+                            {% for item in context.highlights %}
+                            <article class="highlight-chip">
+                                <span>{{ item.title }}</span>
+                                <strong>{{ item.value }}</strong>
+                                <p>{{ item.aux }}</p>
+                            </article>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="queue-empty">当前账户下没有已审核的待处理事项。</p>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
                 </div>
-                {% else %}
-                <p class="empty-state">{{ table.empty_message }}</p>
-                {% endif %}
-            </article>
-            {% endfor %}
+            </section>
         </div>
 
-        <aside class="focus-panel">
-            <div class="section-heading">
-                <p class="eyebrow">{{ records_label }}</p>
-                <h2>财务管理后端</h2>
-                <p>{{ records_hint }}</p>
-            </div>
-            <form class="focus-form" method="post" action="/finance-records">
-                <label>
-                    类型
-                    <select name="record_type">
-                        <option value="expense">支出</option>
-                        <option value="income">收入</option>
-                        <option value="budget">预算</option>
-                        <option value="bill">账单</option>
-                        <option value="subscription">订阅</option>
-                        <option value="debt">债务</option>
-                        <option value="investment">投资</option>
-                        <option value="savings_goal">储蓄目标</option>
-                        <option value="tax">税务</option>
-                        <option value="decision" selected>决策</option>
-                    </select>
-                </label>
-                <label>
-                    标题
-                    <input type="text" name="title" required maxlength="160" placeholder="例如：季度保险费、要不要续费某会员">
-                </label>
-                <label>
-                    描述
-                    <textarea name="description" rows="4" required placeholder="写下金额背景、决策点或后续动作。"></textarea>
-                </label>
-                <label>
-                    类别
-                    <input type="text" name="category" required maxlength="80" placeholder="例如：insurance、rent、food、subscription">
-                </label>
-                <label>
-                    流向
-                    <select name="flow_direction">
-                        <option value="outflow">流出</option>
-                        <option value="inflow">流入</option>
-                        <option value="neutral" selected>中性</option>
-                    </select>
-                </label>
-                <label>
-                    计划状态
-                    <select name="planning_status">
-                        <option value="planned" selected>计划中</option>
-                        <option value="pending">待处理</option>
-                        <option value="active">进行中</option>
-                        <option value="settled">已结清</option>
-                        <option value="cancelled">已取消</option>
-                        <option value="archived">归档</option>
-                    </select>
-                </label>
-                <label>
-                    风险等级
-                    <select name="risk_level">
-                        <option value="critical">关键</option>
-                        <option value="high">高</option>
-                        <option value="medium" selected>中</option>
-                        <option value="low">低</option>
-                    </select>
-                </label>
-                <label>
-                    金额
-                    <input type="text" name="amount" placeholder="例如：2450.50">
-                </label>
-                <label>
-                    币种
-                    <input type="text" name="currency" value="CNY" maxlength="8">
-                </label>
-                <label>
-                    账户
-                    <input type="text" name="account_name" maxlength="120" placeholder="例如：招商银行卡">
-                </label>
-                <label>
-                    对手方
-                    <input type="text" name="counterparty" maxlength="120" placeholder="例如：平安保险、房东、公司">
-                </label>
-                <label>
-                    到期/复盘日期
-                    <input type="date" name="due_on">
-                </label>
-                <label>
-                    重复规则
-                    <input type="text" name="recurrence_rule" maxlength="120" placeholder="例如：monthly">
-                </label>
-                <label>
-                    后续动作
-                    <textarea name="follow_up_action" rows="4" placeholder="例如：到期前两周重新比价。"></textarea>
-                </label>
-                <label>
-                    agent 备注
-                    <textarea name="agent_note" rows="4" placeholder="写下判断依据或提醒事项。"></textarea>
-                </label>
-                <button type="submit">写入 {{ records_label }}</button>
-            </form>
+        <aside class="queue-shell">
+            <header class="panel-head compact">
+                <div>
+                    <p class="eyebrow">{{ records_label }}</p>
+                    <h2>Action Queue</h2>
+                </div>
+                <p id="queue-count">{{ finance_workspace.priority_cards|length }} 条</p>
+            </header>
 
-            <div class="focus-list">
-                {% if finance_records %}
-                {% for item in finance_records %}
-                <article class="focus-entry">
-                    <div class="focus-meta">
-                        <span>{{ item.record_type }}</span>
-                        <span>{{ item.planning_status }}</span>
-                        <span>{{ item.risk_level }}</span>
-                        <span>{{ item.review_status }}</span>
-                        <span>{{ item.created_by }}</span>
+            {% if finance_workspace.priority_cards %}
+            <div class="queue-list" role="list">
+                {% for card in finance_workspace.priority_cards %}
+                <button
+                    class="queue-card{% if loop.first %} is-active{% endif %}"
+                    type="button"
+                    data-detail-target="{{ card.id }}"
+                    data-focus-tags="{{ card.focus_attr }}"
+                    data-account-name="{{ card.account_name }}"
+                >
+                    <div class="queue-topline">
+                        <span>{{ card.type_label }}</span>
+                        <strong>{{ card.amount_label }}</strong>
                     </div>
-                    <h3>{{ item.title }}</h3>
-                    <p>{{ item.category }} · {{ item.flow_direction }} · {{ item.currency }} {{ item.amount if item.amount is not none else "-" }}</p>
-                    <p>{{ item.description }}</p>
-                    <p>写入于 {{ item.created_at }}{% if item.reviewed_at %} · 审核于 {{ item.reviewed_at }}{% endif %}</p>
-                    {% if item.follow_up_action %}
-                    <p>{{ item.follow_up_action }}</p>
+                    <h3>{{ card.title }}</h3>
+                    <p>{{ card.due_label }} · {{ card.due_hint }}</p>
+                </button>
+                {% endfor %}
+            </div>
+            <p class="queue-empty" id="queue-empty" hidden>当前筛选下没有匹配动作。</p>
+
+            <div class="detail-stack">
+                {% for card in finance_workspace.priority_cards %}
+                <article
+                    class="detail-card{% if loop.first %} is-active{% endif %}"
+                    data-detail-card="{{ card.id }}"
+                    data-focus-tags="{{ card.focus_attr }}"
+                    data-account-name="{{ card.account_name }}"
+                >
+                    <div class="detail-top">
+                        <div>
+                            <p class="eyebrow">{{ card.type_label }}</p>
+                            <h3>{{ card.title }}</h3>
+                        </div>
+                        <p class="detail-money">{{ card.amount_label }}</p>
+                    </div>
+
+                    <div class="detail-tags">
+                        <span>{{ planning_labels.get(card.status_label, card.status_label) }}</span>
+                        <span>{{ risk_labels.get(card.risk_label, card.risk_label) }}</span>
+                        <span>{{ review_labels.get(card.review_label, card.review_label) }}</span>
+                        <span>{{ card.category }}</span>
+                        {% if card.account_name %}
+                        <span>{{ card.account_name }}</span>
+                        {% endif %}
+                        {% if card.counterparty %}
+                        <span>{{ card.counterparty }}</span>
+                        {% endif %}
+                        {% if card.recurrence_rule %}
+                        <span>{{ card.recurrence_rule }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-grid">
+                        <div>
+                            <span>到期</span>
+                            <strong>{{ card.due_label }}</strong>
+                        </div>
+                        <div>
+                            <span>状态</span>
+                            <strong>{{ planning_labels.get(card.status_label, card.status_label) }}</strong>
+                        </div>
+                        <div>
+                            <span>审核</span>
+                            <strong>{{ review_labels.get(card.review_label, card.review_label) }}</strong>
+                        </div>
+                    </div>
+
+                    <p class="detail-text">{{ card.description }}</p>
+                    {% if card.follow_up_action %}
+                    <p class="detail-note">{{ card.follow_up_action }}</p>
                     {% endif %}
-                    {% if item.review_note %}
-                    <p>审核备注：{{ item.review_note }}</p>
+                    {% if card.review_note %}
+                    <p class="detail-audit">{{ card.review_note }}</p>
                     {% endif %}
                 </article>
                 {% endfor %}
-                {% else %}
-                <p class="empty-state">还没有财务记录。先把一个待决策或待处理的财务事项写进去。</p>
-                {% endif %}
             </div>
+            {% else %}
+            <p class="empty-state">还没有财务记录。</p>
+            {% endif %}
         </aside>
     </section>
 </div>
+
+<script>
+(() => {
+    const tabs = Array.from(document.querySelectorAll("[data-focus-tab]"));
+    const panels = Array.from(document.querySelectorAll("[data-focus-panel]"));
+    const queueCards = Array.from(document.querySelectorAll("[data-detail-target]"));
+    const detailCards = Array.from(document.querySelectorAll("[data-detail-card]"));
+    const accountPills = Array.from(document.querySelectorAll("[data-account-filter]"));
+    const accountContexts = Array.from(document.querySelectorAll("[data-account-context]"));
+    const queueCount = document.getElementById("queue-count");
+    const queueEmpty = document.getElementById("queue-empty");
+
+    let activeFocus = tabs[0]?.dataset.focusTab || "";
+    let activeAccount = "";
+
+    function visibleQueueCards() {
+        return queueCards.filter((card) => !card.hidden);
+    }
+
+    function syncCount() {
+        if (queueCount) {
+            queueCount.textContent = `${visibleQueueCards().length} 条`;
+        }
+        if (queueEmpty) {
+            queueEmpty.hidden = visibleQueueCards().length !== 0;
+        }
+    }
+
+    function activateDetail(id) {
+        queueCards.forEach((card) => {
+            card.classList.toggle("is-active", card.dataset.detailTarget === id && !card.hidden);
+        });
+        detailCards.forEach((card) => {
+            card.classList.toggle("is-active", card.dataset.detailCard === id && !card.hidden);
+        });
+    }
+
+    function syncVisibility() {
+        queueCards.forEach((card) => {
+            const focusTags = (card.dataset.focusTags || "").split(" ");
+            const accountName = card.dataset.accountName || "";
+            const matchesFocus = !activeFocus || focusTags.includes(activeFocus);
+            const matchesAccount = !activeAccount || accountName === activeAccount;
+            card.hidden = !(matchesFocus && matchesAccount);
+        });
+
+        detailCards.forEach((card) => {
+            const focusTags = (card.dataset.focusTags || "").split(" ");
+            const accountName = card.dataset.accountName || "";
+            const matchesFocus = !activeFocus || focusTags.includes(activeFocus);
+            const matchesAccount = !activeAccount || accountName === activeAccount;
+            card.hidden = !(matchesFocus && matchesAccount);
+        });
+
+        const firstVisible = visibleQueueCards()[0];
+        activateDetail(firstVisible ? firstVisible.dataset.detailTarget : "");
+        syncCount();
+    }
+
+    tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+            activeFocus = tab.dataset.focusTab || "";
+            tabs.forEach((item) => {
+                const isActive = item === tab;
+                item.classList.toggle("is-active", isActive);
+                item.setAttribute("aria-pressed", isActive ? "true" : "false");
+            });
+            panels.forEach((panel) => {
+                panel.classList.toggle("is-active", panel.dataset.focusPanel === activeFocus);
+            });
+            syncVisibility();
+        });
+    });
+
+    accountPills.forEach((pill) => {
+        pill.addEventListener("click", () => {
+            activeAccount = pill.dataset.accountFilter || "";
+            accountPills.forEach((item) => item.classList.toggle("is-active", item === pill));
+            accountContexts.forEach((context) => {
+                context.classList.toggle("is-active", (context.dataset.accountContext || "") === activeAccount);
+            });
+            syncVisibility();
+        });
+    });
+
+    queueCards.forEach((card) => {
+        card.addEventListener("click", () => {
+            if (!card.hidden) {
+                activateDetail(card.dataset.detailTarget || "");
+            }
+        });
+    });
+
+    syncVisibility();
+})();
+</script>
 {% endblock %}

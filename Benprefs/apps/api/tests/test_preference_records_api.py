@@ -100,11 +100,84 @@ def test_preference_record_requires_admin_review(client):
     _login_admin(client)
     reviewed = client.post(
         f"/api/preference-records/{created.json()['id']}/review",
-        json={"review_status": "approved", "review_note": "确认可录入正式偏好库"},
+        json={"review_status": "approved"},
     )
     assert reviewed.status_code == 200
     payload = reviewed.json()
     assert payload["review_status"] == "approved"
-    assert payload["review_note"] == "确认可录入正式偏好库"
     assert payload["reviewed_by"] == "benbenbuben"
     assert payload["reviewed_at"]
+
+
+def test_preference_record_reject_deletes_record(client):
+    _login_user(client)
+    created = client.post(
+        "/api/preference-records",
+        json={
+            "subject_type": "activity",
+            "subject_name": "凌晨健身房",
+            "aspect": "恢复节奏",
+            "stance": "avoid",
+            "timeframe": "current",
+        },
+    )
+    assert created.status_code == 201
+
+    _login_admin(client)
+    rejected = client.post(
+        f"/api/preference-records/{created.json()['id']}/review",
+        json={"review_status": "rejected"},
+    )
+    assert rejected.status_code == 204
+
+    detail = client.get(f"/api/preference-records/{created.json()['id']}")
+    assert detail.status_code == 404
+
+
+def test_preference_record_web_review_flow(client):
+    _login_user(client)
+    created = client.post(
+        "/api/preference-records",
+        json={
+            "subject_type": "food",
+            "subject_name": "抹茶酸奶",
+            "aspect": "下午加餐",
+            "stance": "curious",
+            "timeframe": "future",
+        },
+    )
+    assert created.status_code == 201
+
+    _login_admin(client)
+    approved = client.post(
+        f"/preference-records/{created.json()['id']}/review",
+        data={"review_status": "approved"},
+        follow_redirects=False,
+    )
+    assert approved.status_code == 303
+
+    detail = client.get(f"/api/preference-records/{created.json()['id']}")
+    assert detail.status_code == 200
+    assert detail.json()["review_status"] == "approved"
+
+    created = client.post(
+        "/api/preference-records",
+        json={
+            "subject_type": "habit",
+            "subject_name": "通宵追剧",
+            "aspect": "睡前安排",
+            "stance": "avoid",
+            "timeframe": "current",
+        },
+    )
+    assert created.status_code == 201
+
+    rejected = client.post(
+        f"/preference-records/{created.json()['id']}/review",
+        data={"review_status": "rejected"},
+        follow_redirects=False,
+    )
+    assert rejected.status_code == 303
+
+    detail = client.get(f"/api/preference-records/{created.json()['id']}")
+    assert detail.status_code == 404

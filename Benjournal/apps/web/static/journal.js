@@ -5,6 +5,8 @@
   }
 
   const selectedDate = bootstrap.selected_date;
+  const selectedDay = bootstrap.selected_day || null;
+
   const saveButton = document.getElementById("save-entry");
   const textArea = document.getElementById("entry-text");
   const uploadButton = document.getElementById("upload-file");
@@ -12,8 +14,14 @@
   const startButton = document.getElementById("record-start");
   const stopButton = document.getElementById("record-stop");
   const statusNode = document.getElementById("client-status");
+  const captureStudio = document.getElementById("capture-studio");
+  const phaseNode = document.getElementById("recording-phase");
+  const elapsedNode = document.getElementById("recording-elapsed");
 
   let recordingState = null;
+  let networkBusy = false;
+  let timerId = null;
+  let recordedAt = null;
 
   function setStatus(message, tone = "neutral") {
     if (!statusNode) return;
@@ -21,11 +29,77 @@
     statusNode.dataset.tone = tone;
   }
 
+  function formatDuration(milliseconds) {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+    const seconds = String(totalSeconds % 60).padStart(2, "0");
+    return `${minutes}:${seconds}`;
+  }
+
+  function setElapsed(milliseconds) {
+    if (!elapsedNode) return;
+    elapsedNode.textContent = formatDuration(milliseconds);
+  }
+
+  function setCaptureState(state, label) {
+    if (captureStudio) {
+      captureStudio.dataset.state = state;
+    }
+    if (phaseNode) {
+      phaseNode.textContent = label;
+    }
+  }
+
+  function clearTimer() {
+    if (timerId) {
+      window.clearInterval(timerId);
+      timerId = null;
+    }
+  }
+
+  function startTimer() {
+    recordedAt = Date.now();
+    setElapsed(0);
+    clearTimer();
+    timerId = window.setInterval(() => {
+      if (!recordedAt) return;
+      setElapsed(Date.now() - recordedAt);
+    }, 1000);
+  }
+
+  function stopTimer() {
+    const elapsed = recordedAt ? Date.now() - recordedAt : 0;
+    clearTimer();
+    recordedAt = null;
+    setElapsed(elapsed);
+    return elapsed;
+  }
+
+  function restoreIdleStage() {
+    const hasSegments = Number(selectedDay?.segment_count || 0) > 0;
+    setCaptureState("idle", hasSegments ? "继续录音" : "待开始");
+    if (!recordingState) {
+      setElapsed(0);
+    }
+  }
+
+  function renderControls() {
+    const recording = Boolean(recordingState);
+    if (saveButton) saveButton.disabled = networkBusy || recording;
+    if (uploadButton) uploadButton.disabled = networkBusy || recording;
+    if (fileInput) fileInput.disabled = networkBusy || recording;
+    if (startButton) startButton.disabled = networkBusy || recording;
+    if (stopButton) stopButton.disabled = !recording;
+  }
+
   async function uploadAudio(file, sourceLabel) {
     const endpoint = `/api/journal-days/${selectedDate}/segments`;
     const formData = new FormData();
     formData.append("audio_file", file);
-    setBusy(true);
+
+    networkBusy = true;
+    renderControls();
+    setCaptureState("uploading", `${sourceLabel}上传中`);
     setStatus(`${sourceLabel}上传中...`, "neutral");
 
     try {
@@ -37,21 +111,27 @@
       if (!response.ok) {
         throw new Error(payload.detail || "音频上传失败。");
       }
+      setCaptureState("uploading", "上传完成");
       setStatus("音频已上传，页面即将刷新。", "ready");
       window.setTimeout(() => {
         window.location.search = `?date=${encodeURIComponent(selectedDate)}`;
       }, 500);
     } catch (error) {
+      setCaptureState("error", "上传失败");
       setStatus(error.message || "音频上传失败。", "failed");
     } finally {
-      setBusy(false);
+      networkBusy = false;
+      renderControls();
     }
   }
 
   async function saveEntry() {
     if (!textArea) return;
-    setBusy(true);
+
+    networkBusy = true;
+    renderControls();
     setStatus("文本保存中...", "neutral");
+
     try {
       const response = await fetch(`/api/journal-days/${selectedDate}`, {
         method: "PATCH",
@@ -68,15 +148,9 @@
     } catch (error) {
       setStatus(error.message || "文本保存失败。", "failed");
     } finally {
-      setBusy(false);
+      networkBusy = false;
+      renderControls();
     }
-  }
-
-  function setBusy(busy) {
-    if (saveButton) saveButton.disabled = busy;
-    if (uploadButton) uploadButton.disabled = busy;
-    if (startButton) startButton.disabled = busy || Boolean(recordingState);
-    if (stopButton) stopButton.disabled = busy || !recordingState;
   }
 
   function encodeWav(chunks, sampleRate) {
@@ -123,7 +197,9 @@
   async function startRecording() {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!navigator.mediaDevices?.getUserMedia || !AudioContextClass) {
+      setCaptureState("error", "浏览器不支持");
       setStatus("当前浏览器不支持内置录音，请改用文件上传。", "failed");
+      renderControls();
       return;
     }
 
@@ -153,12 +229,15 @@
         sampleRate: context.sampleRate,
         chunks,
       };
-      setBusy(false);
-      if (startButton) startButton.disabled = true;
-      if (stopButton) stopButton.disabled = false;
+
+      startTimer();
+      setCaptureState("recording", "录音中");
       setStatus("录音中，点击“停止并上传”完成当前片段。", "neutral");
+      renderControls();
     } catch (error) {
+      setCaptureState("error", "麦克风不可用");
       setStatus(error.message || "麦克风启动失败。", "failed");
+      renderControls();
     }
   }
 
@@ -169,14 +248,17 @@
 
     const current = recordingState;
     recordingState = null;
+    const elapsed = stopTimer();
+
     current.processor.disconnect();
     current.input.disconnect();
     current.silence.disconnect();
     current.stream.getTracks().forEach((track) => track.stop());
     await current.context.close();
 
-    if (startButton) startButton.disabled = false;
-    if (stopButton) stopButton.disabled = true;
+    setCaptureState("uploading", "整理录音中");
+    setElapsed(elapsed);
+    renderControls();
 
     const blob = encodeWav(current.chunks, current.sampleRate);
     const filename = `${selectedDate}-${Date.now()}.wav`;
@@ -191,6 +273,7 @@
   if (uploadButton) {
     uploadButton.addEventListener("click", async () => {
       if (!fileInput?.files?.length) {
+        setCaptureState("error", "缺少文件");
         setStatus("先选择一个音频文件。", "failed");
         return;
       }
@@ -205,4 +288,7 @@
   if (stopButton) {
     stopButton.addEventListener("click", stopRecording);
   }
+
+  restoreIdleStage();
+  renderControls();
 })();

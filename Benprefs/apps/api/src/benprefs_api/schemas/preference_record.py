@@ -65,7 +65,6 @@ class PreferenceRecordUpdate(BaseModel):
 
 class PreferenceRecordReview(BaseModel):
     review_status: Literal["approved", "rejected"]
-    review_note: str | None = Field(default=None, max_length=4000)
 
 
 class PreferenceRecordRead(BaseModel):
@@ -86,7 +85,6 @@ class PreferenceRecordRead(BaseModel):
     source_kind: PreferenceSourceKind
     trigger_detail: str | None
     supporting_detail: str | None
-    review_note: str | None
     valid_from: date | None
     valid_until: date | None
     created_by: str

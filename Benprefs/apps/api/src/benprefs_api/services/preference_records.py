@@ -71,3 +71,8 @@ def delete_preference_record(db: Session, *, record_id: int) -> None:
 def review_preference_record(db: Session, *, record_id: int, payload: PreferenceRecordReview, actor: str):
     item = require_preference_record(db, record_id=record_id, viewer_username=actor, viewer_is_admin=True)
     return repo_review_preference_record(db, item=item, payload=payload, actor=actor)
+
+
+def reject_preference_record(db: Session, *, record_id: int, actor: str) -> None:
+    item = require_preference_record(db, record_id=record_id, viewer_username=actor, viewer_is_admin=True)
+    repo_delete_preference_record(db, item=item)

@@ -10,6 +10,7 @@ from benhealth_api.services.health_records import (
     create_health_record,
     delete_health_record,
     list_health_records,
+    reject_health_record,
     require_health_record,
     review_health_record,
     update_health_record,
@@ -79,7 +80,10 @@ def post_health_record_review(
     payload: HealthRecordReview,
     user: dict[str, str] = Depends(require_admin),
     db: Session = Depends(get_db),
-) -> HealthRecordRead:
+) -> HealthRecordRead | Response:
+    if payload.review_status == "rejected":
+        reject_health_record(db, record_id=record_id, actor=user["username"])
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     return review_health_record(db, record_id=record_id, payload=payload, actor=user["username"])
 
 

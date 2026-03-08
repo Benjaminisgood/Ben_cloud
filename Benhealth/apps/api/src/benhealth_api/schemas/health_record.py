@@ -64,7 +64,6 @@ class HealthRecordUpdate(BaseModel):
 
 class HealthRecordReview(BaseModel):
     review_status: Literal["approved", "rejected"]
-    review_note: str | None = Field(default=None, max_length=4000)
 
 
 class HealthRecordRead(BaseModel):
@@ -94,7 +93,6 @@ class HealthRecordRead(BaseModel):
     medication_name: str | None
     follow_up_plan: str | None
     agent_note: str | None
-    review_note: str | None
     created_by: str
     updated_by: str
     reviewed_by: str | None
