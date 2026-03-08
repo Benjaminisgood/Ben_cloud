@@ -103,7 +103,7 @@ class Settings(BaseSettings):
     )
     ALIYUN_OSS_BUCKET: str = os.getenv("ALIYUN_OSS_BUCKET", "")
     # 数据库配置
-    DB_ENGINE: str = "postgres"  # 默认使用PostgreSQL
+    DB_ENGINE: str = os.getenv("DB_ENGINE", "postgres")
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
     DB_USER: str = os.getenv("DB_USER", "postgres")
