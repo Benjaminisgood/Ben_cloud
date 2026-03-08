@@ -140,6 +140,9 @@ wait_for_pid() {
     if is_running; then
       return 0
     fi
+    if [ -n "$(collect_project_port_pids)" ]; then
+      return 0
+    fi
     sleep 0.25
     retries=$((retries - 1))
   done
@@ -147,7 +150,8 @@ wait_for_pid() {
 }
 
 list_listening_pids() {
-  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | awk '!seen[$0]++'
+  # lsof exits non-zero when no listeners exist; treat that as "no PIDs".
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | awk '!seen[$0]++' || true
 }
 
 pid_command() {
@@ -300,7 +304,11 @@ start() {
   fi
 
   if wait_for_pid; then
-    info "Started (PID=$(cat "$PID_FILE"), mode=$backend)"
+    if is_running; then
+      info "Started (PID=$(cat "$PID_FILE"), mode=$backend)"
+    else
+      warn "Started in mode=$backend, but PID file is missing/stale; listener PID(s): $(collect_project_port_pids)"
+    fi
     info "Log: $LOG_FILE"
     return 0
   fi
@@ -310,6 +318,7 @@ start() {
 }
 
 stop() {
+  load_env
   if ! is_running; then
     if stop_port_listeners_if_owned; then
       rm -f "$PID_FILE"
@@ -346,8 +355,16 @@ stop() {
 }
 
 status() {
+  load_env
   if is_running; then
     echo "running pid=$(cat "$PID_FILE") port=$PORT"
+    return 0
+  fi
+
+  local pids
+  pids="$(collect_project_port_pids)"
+  if [ -n "$pids" ]; then
+    echo "running port=$PORT listener_pids=$pids pid_file=missing_or_stale"
   else
     echo "stopped"
   fi
@@ -359,12 +376,14 @@ restart() {
 }
 
 logs() {
+  load_env
   mkdir -p "$LOG_DIR"
   touch "$LOG_FILE" "$ACCESS_LOG_FILE"
   tail -f "$LOG_FILE" "$ACCESS_LOG_FILE"
 }
 
 ip() {
+  load_env
   echo "http://localhost:$PORT"
   local lan_ip
   lan_ip=$(ifconfig | awk '/inet / && $2 != "127.0.0.1" {print $2; exit}')

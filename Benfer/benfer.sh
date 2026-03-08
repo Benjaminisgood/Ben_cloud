@@ -139,7 +139,8 @@ is_running() {
 }
 
 list_listening_pids() {
-  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | awk '!seen[$0]++'
+  # lsof exits non-zero when no listeners exist; treat that as "no PIDs".
+  lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | awk '!seen[$0]++' || true
 }
 
 pid_command() {
