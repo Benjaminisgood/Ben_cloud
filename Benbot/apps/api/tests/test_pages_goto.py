@@ -22,7 +22,7 @@ def _request(*, scheme: str = "http", hostname: str = "portal.local") -> SimpleN
     return SimpleNamespace(url=SimpleNamespace(scheme=scheme, hostname=hostname, path="/goto/benoss"))
 
 
-def _project(*, public_url: str, sso_enabled: bool = True) -> ProjectConfig:
+def _project(*, public_url: str, sso_enabled: bool = True, sso_entry_path: str = "/auth/sso") -> ProjectConfig:
     return ProjectConfig(
         id="benoss",
         name="Benoss",
@@ -31,7 +31,7 @@ def _project(*, public_url: str, sso_enabled: bool = True) -> ProjectConfig:
         port=8000,
         internal_url="http://localhost:8000",
         public_url=public_url,
-        sso_entry_path="/auth/sso",
+        sso_entry_path=sso_entry_path,
         sso_enabled=sso_enabled,
     )
 
@@ -97,6 +97,29 @@ def test_goto_project_without_sso_does_not_append_token(monkeypatch: pytest.Monk
 
     assert target is not None
     assert target.redirect_url == "http://portal.local:8000/auth/sso"
+
+
+def test_goto_project_without_sso_supports_custom_entry_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = _Settings([
+        _project(
+            public_url="https://apps.example.com/bencred",
+            sso_enabled=False,
+            sso_entry_path="/docs",
+        )
+    ])
+
+    monkeypatch.setattr(web_pages, "get_settings", lambda: settings)
+    monkeypatch.setattr(web_pages, "record_click", lambda _db, _project_id: None)
+
+    target = web_pages.assemble_project_redirect_target(
+        project_id="benoss",
+        request=_request(hostname="portal.local"),
+        db=object(),
+        current_user=_user(),
+    )
+
+    assert target is not None
+    assert target.redirect_url == "http://portal.local:8000/docs"
 
 
 def test_goto_project_keeps_ip_host_and_changes_only_port(monkeypatch: pytest.MonkeyPatch) -> None:

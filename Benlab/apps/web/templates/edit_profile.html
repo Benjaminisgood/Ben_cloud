@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_media_gallery.html" import render_media_gallery %}
 {% block content %}
-<h4 class="mb-3">编辑个人信息</h4>
+<h4 class="mb-3">{% if is_self %}编辑个人信息{% else %}编辑人物档案{% endif %}</h4>
 <style>
   .avatar-editor {
     max-width: 620px;
@@ -72,6 +72,61 @@
     <label for="contact" class="form-label">联系方式</label>
     <input type="text" class="form-control" id="contact" name="contact" value="{{ member.contact or '' }}">
   </div>
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <label for="nickname" class="form-label">昵称</label>
+      <input type="text" class="form-control" id="nickname" name="nickname" value="{{ profile_meta.nickname or '' }}" placeholder="你平时怎么称呼 TA">
+    </div>
+    <div class="col-md-3">
+      <label for="gender" class="form-label">性别</label>
+      <select class="form-select" id="gender" name="gender">
+        <option value="">未填写</option>
+        {% for key, label in gender_lookup.items() %}
+        <option value="{{ key }}" {% if profile_meta.gender == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label for="birthyear" class="form-label">出生年份</label>
+      <input type="number" class="form-control" id="birthyear" name="birthyear" value="{{ profile_meta.birthyear or '' }}" min="1900" max="2100" placeholder="例如 1998">
+    </div>
+    <div class="col-md-6">
+      <label for="birthday" class="form-label">生日</label>
+      <input type="date" class="form-control" id="birthday" name="birthday" value="{{ profile_meta.birthday or '' }}">
+    </div>
+  </div>
+  {% if can_edit_admin_connection_fields %}
+  <div class="card border-0 bg-light-subtle mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0 fs-6">管理员关系档案</h5>
+        <span class="badge bg-light text-dark border">仅管理员可编辑</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="relationship_label" class="form-label">你和 TA 的关系</label>
+          <input type="text" class="form-control" id="relationship_label" name="relationship_label" value="{{ profile_meta.relationship_label or '' }}" placeholder="例如：大学同学 / 前同事 / 家人">
+        </div>
+        <div class="col-md-6">
+          <label for="first_met_date" class="form-label">第一次见面的时间</label>
+          <input type="date" class="form-control" id="first_met_date" name="first_met_date" value="{{ profile_meta.first_met.date or '' }}">
+        </div>
+        <div class="col-md-6">
+          <label for="first_met_location" class="form-label">第一次见面的地点</label>
+          <input type="text" class="form-control" id="first_met_location" name="first_met_location" value="{{ profile_meta.first_met.location or '' }}" placeholder="例如：上海 / 办公室 / 会议现场">
+        </div>
+        <div class="col-md-6">
+          <label for="first_met_feeling" class="form-label">当时感觉</label>
+          <input type="text" class="form-control" id="first_met_feeling" name="first_met_feeling" value="{{ profile_meta.first_met.feeling or '' }}" placeholder="例如：聊得来 / 很靠谱 / 很有趣">
+        </div>
+        <div class="col-12">
+          <label for="first_met_story" class="form-label">第一次见面的故事</label>
+          <textarea class="form-control" id="first_met_story" name="first_met_story" rows="3" placeholder="记录第一次认识时发生了什么、为什么记住了 TA">{{ profile_meta.first_met.story or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
   <div class="mb-3">
     <label for="bio" class="form-label">个人介绍</label>
     <textarea class="form-control" id="bio" name="bio" rows="3" placeholder="向社区伙伴介绍自己、最近关注的项目等">{{ profile_meta.bio }}</textarea>
@@ -109,10 +164,10 @@
   </div>
   <div class="mb-3">
     <div class="d-flex justify-content-between align-items-center">
-      <label class="form-label mb-0">地点关联（仅自己可见）</label>
+      <label class="form-label mb-0">地点关联（仅本人 / 管理员可见）</label>
       <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#affiliationBulkModal">批量新增</button>
     </div>
-    <div class="text-muted small mt-1">说明你与地点的关系（上学、居住、工作等），仅自己可见。</div>
+    <div class="text-muted small mt-1">说明你与地点的关系（上学、居住、工作等），资料仅本人和管理员可见。</div>
     <div id="affiliationsContainer" class="d-flex flex-column gap-3 mt-2">
       {% if profile_meta.location_relations %}
         {% for entry in profile_meta.location_relations %}
@@ -147,10 +202,10 @@
 
   <div class="mb-3 mt-4">
     <div class="d-flex justify-content-between align-items-center">
-      <label class="form-label mb-0">兴趣清单（仅自己可见）</label>
+      <label class="form-label mb-0">物品关联（仅本人 / 管理员可见）</label>
       <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#interestBulkModal">批量新增</button>
     </div>
-    <div class="text-muted small mt-1">记录你关注的物品，仅自己可见。</div>
+    <div class="text-muted small mt-1">记录你和物品的关系，仅本人和管理员可见。</div>
     <div id="interestsContainer" class="d-flex flex-column gap-3 mt-2">
       {% if profile_meta.item_relations %}
         {% for entry in profile_meta.item_relations %}
@@ -184,10 +239,10 @@
   </div>
   <div class="mb-3 mt-4">
     <div class="d-flex justify-content-between align-items-center">
-      <label class="form-label mb-0">活动关联（仅自己可见）</label>
+      <label class="form-label mb-0">活动关联（仅本人 / 管理员可见）</label>
       <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#eventBulkModal">批量新增</button>
     </div>
-    <div class="text-muted small mt-1">记录你与活动的关系（主办、参与、关注等），仅自己可见。</div>
+    <div class="text-muted small mt-1">记录你与活动的关系（主办、参与、关注等），仅本人和管理员可见。</div>
     <div id="eventsContainer" class="d-flex flex-column gap-3 mt-2">
       {% if profile_meta.event_relations %}
         {% for entry in profile_meta.event_relations %}
@@ -219,6 +274,58 @@
       {% endif %}
     </div>
   </div>
+  {% if can_edit_admin_connection_fields %}
+  <div class="mb-3 mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <label class="form-label mb-0">人物关系网络（仅管理员可见）</label>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#connectionBulkModal">批量新增</button>
+    </div>
+    <div class="text-muted small mt-1">记录这个人与其他成员的关系类型、亲密度和备注，作为你的私有人脉图谱。</div>
+    <div id="connectionsContainer" class="d-flex flex-column gap-3 mt-2">
+      {% if member_connections %}
+        {% for entry in member_connections %}
+          <div class="connection-row border rounded p-3 d-flex flex-column gap-3"
+               data-connection-id="{{ entry.target_member.id }}"
+               data-connection-index="{{ loop.index0 }}">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="fw-semibold">{{ entry.target_member.name or entry.target_member.username }}</span>
+                <span class="badge bg-light text-dark border">@{{ entry.target_member.username }}</span>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-danger connection-remove">移除</button>
+            </div>
+            <input type="hidden" name="connection_target_id" value="{{ entry.target_member.id }}">
+            <div class="row g-2">
+              <div class="col-md-4">
+                <label class="form-label small mb-1">关系类型</label>
+                <select class="form-select form-select-sm" name="connection_relation_type">
+                  {% for key, label in member_connection_lookup.items() %}
+                  <option value="{{ key }}" {% if entry.connection.relation_type == key %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-1">亲密度</label>
+                <select class="form-select form-select-sm" name="connection_closeness">
+                  <option value="">未标注</option>
+                  {% for key, label in member_connection_closeness_lookup.items() %}
+                  <option value="{{ key }}" {% if entry.connection.closeness == key %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-5">
+                <label class="form-label small mb-1">备注</label>
+                <input type="text" class="form-control form-control-sm" name="connection_note" value="{{ entry.connection.note or '' }}" placeholder="例如：大学室友 / 近两年合作较多">
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted mb-0" id="connectionsEmptyHint">尚未建立人物关系网络，点击“批量新增”选择。</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 <div class="modal fade" id="affiliationBulkModal" tabindex="-1" aria-labelledby="affiliationBulkModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-lg">
     <div class="modal-content">
@@ -419,11 +526,60 @@
     </div>
   </div>
 </div>
+{% if can_edit_admin_connection_fields %}
+<div class="modal fade" id="connectionBulkModal" tabindex="-1" aria-labelledby="connectionBulkModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="connectionBulkModalLabel">批量新增人物关系</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-5">
+            <label for="connectionBulkRelation" class="form-label small mb-1 d-block">默认关系类型</label>
+            <select class="form-select form-select-sm" id="connectionBulkRelation">
+              {% for key, label in member_connection_lookup.items() %}
+              <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-7">
+            <label for="connectionBulkSearch" class="form-label small mb-1 d-block">快速检索</label>
+            <input type="search" class="form-control form-control-sm" id="connectionBulkSearch" placeholder="搜索姓名或用户名">
+          </div>
+        </div>
+        <div class="border rounded mt-3 p-2" style="max-height: 320px; overflow-y: auto;">
+          {% if connection_candidates %}
+            {% for person in connection_candidates %}
+            <div class="form-check connection-bulk-row py-1" data-label="{{ ((person.name or '') ~ ' ' ~ (person.username or ''))|lower }}">
+              <input class="form-check-input connection-bulk-checkbox" type="checkbox" value="{{ person.id }}" id="connectionBulk{{ person.id }}" data-name="{{ person.name or person.username }}" data-username="{{ person.username }}">
+              <label class="form-check-label" for="connectionBulk{{ person.id }}">
+                {{ person.name or person.username }}
+                <span class="text-muted small">@{{ person.username }}</span>
+              </label>
+            </div>
+            {% endfor %}
+          {% else %}
+          <p class="text-muted small mb-0">暂无其他成员可建立关系。</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary btn-sm" id="connectionBulkConfirmBtn" data-bs-dismiss="modal">添加所选</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
+  {% if is_self %}
   <div class="mb-3">
     <label for="password" class="form-label">新密码 (留空则不修改)</label>
     <input type="password" class="form-control" id="password" name="password">
   </div>
+  {% endif %}
   <div class="mb-4">
     <label class="form-label">头像 (可选)</label>
     <div class="card avatar-editor shadow-sm border-0">
@@ -550,6 +706,8 @@
   const LOCATION_RELATION_OPTIONS = {{ relation_lookup | tojson | safe }};
   const ITEM_RELATION_OPTIONS = {{ item_relation_lookup | tojson | safe }};
   const EVENT_RELATION_OPTIONS = {{ event_relation_lookup | tojson | safe }};
+  const MEMBER_CONNECTION_OPTIONS = {{ member_connection_lookup | default({}, true) | tojson | safe }};
+  const MEMBER_CONNECTION_CLOSENESS = {{ member_connection_closeness_lookup | default({}, true) | tojson | safe }};
 
   function toggleEmptyMessage(container, hintId, message, selector) {
     const hint = document.getElementById(hintId);
@@ -956,6 +1114,118 @@
           cb.checked = false;
         });
         toggleEmptyMessage(container, 'eventsEmptyHint', '尚未记录活动关联，点击“批量新增”选择。', '.event-row');
+      });
+    }
+  })();
+
+  (function manageConnections() {
+    const container = document.getElementById('connectionsContainer');
+    if (!container) return;
+    const relationOptions = MEMBER_CONNECTION_OPTIONS || {};
+    const closenessOptions = MEMBER_CONNECTION_CLOSENESS || {};
+    const bulkModal = document.getElementById('connectionBulkModal');
+    const bulkRelation = document.getElementById('connectionBulkRelation');
+    const bulkConfirm = document.getElementById('connectionBulkConfirmBtn');
+    const bulkSearch = document.getElementById('connectionBulkSearch');
+    const bulkCheckboxes = bulkModal ? Array.from(bulkModal.querySelectorAll('.connection-bulk-checkbox')) : [];
+    const bulkRows = bulkModal ? Array.from(bulkModal.querySelectorAll('.connection-bulk-row')) : [];
+    let nextIndex = container.querySelectorAll('.connection-row').length;
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function buildOptions(options, selectedValue, includeEmpty) {
+      let html = includeEmpty ? '<option value="">未标注</option>' : '';
+      Object.keys(options).forEach(function (key) {
+        const selected = String(selectedValue || '') === String(key) ? ' selected' : '';
+        html += '<option value="' + key + '"' + selected + '>' + options[key] + '</option>';
+      });
+      return html;
+    }
+
+    function createRow(id, name, username, relationType, closeness, note) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'connection-row border rounded p-3 d-flex flex-column gap-3';
+      wrapper.setAttribute('data-connection-id', id || '');
+      wrapper.setAttribute('data-connection-index', String(nextIndex++));
+      wrapper.innerHTML = `
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="fw-semibold">${escapeHtml(name || username || '未指定成员')}</span>
+            <span class="badge bg-light text-dark border">@${escapeHtml(username || '')}</span>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-danger connection-remove">移除</button>
+        </div>
+        <input type="hidden" name="connection_target_id" value="${id || ''}">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label small mb-1">关系类型</label>
+            <select class="form-select form-select-sm" name="connection_relation_type">${buildOptions(relationOptions, relationType, false)}</select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small mb-1">亲密度</label>
+            <select class="form-select form-select-sm" name="connection_closeness">${buildOptions(closenessOptions, closeness, true)}</select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label small mb-1">备注</label>
+            <input type="text" class="form-control form-control-sm" name="connection_note" placeholder="例如：大学室友 / 近两年合作较多" value="${escapeHtml(note || '')}">
+          </div>
+        </div>
+      `;
+      return wrapper;
+    }
+
+    function attachRow(row) {
+      const removeBtn = row.querySelector('.connection-remove');
+      if (removeBtn && !removeBtn.dataset.bound) {
+        removeBtn.dataset.bound = 'true';
+        removeBtn.addEventListener('click', function () {
+          row.remove();
+          toggleEmptyMessage(container, 'connectionsEmptyHint', '尚未建立人物关系网络，点击“批量新增”选择。', '.connection-row');
+        });
+      }
+    }
+
+    Array.from(container.querySelectorAll('.connection-row')).forEach(function (row, idx) {
+      row.setAttribute('data-connection-index', row.getAttribute('data-connection-index') || String(idx));
+      attachRow(row);
+    });
+    nextIndex = container.querySelectorAll('.connection-row').length;
+    toggleEmptyMessage(container, 'connectionsEmptyHint', '尚未建立人物关系网络，点击“批量新增”选择。', '.connection-row');
+
+    if (bulkModal && bulkConfirm) {
+      if (bulkSearch) {
+        bulkSearch.addEventListener('input', function () {
+          const term = this.value.trim().toLowerCase();
+          bulkRows.forEach(function (row) {
+            const label = (row.getAttribute('data-label') || '').toLowerCase();
+            row.style.display = term ? (label.indexOf(term) !== -1 ? '' : 'none') : '';
+          });
+        });
+      }
+      bulkConfirm.addEventListener('click', function () {
+        const relationType = bulkRelation ? bulkRelation.value : 'other';
+        bulkCheckboxes.forEach(function (cb) {
+          if (!cb.checked) return;
+          const identifier = cb.value;
+          if (!identifier || container.querySelector('.connection-row[data-connection-id="' + identifier + '"]')) {
+            cb.checked = false;
+            return;
+          }
+          const name = cb.getAttribute('data-name') || cb.getAttribute('data-username') || '未指定成员';
+          const username = cb.getAttribute('data-username') || '';
+          const row = createRow(identifier, name, username, relationType, '', '');
+          container.appendChild(row);
+          attachRow(row);
+          cb.checked = false;
+        });
+        toggleEmptyMessage(container, 'connectionsEmptyHint', '尚未建立人物关系网络，点击“批量新增”选择。', '.connection-row');
       });
     }
   })();

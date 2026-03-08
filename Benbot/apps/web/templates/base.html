@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a0f1a">
   <title>{{ title or "Benbot" }}</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/style.css?v={{ asset_version }}">
 </head>
 <body data-page="{{ page or '' }}">
@@ -18,18 +19,22 @@
 
       {% if current_user %}
       <nav class="header-nav">
-        <a class="nav-link {% if page == 'home' %}active{% endif %}" href="/">门户</a>
-        {% if current_user.role == "admin" %}
-        <a class="nav-link {% if page == 'manage' %}active{% endif %}" href="/manage">管理页</a>
-        {% endif %}
-        <span class="user-badge">
-          <span class="user-dot"></span>
-          {{ current_user.username }}
+        <div class="header-nav-links">
+          <a class="nav-link {% if page == 'home' %}active{% endif %}" href="/">门户</a>
           {% if current_user.role == "admin" %}
-          <span class="role-tag">管理员</span>
+          <a class="nav-link {% if page == 'manage' %}active{% endif %}" href="/manage">管理页</a>
           {% endif %}
-        </span>
-        <a class="nav-link logout" href="/logout">退出</a>
+        </div>
+        <div class="header-user-group">
+          <span class="user-badge">
+            <span class="user-dot"></span>
+            <span class="user-name">{{ current_user.username }}</span>
+            {% if current_user.role == "admin" %}
+            <span class="role-tag">管理员</span>
+            {% endif %}
+          </span>
+          <a class="nav-link logout header-logout" href="/logout">退出</a>
+        </div>
       </nav>
       {% endif %}
     </div>

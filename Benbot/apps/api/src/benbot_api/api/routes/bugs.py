@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from ...db.session import get_db
-from ...schemas.bugs import BugActionResponse, BugItem, BugSubmitResponse
+from ...schemas.bugs import BugActionResponse, BugBulkActionResponse, BugItem, BugSubmitResponse
 from ...services import bugs as bug_service
 from ...web.deps import require_admin_session_user_or_403, require_session_user_or_401
 
@@ -57,6 +57,14 @@ def get_archived_bugs(request: Request, db: Session = Depends(get_db)):
     """Get all archived bug reports. Admin only."""
     require_admin_session_user_or_403(request, db)
     return bug_service.list_archived(db)
+
+
+@router.delete("/bugs/archived", response_model=BugBulkActionResponse)
+def clear_archived_bugs(request: Request, db: Session = Depends(get_db)):
+    """Delete all archived bug reports. Admin only."""
+    require_admin_session_user_or_403(request, db)
+    cleared_count = bug_service.clear_archived(db)
+    return {"ok": True, "cleared_count": cleared_count}
 
 
 @router.post("/bugs/{bug_id}/approve", response_model=BugActionResponse)

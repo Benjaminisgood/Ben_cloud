@@ -1,0 +1,39 @@
+
+{% extends "base.html" %}
+{% block body %}
+<div class="login-shell">
+    <div class="login-scene">
+        <section class="login-card">
+            <p class="eyebrow">Private Desk</p>
+            <h1>进入 Benphoto</h1>
+            <p class="subtitle">这是你的卡通照片桌。登录后就能把 OSS 里的照片摆上桌面，扔进垃圾桶，再随手捡回来。</p>
+            {% if error_message %}
+            <div class="flash-banner flash-error">{{ error_message }}</div>
+            {% endif %}
+            <form method="post" action="/login" class="photo-form">
+                <label>
+                    用户名
+                    <input type="text" name="username" autocomplete="username" required>
+                </label>
+                <label>
+                    密码
+                    <input type="password" name="password" autocomplete="current-password" required>
+                </label>
+                <input type="hidden" name="next" value="/">
+                <button type="submit" class="submit-button">本地登录</button>
+            </form>
+        </section>
+
+        <section class="login-preview" aria-hidden="true">
+            <div class="preview-desk">
+                <article class="preview-polaroid preview-polaroid-a"></article>
+                <article class="preview-polaroid preview-polaroid-b"></article>
+                <article class="preview-polaroid preview-polaroid-c"></article>
+                <div class="preview-bin">
+                    <span></span>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

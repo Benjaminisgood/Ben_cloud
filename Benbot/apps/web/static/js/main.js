@@ -198,7 +198,7 @@ if (document.querySelector('.project-grid')) {
   }
 
   function sourceLabel(source) {
-    const map = { health_check:'健康检查', project_control:'运行控制', system:'系统' };
+    const map = { health_check:'健康检查', project_control:'运行控制', env_editor:'环境配置', system:'系统' };
     return map[source] || source;
   }
 
@@ -306,6 +306,230 @@ if (document.querySelector('.project-grid')) {
   });
 })();
 
+// ── 项目 .env 编辑器（管理员专属）───────────────────────────────
+(function initProjectEnvModal() {
+  const overlay = document.getElementById('env-modal-overlay');
+  if (!overlay) return;
+
+  const titleEl = document.getElementById('env-modal-title');
+  const descEl = document.getElementById('env-modal-desc');
+  const updatedAtEl = document.getElementById('env-updated-at');
+  const hintEl = document.getElementById('env-hint');
+  const editorEl = document.getElementById('env-editor');
+  const statusEl = document.getElementById('env-save-status');
+  const closeBtn = document.getElementById('env-modal-close');
+  const reloadBtn = document.getElementById('env-reload-btn');
+  const saveBtn = document.getElementById('env-save-btn');
+
+  let currentProjectId = null;
+  let currentProjectName = '';
+  let loading = false;
+  let saving = false;
+  let activeLoadToken = 0;
+
+  function modalBusy() {
+    return loading || saving;
+  }
+
+  function formatDateTime(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString('zh-CN', { hour12: false });
+  }
+
+  function sourceHint(source) {
+    if (source === 'env') {
+      return '当前已加载真实 `.env` 内容；保存会先备份旧文件，再原子写回。';
+    }
+    if (source === 'example') {
+      return '当前 `.env` 不存在，已载入 `.env.example` 模板；点击保存后会在项目根目录创建 `.env`。';
+    }
+    return '当前项目既没有 `.env` 也没有 `.env.example`，可直接从空白内容开始创建。';
+  }
+
+  function applyEnvMeta(data) {
+    if (titleEl) {
+      titleEl.textContent = currentProjectName ? `${currentProjectName} · .env` : '项目 .env 配置';
+    }
+    if (descEl) {
+      descEl.textContent = currentProjectName
+        ? `直接编辑 ${currentProjectName} 项目根目录的环境变量配置。`
+        : '直接读取和保存项目根目录下的 `.env` 文件。';
+    }
+    if (updatedAtEl) updatedAtEl.textContent = `更新时间：${formatDateTime(data?.updated_at)}`;
+    if (hintEl) hintEl.textContent = sourceHint(data?.source);
+  }
+
+  function syncBusyState() {
+    const busy = modalBusy();
+    if (editorEl) editorEl.disabled = busy || !currentProjectId;
+    if (reloadBtn) reloadBtn.disabled = busy || !currentProjectId;
+    if (saveBtn) {
+      saveBtn.disabled = busy || !currentProjectId;
+      saveBtn.textContent = saving ? '保存中…' : '保存 .env';
+    }
+  }
+
+  async function loadEnvFile(showErrorFlash = true) {
+    if (!currentProjectId || modalBusy()) return;
+
+    const loadToken = ++activeLoadToken;
+    loading = true;
+    syncBusyState();
+    if (statusEl) statusEl.textContent = '加载中…';
+    if (editorEl) {
+      editorEl.value = '';
+      editorEl.placeholder = '加载中…';
+    }
+
+    try {
+      const res = await fetch(`/api/projects/${currentProjectId}/env`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.detail || `HTTP ${res.status}`);
+      }
+      if (loadToken !== activeLoadToken || !currentProjectId) return;
+
+      applyEnvMeta(data);
+      if (editorEl) {
+        editorEl.value = typeof data.content === 'string' ? data.content : '';
+        editorEl.placeholder = '';
+      }
+      if (statusEl) {
+        if (data.source === 'env') {
+          statusEl.textContent = '已载入当前 .env';
+        } else if (data.source === 'example') {
+          statusEl.textContent = '已载入 .env.example，保存后会生成 .env';
+        } else {
+          statusEl.textContent = '当前无配置文件，可直接创建新的 .env';
+        }
+      }
+    } catch (e) {
+      if (loadToken !== activeLoadToken || !currentProjectId) return;
+      applyEnvMeta({ source: 'empty', path: '—', loaded_from: '', updated_at: null });
+      if (editorEl) {
+        editorEl.value = '';
+        editorEl.placeholder = '加载失败';
+      }
+      if (statusEl) statusEl.textContent = '加载失败';
+      if (showErrorFlash) {
+        showClientFlash(`加载 ${currentProjectId} 的 .env 失败：${e?.message || 'unknown_error'}`, 'error');
+      }
+    } finally {
+      if (loadToken === activeLoadToken) {
+        loading = false;
+        syncBusyState();
+      }
+    }
+  }
+
+  async function saveEnvFile() {
+    if (!currentProjectId || modalBusy() || !editorEl) return;
+
+    saving = true;
+    syncBusyState();
+    if (statusEl) statusEl.textContent = '保存中…';
+
+    try {
+      const res = await fetch(`/api/projects/${currentProjectId}/env`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editorEl.value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.detail || `HTTP ${res.status}`);
+      }
+
+      applyEnvMeta(data);
+      if (statusEl) {
+        statusEl.textContent = data.backup_path
+          ? `已保存，变更ID: ${data.change_id}，原文件已备份`
+          : `已保存，变更ID: ${data.change_id}`;
+      }
+      showClientFlash(
+        `${currentProjectId} .env 已保存（变更ID: ${data.change_id}）`,
+        'success',
+      );
+    } catch (e) {
+      if (statusEl) statusEl.textContent = '保存失败';
+      showClientFlash(`保存 ${currentProjectId} 的 .env 失败：${e?.message || 'unknown_error'}`, 'error');
+    } finally {
+      saving = false;
+      syncBusyState();
+    }
+  }
+
+  function openModal(projectId, projectName) {
+    activeLoadToken += 1;
+    currentProjectId = projectId;
+    currentProjectName = projectName || projectId;
+    applyEnvMeta({ source: 'empty', path: '—', loaded_from: '', updated_at: null });
+    if (statusEl) statusEl.textContent = '准备加载…';
+    if (editorEl) {
+      editorEl.value = '';
+      editorEl.placeholder = '加载中…';
+    }
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    syncBusyState();
+    void loadEnvFile();
+  }
+
+  function closeModal() {
+    if (saving) return;
+    activeLoadToken += 1;
+    loading = false;
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    currentProjectId = null;
+    currentProjectName = '';
+    applyEnvMeta({ source: 'empty', path: '—', loaded_from: '', updated_at: null });
+    if (editorEl) {
+      editorEl.value = '';
+      editorEl.placeholder = '加载中…';
+    }
+    if (statusEl) statusEl.textContent = '未加载';
+    syncBusyState();
+  }
+
+  document.querySelectorAll('[data-project-env]').forEach(btn => {
+    const card = btn.closest('.project-card');
+    if (!card) return;
+
+    btn.addEventListener('click', () => {
+      const projectId = card.dataset.projectId;
+      const nameEl = card.querySelector('.card-name');
+      const projectName = nameEl ? nameEl.textContent.trim() : projectId;
+      openModal(projectId, projectName);
+    });
+  });
+
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (reloadBtn) reloadBtn.addEventListener('click', () => {
+    void loadEnvFile();
+  });
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    void saveEnvFile();
+  });
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal();
+  });
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's' && overlay.classList.contains('open')) {
+      e.preventDefault();
+      void saveEnvFile();
+      return;
+    }
+    if (e.key === 'Escape' && overlay.classList.contains('open')) {
+      closeModal();
+    }
+  });
+})();
+
 // ── 用户项目可见性管理（管理员专属）────────────────────────────
 (function initUserAccessPanel() {
   const panel = document.getElementById('user-access-panel');
@@ -321,6 +545,14 @@ if (document.querySelector('.project-grid')) {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  function accessSummary(projectIds) {
+    const selected = projects.filter(project => projectIds.has(project.id));
+    if (!selected.length) return '未分配项目';
+
+    const preview = selected.slice(0, 2).map(project => project.name).join(' / ');
+    return `已开放 ${selected.length} 个项目${preview ? ` · ${preview}${selected.length > 2 ? ' 等' : ''}` : ''}`;
   }
 
   function render() {
@@ -345,6 +577,7 @@ if (document.querySelector('.project-grid')) {
       }
 
       const granted = Array.isArray(user.project_ids) ? new Set(user.project_ids) : new Set();
+      const summary = accessSummary(granted);
       const checkboxes = projects.map(project => `
         <label class="access-project-item">
           <input type="checkbox" value="${escHtml(project.id)}" ${granted.has(project.id) ? 'checked' : ''}>
@@ -354,16 +587,24 @@ if (document.querySelector('.project-grid')) {
       return `
         <div class="access-user-row" data-user-id="${user.id}" data-username="${escHtml(user.username)}">
           <div class="access-user-header">
-            <div class="access-user-meta">
-              <span class="access-user-name">@${escHtml(user.username)}</span>
-              <span class="access-user-role">${user.is_active ? '普通用户' : '已禁用账号'}</span>
+            <button class="access-user-toggle" type="button" aria-expanded="false">
+              <span class="access-user-meta">
+                <span class="access-user-name">@${escHtml(user.username)}</span>
+                <span class="access-user-role">${user.is_active ? '普通用户' : '已禁用账号'}</span>
+              </span>
+              <span class="access-user-summary-wrap">
+                <span class="access-user-summary">${escHtml(summary)}</span>
+                <span class="access-user-toggle-icon">⌄</span>
+              </span>
+            </button>
+          </div>
+          <div class="access-user-body">
+            <div class="access-project-grid">
+              ${checkboxes || '<span class="access-admin-empty">暂无可配置项目</span>'}
             </div>
-          </div>
-          <div class="access-project-grid">
-            ${checkboxes || '<span class="access-admin-empty">暂无可配置项目</span>'}
-          </div>
-          <div class="access-user-actions">
-            <button class="access-save-btn" type="button">保存权限</button>
+            <div class="access-user-actions">
+              <button class="access-save-btn" type="button">保存权限</button>
+            </div>
           </div>
         </div>`;
     }).join('');
@@ -411,7 +652,33 @@ if (document.querySelector('.project-grid')) {
     }
   }
 
+  function updateRowSummary(row) {
+    const summaryEl = row.querySelector('.access-user-summary');
+    if (!summaryEl) return;
+
+    const checkedIds = new Set(selectedProjectIds(row));
+    summaryEl.textContent = accessSummary(checkedIds);
+  }
+
   function bindRowActions() {
+    listEl.querySelectorAll('.access-user-toggle').forEach(toggle => {
+      const row = toggle.closest('.access-user-row');
+      if (!row) return;
+      toggle.addEventListener('click', () => {
+        const expanded = !row.classList.contains('expanded');
+        row.classList.toggle('expanded', expanded);
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      });
+    });
+
+    listEl.querySelectorAll('.access-user-row input[type="checkbox"]').forEach(input => {
+      const row = input.closest('.access-user-row');
+      if (!row) return;
+      input.addEventListener('change', () => {
+        updateRowSummary(row);
+      });
+    });
+
     listEl.querySelectorAll('.access-save-btn').forEach(button => {
       const row = button.closest('.access-user-row');
       if (!row) return;
@@ -456,7 +723,10 @@ if (document.querySelector('.project-grid')) {
   const archivedSection = document.getElementById('bug-archive-section');
   const archivedToggle = document.getElementById('bug-archive-toggle');
   const archivedCount = document.getElementById('archived-bug-count');
+  const clearArchivedBtn = document.getElementById('clear-archived-bugs-btn');
   let approvedBugs = [];
+  let archivedTotal = 0;
+  let clearingArchived = false;
 
   function emptyHtml(msg) {
     return `<p class="bug-empty">${msg}</p>`;
@@ -541,7 +811,12 @@ if (document.querySelector('.project-grid')) {
   }
 
   function updateArchivedSummary(count) {
+    archivedTotal = count;
     if (archivedCount) archivedCount.textContent = String(count);
+    if (clearArchivedBtn) {
+      clearArchivedBtn.disabled = clearingArchived || count === 0;
+      clearArchivedBtn.textContent = clearingArchived ? '清空中…' : '清空已归档';
+    }
   }
 
   async function loadPendingBugs() {
@@ -599,6 +874,28 @@ if (document.querySelector('.project-grid')) {
     } catch (e) {
       updateArchivedSummary(0);
       archivedList.innerHTML = emptyHtml('加载失败，请刷新重试');
+    }
+  }
+
+  async function clearArchivedBugs() {
+    if (clearingArchived || archivedTotal === 0) return;
+    if (!window.confirm('确认清空所有已归档 Bug 吗？该操作不可撤销。')) return;
+
+    clearingArchived = true;
+    updateArchivedSummary(archivedTotal);
+    try {
+      const res = await fetch('/api/bugs/archived', { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.detail || '清空失败');
+      }
+      showClientFlash(`已清空 ${data.cleared_count || 0} 条已归档 Bug`, 'success');
+      await loadArchivedBugs();
+    } catch (e) {
+      showClientFlash(e?.message || '清空失败', 'error');
+    } finally {
+      clearingArchived = false;
+      updateArchivedSummary(archivedTotal);
     }
   }
 
@@ -718,6 +1015,11 @@ if (document.querySelector('.project-grid')) {
       const nextCollapsed = !archivedSection.classList.contains('collapsed');
       archivedSection.classList.toggle('collapsed', nextCollapsed);
       archivedToggle.setAttribute('aria-expanded', nextCollapsed ? 'false' : 'true');
+    });
+  }
+  if (clearArchivedBtn) {
+    clearArchivedBtn.addEventListener('click', () => {
+      void clearArchivedBugs();
     });
   }
   if (isAdmin) void loadPendingBugs();

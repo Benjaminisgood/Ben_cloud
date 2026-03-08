@@ -1,0 +1,195 @@
+
+{% extends "base.html" %}
+{% block body %}
+<div class="page-shell">
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">{{ nav_label }}</p>
+            <h1>{{ hero_title }}</h1>
+            <p class="subtitle">{{ hero_subtitle }}</p>
+        </div>
+        <div class="session-card">
+            <p class="session-role">{{ current_user.role }}</p>
+            <p class="session-user">{{ current_user.username }}</p>
+            <a class="ghost-link" href="/logout">退出</a>
+        </div>
+    </header>
+
+    <section class="summary-grid">
+        {% for card in dashboard.summary %}
+        <article class="metric-card">
+            <p class="metric-label">{{ card.label }}</p>
+            <p class="metric-value">{{ card.value }}</p>
+            <p class="metric-hint">{{ card.hint }}</p>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="content-grid">
+        <div class="collections-panel">
+            <div class="section-heading">
+                <p class="eyebrow">{{ collections_title }}</p>
+                <h2>{{ collections_subtitle }}</h2>
+            </div>
+            {% for table in dashboard.collections %}
+            <article class="data-card">
+                <div class="card-header">
+                    <h3>{{ table.title }}</h3>
+                    <p>{{ table.subtitle }}</p>
+                </div>
+                {% if table.rows %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for column in table.columns %}
+                                <th>{{ column.label }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in table.rows %}
+                            <tr>
+                                {% for column in table.columns %}
+                                <td>{{ row[column.key] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-state">{{ table.empty_message }}</p>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+
+        <aside class="focus-panel">
+            <div class="section-heading">
+                <p class="eyebrow">{{ records_label }}</p>
+                <h2>财务管理后端</h2>
+                <p>{{ records_hint }}</p>
+            </div>
+            <form class="focus-form" method="post" action="/finance-records">
+                <label>
+                    类型
+                    <select name="record_type">
+                        <option value="expense">支出</option>
+                        <option value="income">收入</option>
+                        <option value="budget">预算</option>
+                        <option value="bill">账单</option>
+                        <option value="subscription">订阅</option>
+                        <option value="debt">债务</option>
+                        <option value="investment">投资</option>
+                        <option value="savings_goal">储蓄目标</option>
+                        <option value="tax">税务</option>
+                        <option value="decision" selected>决策</option>
+                    </select>
+                </label>
+                <label>
+                    标题
+                    <input type="text" name="title" required maxlength="160" placeholder="例如：季度保险费、要不要续费某会员">
+                </label>
+                <label>
+                    描述
+                    <textarea name="description" rows="4" required placeholder="写下金额背景、决策点或后续动作。"></textarea>
+                </label>
+                <label>
+                    类别
+                    <input type="text" name="category" required maxlength="80" placeholder="例如：insurance、rent、food、subscription">
+                </label>
+                <label>
+                    流向
+                    <select name="flow_direction">
+                        <option value="outflow">流出</option>
+                        <option value="inflow">流入</option>
+                        <option value="neutral" selected>中性</option>
+                    </select>
+                </label>
+                <label>
+                    计划状态
+                    <select name="planning_status">
+                        <option value="planned" selected>计划中</option>
+                        <option value="pending">待处理</option>
+                        <option value="active">进行中</option>
+                        <option value="settled">已结清</option>
+                        <option value="cancelled">已取消</option>
+                        <option value="archived">归档</option>
+                    </select>
+                </label>
+                <label>
+                    风险等级
+                    <select name="risk_level">
+                        <option value="critical">关键</option>
+                        <option value="high">高</option>
+                        <option value="medium" selected>中</option>
+                        <option value="low">低</option>
+                    </select>
+                </label>
+                <label>
+                    金额
+                    <input type="text" name="amount" placeholder="例如：2450.50">
+                </label>
+                <label>
+                    币种
+                    <input type="text" name="currency" value="CNY" maxlength="8">
+                </label>
+                <label>
+                    账户
+                    <input type="text" name="account_name" maxlength="120" placeholder="例如：招商银行卡">
+                </label>
+                <label>
+                    对手方
+                    <input type="text" name="counterparty" maxlength="120" placeholder="例如：平安保险、房东、公司">
+                </label>
+                <label>
+                    到期/复盘日期
+                    <input type="date" name="due_on">
+                </label>
+                <label>
+                    重复规则
+                    <input type="text" name="recurrence_rule" maxlength="120" placeholder="例如：monthly">
+                </label>
+                <label>
+                    后续动作
+                    <textarea name="follow_up_action" rows="4" placeholder="例如：到期前两周重新比价。"></textarea>
+                </label>
+                <label>
+                    agent 备注
+                    <textarea name="agent_note" rows="4" placeholder="写下判断依据或提醒事项。"></textarea>
+                </label>
+                <button type="submit">写入 {{ records_label }}</button>
+            </form>
+
+            <div class="focus-list">
+                {% if finance_records %}
+                {% for item in finance_records %}
+                <article class="focus-entry">
+                    <div class="focus-meta">
+                        <span>{{ item.record_type }}</span>
+                        <span>{{ item.planning_status }}</span>
+                        <span>{{ item.risk_level }}</span>
+                        <span>{{ item.review_status }}</span>
+                        <span>{{ item.created_by }}</span>
+                    </div>
+                    <h3>{{ item.title }}</h3>
+                    <p>{{ item.category }} · {{ item.flow_direction }} · {{ item.currency }} {{ item.amount if item.amount is not none else "-" }}</p>
+                    <p>{{ item.description }}</p>
+                    <p>写入于 {{ item.created_at }}{% if item.reviewed_at %} · 审核于 {{ item.reviewed_at }}{% endif %}</p>
+                    {% if item.follow_up_action %}
+                    <p>{{ item.follow_up_action }}</p>
+                    {% endif %}
+                    {% if item.review_note %}
+                    <p>审核备注：{{ item.review_note }}</p>
+                    {% endif %}
+                </article>
+                {% endfor %}
+                {% else %}
+                <p class="empty-state">还没有财务记录。先把一个待决策或待处理的财务事项写进去。</p>
+                {% endif %}
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}

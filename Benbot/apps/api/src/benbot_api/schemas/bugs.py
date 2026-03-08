@@ -22,3 +22,8 @@ class BugSubmitResponse(BaseModel):
 class BugActionResponse(BaseModel):
     ok: bool
     bug: BugItem
+
+
+class BugBulkActionResponse(BaseModel):
+    ok: bool
+    cleared_count: int

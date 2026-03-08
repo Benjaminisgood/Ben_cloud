@@ -62,3 +62,13 @@ def list_approved_bug_reports(db: Session) -> list[BugReport]:
         .order_by(BugReport.approved_at.asc())
         .all()
     )
+
+
+def clear_archived_bug_reports(db: Session) -> int:
+    count = (
+        db.query(BugReport)
+        .filter(BugReport.status == "archived")
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return count

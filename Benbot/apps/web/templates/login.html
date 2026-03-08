@@ -2,66 +2,82 @@
 
 {% block content %}
 <div class="auth-page">
-  <div class="auth-card">
-    <div class="auth-logo">
-      <span class="auth-logo-icon">🤖</span>
-      <h1 class="auth-title">Benbot</h1>
-      <p class="auth-subtitle">统一入口 · 登录后可访问所有项目</p>
-    </div>
+  <div class="auth-layout">
+    <section class="auth-story">
+      <span class="portal-eyebrow auth-eyebrow">Benbot Access</span>
+      <h1 class="auth-hero-title">一次登录，进入整个 Ben_cloud</h1>
+      <p class="auth-hero-desc">Benbot 负责统一入口、SSO 跳转、运行状态感知和管理员控制，让门户保持轻量但始终可用。</p>
+      <div class="auth-feature-list">
+        <article class="auth-feature-card">
+          <span class="auth-feature-icon">↗</span>
+          <div>
+            <h2>统一分发</h2>
+            <p>登录后只看到你有权限访问的项目入口，不需要重复认证。</p>
+          </div>
+        </article>
+        <article class="auth-feature-card">
+          <span class="auth-feature-icon">◎</span>
+          <div>
+            <h2>状态感知</h2>
+            <p>首页直接显示健康状态和最近响应，让异常入口更早暴露。</p>
+          </div>
+        </article>
+        <article class="auth-feature-card">
+          <span class="auth-feature-icon">⌘</span>
+          <div>
+            <h2>管理收口</h2>
+            <p>管理员在一个界面里处理项目启停、日志、`.env` 和用户可见性。</p>
+          </div>
+        </article>
+      </div>
+    </section>
 
-    <form class="auth-form" action="/login" method="post">
-      <input type="hidden" name="next" value="{{ next_url }}">
-
-      <div class="form-group">
-        <label class="form-label" for="username">用户名</label>
-        <input
-          class="form-input"
-          type="text"
-          id="username"
-          name="username"
-          autocomplete="username"
-          autofocus
-          required
-        >
+    <section class="auth-card auth-card-shell">
+      <div class="auth-card-head">
+        <span class="auth-card-kicker">登录</span>
+        <div class="auth-logo">
+          <span class="auth-logo-icon">🤖</span>
+          <h2 class="auth-title">Benbot</h2>
+          <p class="auth-subtitle">统一入口 · 登录后可访问所有项目</p>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="password">密码</label>
-        <input
-          class="form-input"
-          type="password"
-          id="password"
-          name="password"
-          autocomplete="current-password"
-          required
-        >
+      <form class="auth-form" action="/login" method="post">
+        <input type="hidden" name="next" value="{{ next_url }}">
+
+        <div class="form-group">
+          <label class="form-label" for="username">用户名</label>
+          <input
+            class="form-input"
+            type="text"
+            id="username"
+            name="username"
+            autocomplete="username"
+            autofocus
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">密码</label>
+          <input
+            class="form-input"
+            type="password"
+            id="password"
+            name="password"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <button class="btn-primary" type="submit">登录</button>
+      </form>
+
+      <div class="auth-footer">
+        <p>还没有账号？<a href="/register" class="auth-link">立即注册</a></p>
       </div>
-
-      <button class="btn-primary" type="submit">登录</button>
-    </form>
-
-    <div class="auth-footer">
-      <p>还没有账号？<a href="/register" class="auth-link">立即注册</a></p>
-    </div>
+      <p class="auth-note">Benbot 只负责入口和状态，不承载具体业务数据。</p>
+    </section>
   </div>
 </div>
-
-<style>
-.auth-footer {
-  margin-top: 24px;
-  text-align: center;
-  font-size: 14px;
-  color: #666;
-}
-
-.auth-link {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.auth-link:hover {
-  text-decoration: underline;
-}
-</style>
 {% endblock %}

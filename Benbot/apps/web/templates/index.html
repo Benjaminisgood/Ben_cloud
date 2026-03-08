@@ -1,14 +1,62 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% set stats = namespace(up_count=0, down_count=0, total_clicks=0) %}
+{% for proj in projects %}
+  {% if proj.status == 'up' %}
+    {% set stats.up_count = stats.up_count + 1 %}
+  {% elif proj.status == 'down' %}
+    {% set stats.down_count = stats.down_count + 1 %}
+  {% endif %}
+  {% set stats.total_clicks = stats.total_clicks + (proj.total_clicks or 0) %}
+{% endfor %}
 <div class="portal-page">
-  <div class="portal-hero">
-    <span class="portal-eyebrow">Benbot Portal</span>
-    <h2 class="portal-heading">项目入口</h2>
-    <p class="portal-desc">选择一个项目进入；管理员运维、权限分配和 Bug 管理都在独立管理页处理。</p>
-  </div>
+  <section class="portal-hero dashboard-hero">
+    <div class="portal-hero-copy">
+      <span class="portal-eyebrow">Benbot Portal</span>
+      <h2 class="portal-heading">用户工作台</h2>
+      <p class="portal-desc">面向普通用户的统一入口，负责分发项目访问、显示健康状态和提交反馈，不承载具体业务本身。</p>
+    </div>
+    <div class="portal-signal-grid">
+      <article class="portal-signal-card">
+        <span class="portal-signal-label">可见项目</span>
+        <strong class="portal-signal-value">{{ projects|length }}</strong>
+        <p class="portal-signal-note">当前账号已经开放的业务入口。</p>
+      </article>
+      <article class="portal-signal-card">
+        <span class="portal-signal-label">健康在线</span>
+        <strong class="portal-signal-value">{{ stats.up_count }}</strong>
+        <p class="portal-signal-note">最近一次健康检测可达的项目数。</p>
+      </article>
+      <article class="portal-signal-card">
+        <span class="portal-signal-label">累计访问</span>
+        <strong class="portal-signal-value">{{ stats.total_clicks }}</strong>
+        <p class="portal-signal-note">门户入口被点击的历史总次数。</p>
+      </article>
+    </div>
+  </section>
+
+  <nav class="page-menu" aria-label="门户页内导航">
+    <a class="page-menu-link" href="#project-list">查看项目</a>
+    <a class="page-menu-link" href="#bug-section">提交反馈</a>
+  </nav>
 
   {% if projects %}
+  <section class="portal-section-head" id="project-list">
+    <div>
+      <p class="section-kicker">Workspace Routes</p>
+      <h3 class="section-title">你的可见项目</h3>
+      <p class="section-desc">门户只负责分发与状态感知，真正的业务操作仍在对应子应用内完成。</p>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="refreshStatus()" title="刷新健康状态">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+      </svg>
+      刷新状态
+    </button>
+  </section>
+
   <div class="project-grid">
     {% for proj in projects %}
     <div
@@ -18,7 +66,9 @@
       style="--card-color: {{ proj.color }}"
     >
       <div class="card-header">
-        <span class="card-icon">{{ proj.icon }}</span>
+        <div class="card-icon-shell">
+          <span class="card-icon">{{ proj.icon }}</span>
+        </div>
         <div class="card-meta">
           <h3 class="card-name">{{ proj.name }}</h3>
           <p class="card-desc">{{ proj.description }}</p>
@@ -45,6 +95,21 @@
       </div>
 
       <div class="card-footer">
+        <div class="card-utility-row">
+          {% set runtime_state = proj.service_state or 'unknown' %}
+          {% set runtime_class = 'running' if proj.status == 'up' and runtime_state != 'running' else runtime_state %}
+          <span class="runtime-pill runtime-{{ runtime_class }}">
+            {% if proj.service_state == 'running' %}
+            服务已启动
+            {% elif proj.status == 'up' %}
+            健康在线
+            {% elif proj.service_state == 'stopped' %}
+            服务未启动
+            {% else %}
+            启停未知
+            {% endif %}
+          </span>
+        </div>
         <div class="card-main-actions">
           <div class="card-stats">
             <span class="stat-item">
@@ -54,7 +119,7 @@
             </span>
           </div>
           <a class="card-enter-btn" href="/goto/{{ proj.id }}">
-            进入
+            打开站点
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
@@ -69,16 +134,6 @@
     当前账号还没有可见项目，请联系管理员分配权限。
   </div>
   {% endif %}
-
-  <div class="portal-footer">
-    <button class="refresh-btn" id="refresh-btn" onclick="refreshStatus()" title="刷新健康状态">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-        <path d="M3 3v5h5"/>
-      </svg>
-      刷新状态
-    </button>
-  </div>
 </div>
 
 <!-- ── Bug 反馈区 ─────────────────────────────────────────────── -->
@@ -91,7 +146,8 @@
   <div class="bug-section-inner">
     <div class="bug-section-head">
       <div>
-        <h2 class="bug-section-title">🐛 Bug 反馈</h2>
+        <p class="section-kicker">Feedback Desk</p>
+        <h2 class="bug-section-title">Bug 反馈</h2>
         <p class="bug-section-desc">这里负责提交反馈；审核、收录和后续人工处理请在管理页执行。</p>
       </div>
     </div>

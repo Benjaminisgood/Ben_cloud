@@ -1,0 +1,25 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+    <style>
+        :root {
+            --primary: {{ theme.primary if theme else '#cc6a2f' }};
+            --secondary: {{ theme.secondary if theme else '#ffd166' }};
+            --canvas: {{ theme.canvas if theme else '#f8efe1' }};
+            --ink: {{ theme.ink if theme else '#2d2119' }};
+            --wood: {{ theme.wood if theme else '#9d6035' }};
+            --cream: {{ theme.cream if theme else '#fffaf3' }};
+            --accent: {{ theme.accent if theme else '#4fa8a0' }};
+        }
+    </style>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    {% block body %}{% endblock %}
+    <script src="/static/photo_scene.js" defer></script>
+</body>
+</html>

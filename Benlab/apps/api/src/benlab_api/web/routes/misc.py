@@ -10,6 +10,7 @@ from benlab_api.db.session import get_db
 from benlab_api.models import Member
 from benlab_api.repositories.misc_repo import (
     get_dashboard_counts,
+    get_graph_center_member,
     list_export_items,
     list_export_locations,
     list_export_logs,
@@ -25,10 +26,13 @@ from benlab_api.repositories.misc_repo import (
     search_locations,
 )
 from benlab_api.services.misc_views import (
+    GRAPH_LEGEND,
     build_disabled_autofill_suggestion,
+    build_complex_graph_payload,
     build_graph_json,
     build_item_search_payload,
     build_location_search_payload,
+    build_simple_graph_payload,
     export_csv,
     to_items_export_rows,
     to_locations_export_rows,
@@ -60,12 +64,26 @@ def index(
     upcoming_events = list_upcoming_events(db, now=now)
     recent_logs = list_recent_logs(db)
 
-    graph_json = build_graph_json(
+    graph_members = list_graph_members(db, current_member_id=current_user.id)
+    graph_items = list_graph_items(db, current_member_id=current_user.id)
+    graph_locations = list_graph_locations(db, current_member_id=current_user.id)
+    graph_events = list_graph_events(db, current_member_id=current_user.id)
+    center_member = get_graph_center_member(db, current_member_id=current_user.id) or current_user
+
+    graph_simple = build_simple_graph_payload(
         current_user,
-        members=list_graph_members(db, current_member_id=current_user.id),
-        items=list_graph_items(db, current_member_id=current_user.id),
-        locations=list_graph_locations(db, current_member_id=current_user.id),
-        events=list_graph_events(db, current_member_id=current_user.id),
+        members=graph_members,
+        items=graph_items,
+        locations=graph_locations,
+        events=graph_events,
+    )
+    graph_complex = build_complex_graph_payload(
+        current_user,
+        center_member=center_member,
+        members=graph_members,
+        items=graph_items,
+        locations=graph_locations,
+        events=graph_events,
     )
 
     context = base_template_context()
@@ -74,7 +92,16 @@ def index(
             **counts,
             "upcoming_events": upcoming_events,
             "recent_logs": recent_logs,
-            "graph_json": graph_json,
+            "graph_json": build_graph_json(
+                current_user,
+                members=graph_members,
+                items=graph_items,
+                locations=graph_locations,
+                events=graph_events,
+            ),
+            "graph_simple": graph_simple,
+            "graph_complex": graph_complex,
+            "graph_legend": GRAPH_LEGEND,
         }
     )
     return render_template(request, "index.html", context, current_user=current_user)

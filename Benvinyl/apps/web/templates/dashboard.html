@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="vinyl-scene" data-vinyl-scene data-admin="{{ 1 if is_admin else 0 }}">
+    <div class="vinyl-status-dock">
+        <div class="vinyl-status-pills">
+            <span>{{ dashboard.display_date }}</span>
+            <span>{{ dashboard.deck_cards|length }} / {{ dashboard.daily_limit }}</span>
+            <span>{{ dashboard.trash_cards|length }} in bin</span>
+        </div>
+        <div class="vinyl-session-chip">
+            <strong>{{ current_user.username }}</strong>
+            {% if is_admin %}
+            <a href="/logout">退出</a>
+            {% else %}
+            <a href="/login">登录</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if flash_message %}
+    <div class="vinyl-scene-toast">{{ flash_message }}</div>
+    {% endif %}
+
+    <section class="vinyl-playground">
+        <div class="vinyl-backdrop" aria-hidden="true">
+            <span class="vinyl-lamp"></span>
+            <span class="vinyl-spark"></span>
+        </div>
+        <div class="vinyl-table-plane" aria-hidden="true"></div>
+
+        <section class="vinyl-turntable-stage">
+            <div class="vinyl-turntable-base">
+                <div class="vinyl-platter {% if dashboard.now_playing %}is-playing{% endif %}">
+                    <div class="vinyl-platter-rings"></div>
+                    <div class="vinyl-platter-label">
+                        {{ dashboard.now_playing.title[0] if dashboard.now_playing and dashboard.now_playing.title else "♪" }}
+                    </div>
+                </div>
+                <div class="vinyl-tonearm"></div>
+                <div class="vinyl-console">
+                    {% if dashboard.now_playing %}
+                    <div class="vinyl-now-copy">
+                        <strong>{{ dashboard.now_playing.title }}</strong>
+                        <span>{{ dashboard.now_playing.source_label }}</span>
+                    </div>
+                    <audio controls preload="none" src="{{ dashboard.now_playing.audio_url }}"></audio>
+                    {% if is_admin %}
+                    <button type="button" class="vinyl-now-trash" data-submit-action="/records/{{ dashboard.now_playing.id }}/trash" aria-label="扔掉当前唱片"></button>
+                    {% endif %}
+                    {% else %}
+                    <div class="vinyl-now-copy">
+                        <strong>今天还没开机</strong>
+                        <span>{{ dashboard.empty_deck_message }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <button type="button" class="vinyl-crate-prop" data-scene-toggle="record-drawer" aria-expanded="false">
+            <span class="vinyl-crate-handle"></span>
+            <span class="vinyl-crate-body"></span>
+            <span class="vinyl-crate-slot"></span>
+            <span class="vinyl-prop-label">{{ "唱片箱" if is_admin else "入口" }}</span>
+        </button>
+
+        <section class="vinyl-drawer-panel" data-record-drawer hidden>
+            <div class="vinyl-drawer-head">
+                <div>
+                    <p>{{ "新唱片" if is_admin else "公开模式" }}</p>
+                    <strong>{{ "放进唱片池" if is_admin else "只读浏览" }}</strong>
+                </div>
+                <button type="button" class="vinyl-mini-close" data-scene-close="record-drawer" aria-label="关闭"></button>
+            </div>
+            {% if is_admin %}
+            <form class="vinyl-scene-form" method="post" action="/records">
+                <label class="sr-only" for="record-title">标题</label>
+                <input id="record-title" type="text" name="title" maxlength="120" placeholder="标题">
+                <label class="sr-only" for="record-note">说明</label>
+                <textarea id="record-note" name="note" rows="3" placeholder="说明"></textarea>
+                <label class="sr-only" for="record-oss-path">OSS 地址或对象 key</label>
+                <input id="record-oss-path" type="text" name="oss_path" maxlength="1024" required placeholder="OSS 地址或对象 key">
+                <button type="submit">收进唱片箱</button>
+            </form>
+            <p class="vinyl-drawer-hint">{{ dashboard.add_record_hint }}</p>
+            {% else %}
+            <div class="vinyl-public-note">
+                <p>当前只能听。</p>
+                <a href="/login">切到管理员</a>
+            </div>
+            {% endif %}
+        </section>
+
+        <div class="vinyl-trash-zone" id="trashDropzone" data-trash-zone="{% if is_admin %}true{% else %}false{% endif %}">
+            <div class="vinyl-bin-body" aria-hidden="true">
+                <span class="vinyl-bin-lid"></span>
+                <span class="vinyl-bin-shell"></span>
+            </div>
+            <div class="vinyl-trash-stack">
+                {% for card in dashboard.trash_cards %}
+                <button
+                    type="button"
+                    class="vinyl-trash-record"
+                    data-restore-url="/records/{{ card.id }}/restore"
+                    aria-label="恢复 {{ card.title }}"
+                    title="{{ card.title }}"
+                >
+                    <span>{{ card.title[0] if card.title else "♪" }}</span>
+                </button>
+                {% else %}
+                <span class="vinyl-trash-empty"></span>
+                {% endfor %}
+            </div>
+            <span class="vinyl-prop-label">垃圾桶</span>
+        </div>
+
+        {% if dashboard.deck_cards %}
+        {% for card in dashboard.deck_cards %}
+        <article
+            class="vinyl-record-scene {% if card.is_active %}is-active{% endif %}"
+            style="--x: {{ card.x_pct }}%; --y: {{ card.y_px }}px; --rot: {{ card.rotation_deg }}deg; --z: {{ card.z_index }}; --tone: {{ card.label_tone }}; --delay: {{ card.animation_delay_ms }}ms;"
+            {% if is_admin %}draggable="true" data-trash-url="/records/{{ card.id }}/trash"{% endif %}
+        >
+            {% if is_admin %}
+            <button
+                type="button"
+                class="vinyl-record-toss"
+                data-submit-action="/records/{{ card.id }}/trash"
+                aria-label="扔掉 {{ card.title }}"
+            ></button>
+            {% endif %}
+            <a class="vinyl-record-link" href="/?record_id={{ card.id }}">
+                <div class="vinyl-record-disc-scene">
+                    <div class="vinyl-record-rings"></div>
+                    <div class="vinyl-record-core">{{ card.title[0] if card.title else "♪" }}</div>
+                </div>
+                <div class="vinyl-record-copy">
+                    <strong>{{ card.title }}</strong>
+                    <span>{{ card.source_label }}</span>
+                </div>
+            </a>
+        </article>
+        {% endfor %}
+        {% else %}
+        <div class="vinyl-empty-stage">
+            <strong>没有唱片</strong>
+            <span>{{ dashboard.empty_deck_message }}</span>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

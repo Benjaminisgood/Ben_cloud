@@ -4,11 +4,14 @@ import json
 from datetime import datetime
 from types import SimpleNamespace
 
+from benlab_api.core.config import get_settings
 from benlab_api.services.misc_views import (
     build_disabled_autofill_suggestion,
+    build_complex_graph_payload,
     build_graph_json,
     build_item_search_payload,
     build_location_search_payload,
+    build_simple_graph_payload,
     to_items_export_rows,
 )
 
@@ -37,6 +40,78 @@ def test_build_graph_json() -> None:
     )
     assert len(graph["nodes"]) == 5
     assert len(graph["links"]) == 4
+
+
+def test_build_simple_and_complex_graph_payloads() -> None:
+    admin_username = get_settings().ADMIN_USERNAME
+    center_user = SimpleNamespace(
+        id=1,
+        name="Admin",
+        username=admin_username,
+        following=[],
+        outbound_connections=[],
+        items=[],
+        responsible_locations=[],
+    )
+    target_member = SimpleNamespace(
+        id=2,
+        name="Bob",
+        username="bob",
+        outbound_connections=[],
+        following=[],
+        responsible_locations=[],
+        items=[],
+    )
+    connection = SimpleNamespace(
+        source_member_id=1,
+        target_member_id=2,
+        relation_type="friend",
+        closeness=4,
+        note="校友",
+        target_member=target_member,
+    )
+    center_user.outbound_connections = [connection]
+    center_user.following = [target_member]
+
+    location = SimpleNamespace(id=20, name="Lab", status="正常", parent_id=None, parent=None, children=[], responsible_members=[center_user, target_member], items=[])
+    item = SimpleNamespace(id=10, name="Camera", category="设备", status="正常", locations=[location], responsible_members=[center_user])
+    event = SimpleNamespace(
+        id=30,
+        title="Demo",
+        start_time=datetime(2026, 2, 27, 12, 0),
+        visibility="public",
+        owner=center_user,
+        participant_links=[SimpleNamespace(member=target_member, role="guest")],
+        items=[item],
+        locations=[location],
+    )
+    center_user.items = [item]
+    center_user.responsible_locations = [location]
+    target_member.responsible_locations = [location]
+    target_member.items = []
+    location.items = [item]
+
+    simple = build_simple_graph_payload(center_user, members=[target_member], items=[item], locations=[location], events=[event])
+    assert simple["mode"] == "simple"
+    assert "member" in simple["nodeLegend"]
+    assert len(simple["nodes"]) == 5
+
+    complex_payload = build_complex_graph_payload(
+        center_user,
+        center_member=center_user,
+        members=[target_member],
+        items=[item],
+        locations=[location],
+        events=[event],
+    )
+    kinds = {link["kind"] for link in complex_payload["links"]}
+    node_types = {node["type"] for node in complex_payload["nodes"]}
+    assert complex_payload["mode"] == "complex"
+    assert "member-connection" in kinds
+    assert "member-location" in kinds
+    assert "item-category" in kinds
+    assert "event-location" in kinds
+    assert "category" in node_types
 
 
 def test_search_payload_builders() -> None:

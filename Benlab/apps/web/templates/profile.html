@@ -225,9 +225,12 @@
     </div>
     <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mb-3">
       <h4 class="mb-0">{{ profile_user.name or profile_user.username }}</h4>
-      {% if current_user.id == profile_user.id %}
-        <a href="{{ url_for('edit_profile', member_id=profile_user.id) }}" class="btn btn-sm btn-outline-primary">编辑个人主页</a>
-      {% else %}
+      {% if can_edit_profile %}
+        <a href="{{ url_for('edit_profile', member_id=profile_user.id) }}" class="btn btn-sm btn-outline-primary">
+          {% if is_self %}编辑个人主页{% else %}编辑人物档案{% endif %}
+        </a>
+      {% endif %}
+      {% if not is_self %}
         <button type="button"
                 class="btn btn-sm {% if is_following %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}"
                 id="profileFollowBtn"
@@ -237,6 +240,26 @@
         </button>
       {% endif %}
     </div>
+    {% set public_profile_badges = [] %}
+    {% if profile_overview.nickname %}
+      {% set _ = public_profile_badges.append('昵称：' ~ profile_overview.nickname) %}
+    {% endif %}
+    {% if profile_overview.gender_label and show_private_profile_data %}
+      {% set _ = public_profile_badges.append(profile_overview.gender_label) %}
+    {% endif %}
+    {% if profile_overview.birthday_label and show_private_profile_data %}
+      {% set _ = public_profile_badges.append('生日：' ~ profile_overview.birthday_label) %}
+    {% endif %}
+    {% if profile_overview.relationship_label and show_admin_connection_fields %}
+      {% set _ = public_profile_badges.append('关系：' ~ profile_overview.relationship_label) %}
+    {% endif %}
+    {% if public_profile_badges %}
+    <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+      {% for badge in public_profile_badges %}
+      <span class="badge bg-light text-dark border">{{ badge }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
     <div class="d-flex justify-content-center mb-2">
       <span class="detail-updated-hint">
         资料上次更新：{{ profile_user.last_modified|china_time if profile_user.last_modified else '未知' }}
@@ -258,6 +281,92 @@
     {% endif %}
   </div>
 </div>
+{% if show_private_profile_data %}
+<div class="card mb-4">
+  <div class="card-header fw-semibold">人物档案</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="text-muted small">昵称</div>
+        <div>{{ profile_overview.nickname or '未记录' }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="text-muted small">性别</div>
+        <div>{{ profile_overview.gender_label or '未记录' }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="text-muted small">出生年份</div>
+        <div>{{ profile_overview.birthyear or '未记录' }}</div>
+      </div>
+      <div class="col-md-6">
+        <div class="text-muted small">生日</div>
+        <div>{{ profile_overview.birthday or '未记录' }}</div>
+      </div>
+      {% if show_admin_connection_fields %}
+      <div class="col-md-6">
+        <div class="text-muted small">你和 TA 的关系</div>
+        <div>{{ profile_overview.relationship_label or '未记录' }}</div>
+      </div>
+      <div class="col-md-6">
+        <div class="text-muted small">第一次见面的时间 / 地点</div>
+        <div>
+          {% if profile_overview.first_met_summary %}
+            {{ profile_overview.first_met_summary }}
+          {% else %}
+            未记录
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="text-muted small">当时感觉</div>
+        <div>{{ profile_overview.first_met.feeling or '未记录' }}</div>
+      </div>
+      <div class="col-md-6">
+        <div class="text-muted small">故事</div>
+        <div style="white-space: pre-wrap;">{{ profile_overview.first_met.story or '未记录' }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% if show_admin_connection_fields %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">人物关系网络（仅管理员可见）</span>
+    <span class="badge bg-light text-dark border">{{ member_connections|length }}</span>
+  </div>
+  {% if member_connections %}
+  <ul class="list-group list-group-flush">
+    {% for entry in member_connections %}
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <a href="{{ url_for('profile', member_id=entry.target_member.id) }}" class="fw-semibold text-decoration-none">
+            {{ entry.target_member.name or entry.target_member.username }}
+          </a>
+          <span class="badge bg-warning-subtle text-warning-emphasis border ms-2">{{ entry.relation_label }}</span>
+          {% if entry.closeness_label %}
+          <span class="badge bg-light text-dark border ms-2">{{ entry.closeness_label }}</span>
+          {% endif %}
+          {% if entry.note %}
+          <div class="small text-muted mt-1">{{ entry.note }}</div>
+          {% endif %}
+        </div>
+        <div class="small text-muted text-end">
+          @{{ entry.target_member.username }}
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="card-body">
+    <p class="mb-0 text-muted">尚未建立人物关系网络。</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
 {% if is_self and item_alerts %}
   {% for alert in item_alerts %}
   <div class="alert alert-{{ alert.level }}">
@@ -311,10 +420,10 @@
     {% endif %}
   </div>
 </div>
-{% if is_self %}
+{% if show_private_profile_data %}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="fw-semibold">地点关联（仅自己可见）</span>
+    <span class="fw-semibold">地点关联（仅本人 / 管理员可见）</span>
     <span class="badge bg-light text-dark border">{{ profile_affiliations|length }}</span>
   </div>
   {% if profile_affiliations %}
@@ -379,10 +488,10 @@
 </div>
 {% endif %}
 
-{% if is_self %}
+{% if show_private_profile_data %}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="fw-semibold">兴趣清单（仅自己可见）</span>
+    <span class="fw-semibold">物品关联（仅本人 / 管理员可见）</span>
     <span class="badge bg-light text-dark border">{{ profile_interests|length }}</span>
   </div>
   {% if profile_interests %}
@@ -441,16 +550,16 @@
   {% endif %}
   {% else %}
   <div class="card-body">
-    <p class="mb-0 text-muted">还没有关注任何物品，去物品页看看吧。</p>
+    <p class="mb-0 text-muted">尚未记录物品关联。</p>
   </div>
   {% endif %}
 </div>
 {% endif %}
 
-{% if is_self %}
+{% if show_private_profile_data %}
 <div class="card mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="fw-semibold">活动关联（仅自己可见）</span>
+    <span class="fw-semibold">活动关联（仅本人 / 管理员可见）</span>
     <span class="badge bg-light text-dark border">{{ profile_events|length }}</span>
   </div>
   {% if profile_events %}

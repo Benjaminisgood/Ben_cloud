@@ -1,50 +1,90 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">社区成员总览</h3>
+  <h3 class="mb-0">人物档案总览</h3>
   <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#followManageModal">
-    新增关注
+    管理关注
   </button>
 </div>
 <div class="position-relative mb-3">
-  <input type="text" class="form-control" id="membersFilterInput" placeholder="输入姓名 / 用户名 / 联系方式即时筛选">
+  <input type="text" class="form-control" id="membersFilterInput" placeholder="输入姓名 / 昵称 / 用户名 / 关系 / 初见地点即时筛选">
 </div>
 <div class="table-responsive">
   <table class="table table-hover align-middle" id="membersTable">
     <thead class="table-light">
       <tr>
-        <th class="col-member-username">用户名</th>
-        <th class="col-member-contact">联系方式</th>
-        <th class="col-member-count text-center">负责物品数</th>
-        <th class="col-member-count text-center">负责位置数</th>
-        <th class="col-member-count text-center">举办活动数</th>
+        <th class="col-member-username">人物档案</th>
+        <th class="col-member-contact">{{ '联系方式 / 关系' if directory_private_mode else '联系方式' }}</th>
+        <th class="col-member-count text-center">{{ '物品关联数' if directory_private_mode else '负责物品数' }}</th>
+        <th class="col-member-count text-center">{{ '地点关联数' if directory_private_mode else '负责位置数' }}</th>
+        <th class="col-member-contact">{{ '生日 / 初见 / 关系链' if directory_private_mode else '补充信息' }}</th>
       </tr>
     </thead>
     <tbody>
-      {% for mem in members %}
-      {% set items_count = mem.items|length %}
-      {% set locations_count = mem.responsible_locations|length %}
-      {% set events_count = mem.events_owned.count() %}
-      {% set search_blob = ((mem.name or '') ~ ' ' ~ mem.username ~ ' ' ~ (mem.contact or '') ~ ' ' ~ items_count ~ ' ' ~ locations_count ~ ' ' ~ events_count) %}
+      {% for card in member_cards %}
+      {% set mem = card.member %}
+      {% set overview = card.overview %}
       {% set row_class = '' %}
       {% if mem.id == current_user.id %}
         {% set row_class = 'member-row-self' %}
-      {% elif mem.id in followed_ids %}
+      {% elif card.is_following %}
         {% set row_class = 'member-row-followed' %}
       {% endif %}
-      <tr class="{{ row_class }}" data-search="{{ search_blob|lower }}">
+      <tr class="{{ row_class }}" data-search="{{ card.search_blob }}">
         <td class="member-cell-username col-member-username">
-          <a class="fw-semibold text-decoration-none" href="{{ url_for('profile', member_id=mem.id) }}">
-            {{ mem.username }}
-          </a>
+          <div class="d-flex flex-column gap-1">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <a class="fw-semibold text-decoration-none" href="{{ url_for('profile', member_id=mem.id) }}">
+                {{ mem.name or mem.username }}
+              </a>
+              {% if mem.id == current_user.id %}
+              <span class="badge bg-primary-subtle text-primary-emphasis border">我</span>
+              {% elif card.is_following %}
+              <span class="badge bg-light text-dark border">关注中</span>
+              {% endif %}
+              {% if overview.relationship_label and directory_private_mode %}
+              <span class="badge bg-warning-subtle text-warning-emphasis border">{{ overview.relationship_label }}</span>
+              {% endif %}
+            </div>
+            <div class="small text-muted">
+              @{{ mem.username }}
+              {% if overview.nickname %}
+                <span class="ms-2">昵称：{{ overview.nickname }}</span>
+              {% endif %}
+              {% if overview.gender_label and directory_private_mode %}
+                <span class="ms-2">{{ overview.gender_label }}</span>
+              {% endif %}
+            </div>
+          </div>
         </td>
-        <td class="member-cell-contact col-member-contact">{{ mem.contact or '-' }}</td>
-        <td class="col-member-count text-center">{{ items_count }}</td>
-        <td class="col-member-count text-center">{{ locations_count }}</td>
-        <td class="col-member-count text-center">{{ events_count }}</td>
+        <td class="member-cell-contact col-member-contact">
+          {% if mem.contact %}
+          <div>{{ mem.contact }}</div>
+          {% else %}
+          <div class="text-muted">-</div>
+          {% endif %}
+          {% if overview.relationship_label and directory_private_mode %}
+          <div class="small text-muted mt-1">关系：{{ overview.relationship_label }}</div>
+          {% endif %}
+        </td>
+        <td class="col-member-count text-center">{{ card.item_count }}</td>
+        <td class="col-member-count text-center">{{ card.location_count }}</td>
+        <td class="col-member-contact">
+          {% if directory_private_mode and overview.birthday_label %}
+          <div>{{ overview.birthday_label }}</div>
+          {% else %}
+          <div class="text-muted">-</div>
+          {% endif %}
+          {% if overview.first_met_summary and directory_private_mode %}
+          <div class="small text-muted mt-1">初见：{{ overview.first_met_summary }}</div>
+          {% endif %}
+          {% if directory_private_mode %}
+          <div class="small text-muted mt-1">关系链：{{ card.connection_count }}</div>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
-      <tr id="membersEmptyRow" class="text-center text-muted {% if members|length > 0 %}d-none{% endif %}">
+      <tr id="membersEmptyRow" class="text-center text-muted {% if member_cards|length > 0 %}d-none{% endif %}">
         <td colspan="5">暂无成员</td>
       </tr>
     </tbody>
@@ -56,7 +96,7 @@
     <div class="modal-content">
       <form id="followManageForm">
         <div class="modal-header">
-          <h5 class="modal-title" id="followManageModalLabel">新增关注成员</h5>
+          <h5 class="modal-title" id="followManageModalLabel">管理关注成员</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
         </div>
         <div class="modal-body">

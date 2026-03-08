@@ -1,6 +1,6 @@
 version: 1
 purpose: new_project_standard_registry
-workspace_root: /Users/ben/Desktop/Ben_cloud
+workspace_root: /Users/ben/Desktop/myapp/Ben_cloud
 
 notes:
   - This registry is used to keep Ben_cloud project metadata and new-project onboarding consistency.
@@ -59,6 +59,68 @@ apps:
     port: 8700
     workdir: /Users/ben/Desktop/Ben_cloud/Benfast
     agent_instructions: /Users/ben/Desktop/Ben_cloud/Benfast/AGENTS.md
+  - id: benprefs
+    name: Benprefs
+    mission: preference archive and curation dashboard
+    port: 8800
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Benprefs
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Benprefs/AGENTS.md
+  - id: benhealth
+    name: Benhealth
+    mission: personal health dashboard and check-in workspace
+    port: 8900
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Benhealth
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Benhealth/AGENTS.md
+  - id: benfinance
+    name: Benfinance
+    mission: finance cockpit and decision logging workspace
+    port: 9100
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Benfinance
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Benfinance/AGENTS.md
+  - id: bencred
+    name: Bencred
+    mission: private credential and fixed-fact vault with manual review
+    port: 9600
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Bencred
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Bencred/AGENTS.md
+    sso_entry_path: /
+  - id: benlink
+    name: Benlink
+    mission: reviewed link inbox and knowledge curation workspace
+    port: 9700
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Benlink
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Benlink/AGENTS.md
+    sso_entry_path: /
+  - id: benself
+    name: Benself
+    mission: personal ai self-context hub with graphiti-backed memory sync
+    port: 9800
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Benself
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Benself/AGENTS.md
+  - id: benjournal
+    name: Benjournal
+    mission: daily voice journal capture and transcript archive
+    port: 9200
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Benjournal
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Benjournal/AGENTS.md
+  - id: benphoto
+    name: Benphoto
+    mission: personal photo desk with daily random OSS showcase and trash-bin recovery
+    port: 9300
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Benphoto
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Benphoto/AGENTS.md
+  - id: benreel
+    name: Benreel
+    mission: daily retro-video showcase with film-reel switching and trash-bin recovery
+    port: 9500
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Benreel
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Benreel/AGENTS.md
+  - id: benvinyl
+    name: Benvinyl
+    mission: daily vinyl-style audio showcase with trash-and-restore curation
+    port: 9400
+    workdir: /Users/ben/Desktop/myapp/Ben_cloud/Benvinyl
+    agent_instructions: /Users/ben/Desktop/myapp/Ben_cloud/Benvinyl/AGENTS.md
 
 new_app_onboarding_template:
   required_fields:

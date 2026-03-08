@@ -1,0 +1,186 @@
+
+{% extends "base.html" %}
+{% block body %}
+<div class="page-shell">
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">{{ nav_label }}</p>
+            <h1>{{ hero_title }}</h1>
+            <p class="subtitle">{{ hero_subtitle }}</p>
+        </div>
+        <div class="session-card">
+            <p class="session-role">{{ current_user.role }}</p>
+            <p class="session-user">{{ current_user.username }}</p>
+            <a class="ghost-link" href="/logout">退出</a>
+        </div>
+    </header>
+
+    <section class="summary-grid">
+        {% for card in dashboard.summary %}
+        <article class="metric-card">
+            <p class="metric-label">{{ card.label }}</p>
+            <p class="metric-value">{{ card.value }}</p>
+            <p class="metric-hint">{{ card.hint }}</p>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="content-grid">
+        <div class="collections-panel">
+            <div class="section-heading">
+                <p class="eyebrow">{{ collections_title }}</p>
+                <h2>{{ collections_subtitle }}</h2>
+            </div>
+            {% for table in dashboard.collections %}
+            <article class="data-card">
+                <div class="card-header">
+                    <h3>{{ table.title }}</h3>
+                    <p>{{ table.subtitle }}</p>
+                </div>
+                {% if table.rows %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for column in table.columns %}
+                                <th>{{ column.label }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in table.rows %}
+                            <tr>
+                                {% for column in table.columns %}
+                                <td>{{ row[column.key] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-state">{{ table.empty_message }}</p>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+
+        <aside class="focus-panel">
+            <div class="section-heading">
+                <p class="eyebrow">{{ records_label }}</p>
+                <h2>喜恶与偏好后端</h2>
+                <p>{{ records_hint }}</p>
+            </div>
+            <form class="focus-form" method="post" action="/preference-records">
+                <label>
+                    对象类型
+                    <select name="subject_type">
+                        <option value="food">食物</option>
+                        <option value="merchant">商家</option>
+                        <option value="activity">事情/活动</option>
+                        <option value="item">物品</option>
+                        <option value="habit">行为习惯</option>
+                        <option value="environment">环境</option>
+                        <option value="other">其他</option>
+                    </select>
+                </label>
+                <label>
+                    对象名称
+                    <input type="text" name="subject_name" required maxlength="160" placeholder="例如：无糖酸奶、楼下便利店、周日早起">
+                </label>
+                <label>
+                    判断维度
+                    <input type="text" name="aspect" required maxlength="80" placeholder="例如：口感、服务、节奏、噪音、价格敏感度">
+                </label>
+                <label>
+                    立场
+                    <select name="stance">
+                        <option value="love">非常喜欢</option>
+                        <option value="like" selected>喜欢</option>
+                        <option value="neutral">中性</option>
+                        <option value="dislike">不喜欢</option>
+                        <option value="avoid">回避</option>
+                        <option value="curious">好奇</option>
+                        <option value="want_to_try">想尝试</option>
+                    </select>
+                </label>
+                <label>
+                    时间指向
+                    <select name="timeframe">
+                        <option value="past">过去</option>
+                        <option value="current" selected>当下</option>
+                        <option value="future">未来</option>
+                    </select>
+                </label>
+                <label>
+                    验证状态
+                    <select name="validation_state">
+                        <option value="hypothesis" selected>假说</option>
+                        <option value="confirmed">已确认</option>
+                        <option value="conflicted">有冲突</option>
+                        <option value="retired">已退役</option>
+                    </select>
+                </label>
+                <label>
+                    强度
+                    <select name="intensity">
+                        <option value="9">9</option>
+                        <option value="8">8</option>
+                        <option value="7">7</option>
+                        <option value="6">6</option>
+                        <option value="5" selected>5</option>
+                        <option value="4">4</option>
+                        <option value="3">3</option>
+                        <option value="2">2</option>
+                        <option value="1">1</option>
+                    </select>
+                </label>
+                <label>
+                    上下文
+                    <input type="text" name="context" maxlength="120" placeholder="例如：工作日早晨、社交场景、深夜">
+                </label>
+                <label>
+                    商家/品牌
+                    <input type="text" name="merchant_name" maxlength="160" placeholder="例如：盒马、某家咖啡馆">
+                </label>
+                <label>
+                    触发细节
+                    <textarea name="trigger_detail" rows="4" placeholder="写下导致这条喜恶成立的细节。"></textarea>
+                </label>
+                <label>
+                    支撑证据
+                    <textarea name="supporting_detail" rows="4" placeholder="写下观察、记忆或 agent 推断依据。"></textarea>
+                </label>
+                <button type="submit">写入 {{ records_label }}</button>
+            </form>
+
+            <div class="focus-list">
+                {% if preference_records %}
+                {% for item in preference_records %}
+                <article class="focus-entry">
+                    <div class="focus-meta">
+                        <span>{{ item.subject_type }}</span>
+                        <span>{{ item.timeframe }}</span>
+                        <span>{{ item.validation_state }}</span>
+                        <span>{{ item.review_status }}</span>
+                        <span>{{ item.created_by }}</span>
+                    </div>
+                    <h3>{{ item.subject_name }} / {{ item.aspect }}</h3>
+                    <p>{{ item.stance }} · 强度 {{ item.intensity }} · {{ item.context or "未标注上下文" }}</p>
+                    <p>写入于 {{ item.created_at }}{% if item.reviewed_at %} · 审核于 {{ item.reviewed_at }}{% endif %}</p>
+                    {% if item.trigger_detail %}
+                    <p>{{ item.trigger_detail }}</p>
+                    {% endif %}
+                    {% if item.review_note %}
+                    <p>审核备注：{{ item.review_note }}</p>
+                    {% endif %}
+                </article>
+                {% endfor %}
+                {% else %}
+                <p class="empty-state">还没有偏好记录。先把一个很小但稳定的喜恶细节写进去。</p>
+                {% endif %}
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}

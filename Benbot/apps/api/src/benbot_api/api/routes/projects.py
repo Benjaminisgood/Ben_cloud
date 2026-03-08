@@ -9,12 +9,16 @@ from sqlalchemy.orm import Session
 from ...db.session import get_db
 from ...schemas.projects import (
     ProjectControlResponse,
+    ProjectEnvFileResponse,
+    ProjectEnvUpdatePayload,
+    ProjectEnvUpdateResponse,
     ProjectLogsResponse,
     ProjectsStatusResponse,
 )
 from ...services.health import run_health_checks
 from ...services.metrics import inc_counter
 from ...services.project_control import run_project_control_action
+from ...services.project_env import read_project_env_file, update_project_env_file
 from ...services.project_views import (
     assemble_project_logs_response,
     assemble_projects_status_response,
@@ -118,3 +122,63 @@ async def get_project_logs(
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get("/projects/{project_id}/env", response_model=ProjectEnvFileResponse)
+def get_project_env_file(
+    project_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    require_admin_session_user_or_403(request, db)
+    try:
+        snapshot = read_project_env_file(project_id)
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = status.HTTP_404_NOT_FOUND if detail in {"project_not_found", "project_root_not_found"} else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+    return ProjectEnvFileResponse(
+        project_id=snapshot.project_id,
+        project_name=snapshot.project_name,
+        path=snapshot.path,
+        loaded_from=snapshot.loaded_from,
+        exists=snapshot.exists,
+        source=snapshot.source,
+        updated_at=snapshot.updated_at.isoformat() if snapshot.updated_at else None,
+        content=snapshot.content,
+    )
+
+
+@router.put("/projects/{project_id}/env", response_model=ProjectEnvUpdateResponse)
+def put_project_env_file(
+    project_id: str,
+    payload: ProjectEnvUpdatePayload,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    operator = require_admin_session_user_or_403(request, db)
+    try:
+        result = update_project_env_file(
+            project_id=project_id,
+            content=payload.content,
+            db=db,
+            operator=operator.username,
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = status.HTTP_404_NOT_FOUND if detail in {"project_not_found", "project_root_not_found"} else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+    return ProjectEnvUpdateResponse(
+        ok=True,
+        project_id=result.project_id,
+        project_name=result.project_name,
+        path=result.path,
+        loaded_from=result.loaded_from,
+        exists=result.exists,
+        source=result.source,
+        updated_at=result.updated_at.isoformat(),
+        change_id=result.change_id,
+        backup_path=result.backup_path,
+    )

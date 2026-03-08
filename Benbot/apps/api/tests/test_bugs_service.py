@@ -34,6 +34,14 @@ def test_list_archived_formats_rows(monkeypatch: pytest.MonkeyPatch) -> None:
     }]
 
 
+def test_clear_archived_returns_deleted_count(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(bugs, "clear_archived_bug_reports", lambda _db: 4)
+
+    result = bugs.clear_archived(object())
+
+    assert result == 4
+
+
 def test_archive_bug_marks_approved_bug_as_archived(monkeypatch: pytest.MonkeyPatch) -> None:
     bug = SimpleNamespace(
         id=8,

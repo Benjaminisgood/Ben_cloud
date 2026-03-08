@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block body %}
+{% set current_video = snapshot.program[0] if snapshot.program else None %}
+<div class="reel-scene" data-dashboard-root data-admin="{{ 1 if snapshot.viewer.is_admin else 0 }}">
+    <span class="sr-only">老电影放映室</span>
+    <div class="reel-status-dock">
+        <div class="reel-status-pills">
+            <span>{{ snapshot.day_label }}</span>
+            <span>{{ snapshot.program | length }} reels</span>
+            <span>{{ snapshot.summary[0].value }} library</span>
+        </div>
+        <div class="reel-session-chip">
+            <strong>{{ snapshot.viewer.username or "public" }}</strong>
+            {% if snapshot.viewer.username %}
+            <a href="/logout">退出</a>
+            {% else %}
+            <a href="/login?next=/">登录</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <section class="reel-playground">
+        <div class="reel-backdrop" aria-hidden="true">
+            <span class="reel-spotlight"></span>
+            <span class="reel-star reel-star-a"></span>
+            <span class="reel-star reel-star-b"></span>
+            <span class="reel-star reel-star-c"></span>
+        </div>
+        <div class="reel-floor" aria-hidden="true"></div>
+
+        <section class="reel-screen-stage">
+            <div class="reel-screen-shell">
+                <div class="reel-speaker reel-speaker-left"></div>
+                <div class="reel-speaker reel-speaker-right"></div>
+                <div class="reel-screen-panel">
+                    {% if current_video %}
+                    <video
+                        id="program-player"
+                        class="program-player"
+                        controls
+                        preload="metadata"
+                        poster="{{ current_video.poster_url or '' }}"
+                    >
+                        <source src="{{ current_video.asset_url }}" type="video/mp4">
+                    </video>
+                    {% else %}
+                    <div class="empty-screen">
+                        <p>没有片子</p>
+                        <span>把素材放进片库后这里会亮起来。</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="reel-screen-plaque">
+                    <p id="program-slot" class="screen-slot">{{ current_video.reel_label if current_video else "NO SIGNAL" }}</p>
+                    <h3 id="program-title">{{ current_video.title if current_video else "今日空放映" }}</h3>
+                    <p id="program-summary">{{ (current_video.summary or "切换右边胶卷，屏幕会立刻换片。") if current_video else "等一卷新片亮灯。" }}</p>
+                    <p id="program-duration" class="screen-meta">{{ current_video.duration_label if current_video and current_video.duration_label else "时长未标注" }}</p>
+                </div>
+            </div>
+        </section>
+
+        <aside class="reel-wall">
+            {% if snapshot.program %}
+            {% for video in snapshot.program %}
+            <button
+                type="button"
+                class="scene-reel-button {% if loop.first %}is-active{% endif %}"
+                data-action="switch-video"
+                data-media-id="{{ video.id }}"
+                data-video-src="{{ video.asset_url }}"
+                data-video-poster="{{ video.poster_url or '' }}"
+                data-video-title="{{ video.title }}"
+                data-video-summary="{{ video.summary or '' }}"
+                data-video-slot="{{ video.reel_label }}"
+                data-video-duration="{{ video.duration_label or '时长未标注' }}"
+                {% if snapshot.viewer.is_admin %}draggable="true"{% endif %}
+            >
+                <span class="scene-reel-icon"></span>
+                <span class="scene-reel-copy">
+                    <strong>{{ loop.index }}</strong>
+                    <small>{{ video.title }}</small>
+                </span>
+                {% if video.restored_today %}
+                <span class="scene-reel-mark"></span>
+                {% endif %}
+            </button>
+            {% endfor %}
+            {% else %}
+            <div class="reel-empty-wall">
+                <strong>空胶卷墙</strong>
+                <span>片库准备好以后，这里就会排满。</span>
+            </div>
+            {% endif %}
+        </aside>
+
+        <button
+            type="button"
+            class="reel-trash-prop {% if not snapshot.viewer.is_admin %}is-passive{% endif %}"
+            data-trash-toggle
+            aria-expanded="false"
+            {% if not snapshot.viewer.is_admin %}disabled{% endif %}
+        >
+            <span class="reel-trash-lid"></span>
+            <span class="reel-trash-body"></span>
+            <span class="reel-trash-label">垃圾桶</span>
+        </button>
+
+        {% if snapshot.viewer.is_admin %}
+        <aside class="reel-trash-drawer" data-trash-drawer hidden>
+            <div class="reel-trash-head">
+                <div>
+                    <p>下线胶卷</p>
+                    <strong>{{ snapshot.trash | length }} 卷</strong>
+                </div>
+                <button type="button" class="reel-trash-close" data-trash-close aria-label="关闭"></button>
+            </div>
+            {% if snapshot.trash %}
+            <div class="reel-trash-list">
+                {% for item in snapshot.trash %}
+                <button type="button" class="reel-trash-item" data-action="restore-video" data-media-id="{{ item.id }}">
+                    <span class="reel-trash-thumb">
+                        {% if item.poster_url %}
+                        <img src="{{ item.poster_url }}" alt="{{ item.title }}">
+                        {% else %}
+                        <span>REEL</span>
+                        {% endif %}
+                    </span>
+                    <span class="reel-trash-copy">
+                        <strong>{{ item.title }}</strong>
+                        <small>{{ item.trashed_at.strftime("%m-%d %H:%M") if item.trashed_at else "刚刚下线" }}</small>
+                    </span>
+                </button>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="reel-empty-wall">
+                <strong>空垃圾桶</strong>
+                <span>拖胶卷进去才会出现在这里。</span>
+            </div>
+            {% endif %}
+        </aside>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

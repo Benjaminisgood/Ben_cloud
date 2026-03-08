@@ -1,0 +1,21 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+    <style>
+        :root {
+            --primary: {{ theme.primary if theme else '#183a5a' }};
+            --secondary: {{ theme.secondary if theme else '#d2a44c' }};
+            --canvas: {{ theme.canvas if theme else '#eef3f8' }};
+            --ink: {{ theme.ink if theme else '#172435' }};
+        }
+    </style>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    {% block body %}{% endblock %}
+</body>
+</html>

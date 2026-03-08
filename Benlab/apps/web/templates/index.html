@@ -1,11 +1,85 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
+  .graph-workbench {
+    display: grid;
+    gap: 1rem;
+  }
+  .graph-toolbar {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: var(--benlab-shadow-md);
+    padding: 1rem 1.1rem;
+  }
+  .graph-toolbar-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 1rem;
+  }
+  .graph-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    margin-bottom: 0.55rem;
+  }
+  .graph-mode-buttons {
+    display: inline-flex;
+    padding: 0.25rem;
+    background: var(--bs-secondary-bg);
+    border-radius: 999px;
+    gap: 0.35rem;
+  }
+  .graph-mode-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 0.5rem 0.85rem;
+    background: transparent;
+    color: var(--bs-body-color);
+    font-weight: 600;
+  }
+  .graph-mode-btn.is-active {
+    background: var(--bs-primary);
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(13, 110, 253, 0.24);
+  }
+  .graph-filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+  .graph-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    background: var(--bs-secondary-bg);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    font-size: 0.9rem;
+  }
+  .graph-filter-chip input {
+    margin: 0;
+  }
+  .graph-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.8rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.92rem;
+  }
   #graph-canvas {
     width: 100%;
-    height: 72vh;
-    background: var(--graph-canvas-bg);
-    border-radius: 12px;
+    height: 74vh;
+    min-height: 620px;
+    background:
+      radial-gradient(circle at top left, rgba(58, 123, 213, 0.12), transparent 26%),
+      radial-gradient(circle at bottom right, rgba(251, 146, 60, 0.12), transparent 24%),
+      var(--graph-canvas-bg);
+    border-radius: 18px;
     position: relative;
     overflow: hidden;
     box-shadow: var(--benlab-shadow-md);
@@ -15,16 +89,19 @@
     top: 16px;
     left: 16px;
     display: flex;
+    flex-wrap: wrap;
     gap: 0.75rem;
     align-items: center;
     font-size: 0.85rem;
     background: var(--graph-legend-bg);
-    padding: 0.4rem 0.65rem;
-    border-radius: 999px;
+    padding: 0.55rem 0.8rem;
+    border-radius: 16px;
     color: var(--graph-legend-text);
     border: 1px solid var(--graph-legend-border);
     box-shadow: var(--graph-legend-shadow);
     backdrop-filter: blur(8px);
+    max-width: calc(100% - 32px);
+    z-index: 2;
   }
   .graph-inline-legend .legend-chip {
     display: inline-flex;
@@ -32,136 +109,361 @@
     gap: 0.35rem;
   }
   .graph-inline-legend .badge {
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 999px;
     margin-right: 0;
+  }
+  .graph-empty-state {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    z-index: 1;
+  }
+  .graph-empty-state.is-visible {
+    display: flex;
+  }
+  @media (max-width: 1200px) {
+    .graph-toolbar-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 768px) {
+    #graph-canvas {
+      height: 68vh;
+      min-height: 520px;
+    }
   }
 </style>
 
-<div class="row g-4">
-  <div class="col-lg-9">
-    <div id="graph-canvas">
-      <div class="graph-inline-legend">
-        <span class="legend-chip"><span class="badge" style="background: var(--graph-node-member-color);">&nbsp;</span>成员</span>
-        <span class="legend-chip"><span class="badge" style="background: var(--graph-node-item-color);">&nbsp;</span>物品</span>
-        <span class="legend-chip"><span class="badge" style="background: var(--graph-node-event-color);">&nbsp;</span>活动</span>
-        <span class="legend-chip"><span class="badge" style="background: var(--graph-node-location-color);">&nbsp;</span>地点</span>
+<div class="graph-workbench">
+  <div class="graph-toolbar">
+    <div class="graph-toolbar-grid">
+      <div>
+        <div class="graph-section-title">图模式</div>
+        <div class="graph-mode-buttons">
+          <button type="button" class="graph-mode-btn" data-mode="simple">简单图</button>
+          <button type="button" class="graph-mode-btn" data-mode="complex">复杂图</button>
+        </div>
       </div>
+      <div>
+        <div class="graph-section-title">节点筛选</div>
+        <div class="graph-filter-group" id="graphNodeFilters"></div>
+      </div>
+      <div>
+        <div class="graph-section-title">关系筛选</div>
+        <div class="graph-filter-group" id="graphLinkFilters"></div>
+      </div>
+    </div>
+    <div class="graph-meta">
+      <span id="graphModeDescription"></span>
+      <span id="graphStats"></span>
     </div>
   </div>
-  <div class="col-lg-3">
-    <div class="card">
-      <div class="card-header">提示</div>
-      <div class="card-body">
-        <ul class="mb-0">
-          <li>欢迎加入五天八小时社区，希望各位摆脱内卷，高效工作八小时，快乐每一周</li>
-          <li>该下班下班，该玩玩，该吃吃，该喝喝，该蹦迪蹦迪，该放松放松，绝不内耗</li>
-          <li>欢迎分享给你在上海（尤其是浦东张江）的朋友们一起玩，年龄岁数不限哈</li>
-          <li>查看上方的事项看看有没有感兴趣的活动吧，当你无聊了就来看看呐</li>
-          <li>成员都是各位社区的小伙伴，先留言或邮件，注意边界，不要打扰</li>
-          <li>如果你有闲置愿意出借的开展活动的物品，或者想要出售的二手物品，欢迎添加</li>
-          <li>地点包含所有活动可能举办的地方，当然，如果你有闲置房屋，也能在这里出租</li>
-          <li>人人平等（无管理员），数据公开（GitHub公开），互相尊重（做守法公民）</li>
-        </ul>
-      </div>
-    </div>
+
+  <div id="graph-canvas">
+    <div class="graph-inline-legend" id="graphLegend"></div>
+    <div class="graph-empty-state" id="graphEmptyState">当前筛选下没有可显示的关系。</div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script>
-  const graphData = {{ graph_json|safe }};
-  const container = document.getElementById('graph-canvas');
-  const width = container.clientWidth;
-  const height = container.clientHeight;
+  const graphStore = {
+    simple: {{ graph_simple | tojson | safe }},
+    complex: {{ graph_complex | tojson | safe }}
+  };
 
-  const svg = d3.select(container)
-    .append('svg')
-    .attr('width', width)
-    .attr('height', height);
+  const graphModeDescriptions = {
+    simple: '简单图保留当前的星状总览，适合快速看“我”和人物 / 物品 / 地点 / 活动的直接关系。',
+    complex: '复杂图会展开人物关系、空间层级、人和空间、物品类别、活动参与等多层连边。'
+  };
+
+  const nodeLabelMap = {
+    member: '成员',
+    item: '物品',
+    event: '活动',
+    location: '地点',
+    category: '类别'
+  };
+
+  const linkLabelMap = {
+    social: '人物',
+    follow: '关注',
+    'member-connection': '人物关系',
+    'member-item': '人物-物品',
+    'member-location': '人物-空间',
+    'location-hierarchy': '空间层级',
+    'item-location': '物品-空间',
+    'item-category': '物品类别',
+    'event-member': '活动参与',
+    'event-location': '活动地点',
+    'event-item': '活动物品'
+  };
 
   const colorMap = {
     member: 'var(--graph-node-member-color)',
     item: 'var(--graph-node-item-color)',
     event: 'var(--graph-node-event-color)',
-    location: 'var(--graph-node-location-color)'
+    location: 'var(--graph-node-location-color)',
+    category: '#e11d48'
   };
 
-  const simulation = d3.forceSimulation(graphData.nodes)
-    .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(90).strength(0.5))
-    .force('charge', d3.forceManyBody().strength(-260))
-    .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius(d => d.type === 'member' && d.meta?.isCenter ? 44 : 28));
+  const linkColorMap = {
+    social: 'rgba(31, 119, 180, 0.45)',
+    follow: 'rgba(31, 119, 180, 0.45)',
+    'member-connection': 'rgba(225, 29, 72, 0.38)',
+    'member-item': 'rgba(44, 160, 44, 0.38)',
+    'member-location': 'rgba(148, 103, 189, 0.36)',
+    'location-hierarchy': 'rgba(99, 102, 241, 0.32)',
+    'item-location': 'rgba(15, 23, 42, 0.22)',
+    'item-category': 'rgba(225, 29, 72, 0.24)',
+    'event-member': 'rgba(251, 146, 60, 0.34)',
+    'event-location': 'rgba(251, 146, 60, 0.26)',
+    'event-item': 'rgba(251, 146, 60, 0.22)'
+  };
 
-  const zoom = d3.zoom().scaleExtent([0.3, 2.6]).on('zoom', event => {
+  const linkDashMap = {
+    'location-hierarchy': '6 5',
+    'item-category': '3 4',
+    follow: '4 4'
+  };
+
+  const container = document.getElementById('graph-canvas');
+  const legendEl = document.getElementById('graphLegend');
+  const nodeFiltersEl = document.getElementById('graphNodeFilters');
+  const linkFiltersEl = document.getElementById('graphLinkFilters');
+  const statsEl = document.getElementById('graphStats');
+  const emptyStateEl = document.getElementById('graphEmptyState');
+  const descriptionEl = document.getElementById('graphModeDescription');
+  const modeButtons = Array.from(document.querySelectorAll('.graph-mode-btn'));
+
+  let width = container.clientWidth;
+  let height = container.clientHeight;
+  const svg = d3.select(container).append('svg').attr('width', width).attr('height', height);
+  const svgGroup = svg.append('g');
+  const zoom = d3.zoom().scaleExtent([0.28, 2.8]).on('zoom', event => {
     svgGroup.attr('transform', event.transform);
   });
   svg.call(zoom);
 
-  const svgGroup = svg.append('g');
+  let simulation = null;
+  const state = {
+    mode: 'complex',
+    visibleNodeTypes: new Set(),
+    visibleLinkKinds: new Set()
+  };
 
-  const link = svgGroup.append('g')
-    .attr('stroke', 'var(--graph-link-color)')
-    .attr('stroke-opacity', 0.5)
-    .selectAll('line')
-    .data(graphData.links)
-    .enter()
-    .append('line')
-    .attr('stroke-width', 1.2);
+  function resetFiltersForMode(mode) {
+    state.mode = mode;
+    const data = graphStore[mode];
+    state.visibleNodeTypes = new Set(Object.keys(data.nodeLegend || {}));
+    state.visibleLinkKinds = new Set(Object.keys(data.linkLegend || {}));
+  }
 
-  const node = svgGroup.append('g')
-    .selectAll('g')
-    .data(graphData.nodes)
-    .enter()
-    .append('g')
-    .call(d3.drag()
-      .on('start', dragStarted)
-      .on('drag', dragged)
-      .on('end', dragEnded));
-
-  node.append('circle')
-    .attr('r', d => {
-      if (d.type === 'member') {
-        return d.meta?.isCenter ? 20 : 14;
-      }
-      if (d.type === 'event') return 12;
-      if (d.type === 'item') return 11;
-      return 10;
-    })
-    .attr('fill', d => colorMap[d.type] || 'var(--graph-node-fallback-color)')
-    .attr('stroke', d => d.meta?.isCenter ? 'var(--graph-node-center-stroke)' : 'var(--graph-node-default-stroke)')
-    .attr('stroke-width', d => d.meta?.isCenter ? 3 : 1.5)
-    .attr('opacity', d => d.meta?.isCenter ? 1 : 0.92);
-
-  node.append('text')
-    .text(d => d.label)
-    .attr('x', d => (d.type === 'member' && d.meta?.isCenter) ? 24 : 18)
-    .attr('y', 4)
-    .attr('fill', 'var(--graph-node-label-color)')
-    .attr('font-size', '0.8rem');
-
-  node.append('title')
-    .text(d => {
-      const info = [d.label];
-      if (d.type === 'member' && d.meta?.username) info.push(`用户名: ${d.meta.username}`);
-      if (d.type === 'member' && d.meta?.relation) info.push(`关系: ${d.meta.relation}`);
-      if (d.type === 'item' && d.meta?.category) info.push(`类别: ${d.meta.category}`);
-      if (d.type === 'item' && d.meta?.status) info.push(`状态: ${d.meta.status}`);
-      if (d.type === 'event' && d.meta?.startTime) info.push(`开始: ${d.meta.startTime}`);
-      if (d.type === 'event' && d.meta?.visibility) info.push(`可见性: ${d.meta.visibility}`);
-      return info.join('\n');
+  function renderFilterControls() {
+    const data = graphStore[state.mode];
+    nodeFiltersEl.innerHTML = '';
+    Object.entries(data.nodeLegend || {}).forEach(([key, label]) => {
+      const chip = document.createElement('label');
+      chip.className = 'graph-filter-chip';
+      chip.innerHTML = `
+        <input type="checkbox" ${state.visibleNodeTypes.has(key) ? 'checked' : ''} data-node-type="${key}">
+        <span>${label || nodeLabelMap[key] || key}</span>
+      `;
+      nodeFiltersEl.appendChild(chip);
     });
 
-  simulation.on('tick', () => {
-    link
-      .attr('x1', d => d.source.x)
-      .attr('y1', d => d.source.y)
-      .attr('x2', d => d.target.x)
-      .attr('y2', d => d.target.y);
+    linkFiltersEl.innerHTML = '';
+    Object.entries(data.linkLegend || {}).forEach(([key, label]) => {
+      const chip = document.createElement('label');
+      chip.className = 'graph-filter-chip';
+      chip.innerHTML = `
+        <input type="checkbox" ${state.visibleLinkKinds.has(key) ? 'checked' : ''} data-link-kind="${key}">
+        <span>${label || linkLabelMap[key] || key}</span>
+      `;
+      linkFiltersEl.appendChild(chip);
+    });
 
-    node.attr('transform', d => `translate(${d.x},${d.y})`);
-  });
+    nodeFiltersEl.querySelectorAll('input[data-node-type]').forEach(input => {
+      input.addEventListener('change', function () {
+        if (this.checked) {
+          state.visibleNodeTypes.add(this.dataset.nodeType);
+        } else {
+          state.visibleNodeTypes.delete(this.dataset.nodeType);
+        }
+        renderGraph();
+      });
+    });
+
+    linkFiltersEl.querySelectorAll('input[data-link-kind]').forEach(input => {
+      input.addEventListener('change', function () {
+        if (this.checked) {
+          state.visibleLinkKinds.add(this.dataset.linkKind);
+        } else {
+          state.visibleLinkKinds.delete(this.dataset.linkKind);
+        }
+        renderGraph();
+      });
+    });
+  }
+
+  function renderLegend(data) {
+    legendEl.innerHTML = '';
+    Object.entries(data.nodeLegend || {}).forEach(([key, label]) => {
+      const chip = document.createElement('span');
+      chip.className = 'legend-chip';
+      chip.innerHTML = `<span class="badge" style="background: ${colorMap[key] || 'var(--graph-node-fallback-color)'};"></span>${label || nodeLabelMap[key] || key}`;
+      legendEl.appendChild(chip);
+    });
+  }
+
+  function filteredGraph(data) {
+    const rawNodes = data.nodes || [];
+    const rawLinks = data.links || [];
+    const nodeAllowed = new Set(
+      rawNodes.filter(node => state.visibleNodeTypes.has(node.type)).map(node => node.id)
+    );
+
+    let links = rawLinks.filter(link =>
+      state.visibleLinkKinds.has(link.kind) &&
+      nodeAllowed.has(typeof link.source === 'string' ? link.source : link.source.id) &&
+      nodeAllowed.has(typeof link.target === 'string' ? link.target : link.target.id)
+    );
+
+    const connected = new Set();
+    links.forEach(link => {
+      connected.add(typeof link.source === 'string' ? link.source : link.source.id);
+      connected.add(typeof link.target === 'string' ? link.target : link.target.id);
+    });
+
+    let nodes = rawNodes.filter(node =>
+      nodeAllowed.has(node.id) &&
+      (connected.has(node.id) || node.meta?.isCenter || links.length === 0)
+    );
+    const activeNodeIds = new Set(nodes.map(node => node.id));
+    links = links.filter(link =>
+      activeNodeIds.has(typeof link.source === 'string' ? link.source : link.source.id) &&
+      activeNodeIds.has(typeof link.target === 'string' ? link.target : link.target.id)
+    );
+    return { nodes, links };
+  }
+
+  function nodeRadius(node) {
+    if (node.type === 'member') return node.meta?.isCenter ? 22 : 14;
+    if (node.type === 'event') return 12;
+    if (node.type === 'item') return 11;
+    if (node.type === 'category') return 10;
+    return 10;
+  }
+
+  function nodeTitle(node) {
+    const lines = [node.label];
+    if (node.type === 'member' && node.meta?.username) lines.push(`用户名: ${node.meta.username}`);
+    if (node.type === 'location' && node.meta?.status) lines.push(`状态: ${node.meta.status}`);
+    if (node.type === 'item' && node.meta?.category) lines.push(`类别: ${node.meta.category}`);
+    if (node.type === 'item' && node.meta?.status) lines.push(`状态: ${node.meta.status}`);
+    if (node.type === 'event' && node.meta?.startTime) lines.push(`开始: ${node.meta.startTime}`);
+    if (node.type === 'event' && node.meta?.visibility) lines.push(`可见性: ${node.meta.visibility}`);
+    return lines.join('\n');
+  }
+
+  function linkTitle(link) {
+    const lines = [link.label || linkLabelMap[link.kind] || link.kind];
+    if (link.meta?.note) lines.push(`备注: ${link.meta.note}`);
+    return lines.join('\n');
+  }
+
+  function renderGraph() {
+    const sourceData = graphStore[state.mode];
+    const data = filteredGraph(sourceData);
+    descriptionEl.textContent = graphModeDescriptions[state.mode] || '';
+    statsEl.textContent = `显示 ${data.nodes.length} 个节点 / ${data.links.length} 条关系`;
+    renderLegend(sourceData);
+    emptyStateEl.classList.toggle('is-visible', data.nodes.length === 0);
+
+    svgGroup.selectAll('*').remove();
+    if (simulation) {
+      simulation.stop();
+      simulation = null;
+    }
+    if (data.nodes.length === 0) {
+      return;
+    }
+
+    const link = svgGroup.append('g')
+      .selectAll('line')
+      .data(data.links)
+      .enter()
+      .append('line')
+      .attr('stroke', d => linkColorMap[d.kind] || 'var(--graph-link-color)')
+      .attr('stroke-opacity', d => d.kind === 'item-location' ? 0.42 : 0.7)
+      .attr('stroke-width', d => d.kind === 'member-connection' ? 2.2 : 1.5)
+      .attr('stroke-dasharray', d => linkDashMap[d.kind] || null);
+
+    link.append('title').text(linkTitle);
+
+    const node = svgGroup.append('g')
+      .selectAll('g')
+      .data(data.nodes)
+      .enter()
+      .append('g')
+      .call(d3.drag()
+        .on('start', dragStarted)
+        .on('drag', dragged)
+        .on('end', dragEnded));
+
+    node.append('circle')
+      .attr('r', nodeRadius)
+      .attr('fill', d => colorMap[d.type] || 'var(--graph-node-fallback-color)')
+      .attr('stroke', d => d.meta?.isCenter ? 'var(--graph-node-center-stroke)' : 'var(--graph-node-default-stroke)')
+      .attr('stroke-width', d => d.meta?.isCenter ? 3 : 1.35)
+      .attr('opacity', d => d.meta?.isCenter ? 1 : 0.92);
+
+    node.append('text')
+      .text(d => d.label)
+      .attr('x', d => d.meta?.isCenter ? 26 : 18)
+      .attr('y', 4)
+      .attr('fill', 'var(--graph-node-label-color)')
+      .attr('font-size', '0.8rem')
+      .attr('font-weight', d => d.meta?.isCenter ? 700 : 500);
+
+    node.append('title').text(nodeTitle);
+
+    simulation = d3.forceSimulation(data.nodes)
+      .force('link', d3.forceLink(data.links).id(d => d.id).distance(d => {
+        if (d.kind === 'location-hierarchy') return 80;
+        if (d.kind === 'member-connection') return 110;
+        if (d.kind === 'item-category') return 72;
+        return 96;
+      }).strength(d => {
+        if (d.kind === 'member-connection') return 0.85;
+        if (d.kind === 'location-hierarchy') return 0.78;
+        return 0.46;
+      }))
+      .force('charge', d3.forceManyBody().strength(d => d.type === 'category' ? -220 : -280))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(d => nodeRadius(d) + 16))
+      .force('x', d3.forceX(width / 2).strength(d => d.meta?.isCenter ? 0.12 : 0.03))
+      .force('y', d3.forceY(height / 2).strength(d => d.meta?.isCenter ? 0.12 : 0.03));
+
+    simulation.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
+
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+  }
 
   function dragStarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.2).restart();
+    if (!event.active && simulation) simulation.alphaTarget(0.2).restart();
     d.fx = d.x;
     d.fy = d.y;
   }
@@ -172,9 +474,34 @@
   }
 
   function dragEnded(event, d) {
-    if (!event.active) simulation.alphaTarget(0);
+    if (!event.active && simulation) simulation.alphaTarget(0);
     d.fx = null;
     d.fy = null;
   }
+
+  modeButtons.forEach(button => {
+    button.addEventListener('click', function () {
+      resetFiltersForMode(this.dataset.mode);
+      modeButtons.forEach(btn => btn.classList.toggle('is-active', btn.dataset.mode === state.mode));
+      renderFilterControls();
+      renderGraph();
+    });
+  });
+
+  function resizeGraph() {
+    width = container.clientWidth;
+    height = container.clientHeight;
+    svg.attr('width', width).attr('height', height);
+    if (simulation) {
+      simulation.force('center', d3.forceCenter(width / 2, height / 2));
+      simulation.alpha(0.25).restart();
+    }
+  }
+
+  resetFiltersForMode(state.mode);
+  modeButtons.forEach(btn => btn.classList.toggle('is-active', btn.dataset.mode === state.mode));
+  renderFilterControls();
+  renderGraph();
+  window.addEventListener('resize', resizeGraph);
 </script>
 {% endblock %}

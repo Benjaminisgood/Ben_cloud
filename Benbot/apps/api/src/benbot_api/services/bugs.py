@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..models.bug_report import BugReport
 from ..repositories import (
+    clear_archived_bug_reports,
     create_bug_report,
     get_bug_report,
     get_user_by_id,
@@ -46,6 +47,11 @@ def list_archived(db: Session) -> list[dict]:
     """Return all archived bug reports with reporter username."""
     rows = list_archived_bug_reports_with_reporter(db)
     return [_format_bug(bug, username) for bug, username in rows]
+
+
+def clear_archived(db: Session) -> int:
+    """Delete all archived bug reports and return the cleared count."""
+    return clear_archived_bug_reports(db)
 
 
 def approve_bug(db: Session, bug_id: int) -> dict:

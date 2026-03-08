@@ -1,26 +1,53 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% set stats = namespace(up_count=0, running_count=0, total_clicks=0) %}
+{% for proj in projects %}
+  {% if proj.status == 'up' %}
+    {% set stats.up_count = stats.up_count + 1 %}
+  {% endif %}
+  {% if proj.service_state == 'running' %}
+    {% set stats.running_count = stats.running_count + 1 %}
+  {% endif %}
+  {% set stats.total_clicks = stats.total_clicks + (proj.total_clicks or 0) %}
+{% endfor %}
 <div class="admin-page">
-  <section class="admin-hero">
+  <section class="admin-hero dashboard-hero">
     <div>
       <span class="admin-eyebrow">Benbot Admin</span>
-      <h2 class="admin-heading">门户管理页</h2>
-      <p class="admin-desc">统一处理项目运行控制、Bug 审核与归档、用户项目可见性。首页只负责入口和反馈提交。</p>
+      <h2 class="admin-heading">管理员工作台</h2>
+      <p class="admin-desc">面向管理员的独立控制台，统一处理项目运行控制、Bug 审核归档和用户项目可见性。</p>
     </div>
-    <a class="admin-home-link" href="/">返回门户</a>
   </section>
 
-  <section class="admin-brief">
-    <article class="admin-brief-card">
-      <span class="admin-brief-label">权限策略</span>
-      <p>普通用户默认无项目可见性，需管理员显式勾选后才会在门户看到入口。</p>
+  <section class="admin-overview-grid">
+    <article class="admin-overview-card">
+      <span class="admin-overview-label">项目总数</span>
+      <strong class="admin-overview-value">{{ projects|length }}</strong>
+      <p class="admin-overview-note">当前已注册到门户的子应用数量。</p>
     </article>
-    <article class="admin-brief-card">
-      <span class="admin-brief-label">Bug 流程</span>
-      <p>Benbot 只负责收录和审核，不再在前端承诺“自动修复状态”。收录后请复制内容给 Agent，并人工回归确认。</p>
+    <article class="admin-overview-card">
+      <span class="admin-overview-label">健康在线</span>
+      <strong class="admin-overview-value">{{ stats.up_count }}</strong>
+      <p class="admin-overview-note">最近健康检测返回可达的项目数。</p>
+    </article>
+    <article class="admin-overview-card">
+      <span class="admin-overview-label">服务运行中</span>
+      <strong class="admin-overview-value">{{ stats.running_count }}</strong>
+      <p class="admin-overview-note">启停状态被识别为运行中的项目数。</p>
+    </article>
+    <article class="admin-overview-card">
+      <span class="admin-overview-label">累计访问</span>
+      <strong class="admin-overview-value">{{ stats.total_clicks }}</strong>
+      <p class="admin-overview-note">所有项目入口的累计点击次数。</p>
     </article>
   </section>
+
+  <nav class="page-menu" aria-label="管理页内导航">
+    <a class="page-menu-link" href="#bug-workbench">Bug Workbench</a>
+    <a class="page-menu-link" href="#project-ops-panel">项目运行</a>
+    <a class="page-menu-link" href="#user-access-panel">用户权限</a>
+  </nav>
 
   <section
     class="admin-section bug-section bug-workbench"
@@ -64,17 +91,24 @@
               <span class="bug-archive-count" id="archived-bug-count">0</span>
             </span>
           </button>
-          <div class="bug-archive-panel" id="archived-bug-list"><p class="bug-empty">加载中…</p></div>
+          <div class="bug-archive-panel">
+            <div class="bug-archive-panel-head">
+              <span class="bug-approved-tip">手动清空只影响已归档列表，不会回写到待处理区。</span>
+              <button class="btn-bug-clear-archive" id="clear-archived-bugs-btn" type="button">清空已归档</button>
+            </div>
+            <div id="archived-bug-list"><p class="bug-empty">加载中…</p></div>
+          </div>
         </section>
       </div>
     </div>
   </section>
 
-  <section class="admin-section project-ops-panel">
+  <section class="admin-section project-ops-panel" id="project-ops-panel">
     <div class="project-ops-header">
       <div>
         <p class="admin-section-kicker">Project Ops</p>
         <h3 class="access-admin-title">项目运行控制</h3>
+        <p class="access-admin-desc">统一查看健康状态、入口点击、启停开关以及日志和环境配置。</p>
       </div>
       <button class="refresh-btn" id="refresh-btn" type="button" onclick="refreshStatus()" title="刷新项目状态">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -95,7 +129,9 @@
         style="--card-color: {{ proj.color }}"
       >
         <div class="card-header">
-          <span class="card-icon">{{ proj.icon }}</span>
+          <div class="card-icon-shell">
+            <span class="card-icon">{{ proj.icon }}</span>
+          </div>
           <div class="card-meta">
             <h3 class="card-name">{{ proj.name }}</h3>
             <p class="card-desc">{{ proj.description }}</p>
@@ -122,6 +158,21 @@
         </div>
 
         <div class="card-footer">
+          <div class="card-utility-row">
+            {% set runtime_state = proj.service_state or 'unknown' %}
+            {% set runtime_class = 'running' if proj.status == 'up' and runtime_state != 'running' else runtime_state %}
+            <span class="runtime-pill runtime-{{ runtime_class }}">
+              {% if proj.service_state == 'running' %}
+              服务已启动
+              {% elif proj.status == 'up' %}
+              健康在线
+              {% elif proj.service_state == 'stopped' %}
+              服务未启动
+              {% else %}
+              启停未知
+              {% endif %}
+            </span>
+          </div>
           <div class="card-main-actions">
             <div class="card-stats">
               <span class="stat-item">
@@ -154,16 +205,26 @@
                 </span>
               </span>
             </label>
-            <button class="control-btn log-btn" type="button" data-project-logs title="查看日志与报错">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
-              </svg>
-              日志
-            </button>
+            <div class="admin-control-actions">
+              <button class="control-btn env-btn" type="button" data-project-env title="编辑项目 .env">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <path d="M8 13h8M8 17h6M9 9h1"/>
+                </svg>
+                Env
+              </button>
+              <button class="control-btn log-btn" type="button" data-project-logs title="查看日志与报错">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                日志
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -229,6 +290,45 @@
     </div>
     <div class="log-modal-footer" id="log-modal-footer">
       <button class="log-load-more" id="log-load-more" style="display:none">加载更多</button>
+    </div>
+  </div>
+</div>
+
+<div class="env-modal-overlay" id="env-modal-overlay" aria-hidden="true">
+  <div class="env-modal" role="dialog" aria-modal="true" aria-labelledby="env-modal-title">
+    <div class="env-modal-header">
+      <div class="env-modal-title-row">
+        <div>
+          <h2 class="env-modal-title" id="env-modal-title">项目 .env 配置</h2>
+          <p class="env-modal-desc" id="env-modal-desc">直接读取和保存项目根目录下的 `.env` 文件。</p>
+        </div>
+        <button class="env-modal-close" id="env-modal-close" aria-label="关闭">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="env-meta-row">
+        <span class="env-meta-pill" id="env-updated-at">更新时间：—</span>
+      </div>
+      <p class="env-hint" id="env-hint">若目标 `.env` 不存在，会优先载入 `.env.example` 作为编辑起点；保存时始终写入 `.env`。</p>
+    </div>
+    <div class="env-modal-body">
+      <textarea
+        class="env-editor"
+        id="env-editor"
+        spellcheck="false"
+        autocapitalize="off"
+        autocomplete="off"
+        placeholder="加载中…"
+      ></textarea>
+    </div>
+    <div class="env-modal-footer">
+      <span class="env-save-status" id="env-save-status">未加载</span>
+      <div class="env-modal-actions">
+        <button class="control-btn" type="button" id="env-reload-btn">重新加载</button>
+        <button class="env-save-btn" type="button" id="env-save-btn">保存 .env</button>
+      </div>
     </div>
   </div>
 </div>

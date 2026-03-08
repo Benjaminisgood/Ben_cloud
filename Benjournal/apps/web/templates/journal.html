@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="page-shell journal-shell">
+    <header class="hero-card">
+        <div class="hero-copy">
+            <p class="eyebrow">Daily Voice Journal</p>
+            <h1>把每天的碎片语音，压成一条完整日记。</h1>
+            <p class="subtitle">
+                手动切换日期后录音或上传音频。系统会把当天片段合并成单个文件，归档到 OSS，并把转写文本落进 SQLite。
+            </p>
+        </div>
+        <div class="session-card session-card--journal">
+            <p class="session-role">{{ current_user.role }}</p>
+            <p class="session-user">{{ current_user.username }}</p>
+            <form method="get" action="/" class="date-form">
+                <label>
+                    记录日期
+                    <input type="date" name="date" value="{{ snapshot.selected_date }}" required>
+                </label>
+                <button type="submit">切换日期</button>
+            </form>
+            <a class="ghost-link" href="/logout">退出</a>
+        </div>
+    </header>
+
+    <section class="summary-grid summary-grid--journal">
+        {% for card in snapshot.summary %}
+        <article class="metric-card">
+            <p class="metric-label">{{ card.label }}</p>
+            <p class="metric-value">{{ card.value }}</p>
+            <p class="metric-hint">{{ card.hint }}</p>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="journal-layout">
+        <main class="journal-main">
+            <section class="editor-card">
+                <div class="section-heading">
+                    <p class="eyebrow">Selected Day</p>
+                    <h2>{{ snapshot.selected_date }}</h2>
+                    <p>今天可以先录一段，再回来补文字。手工修订不会被后续自动转写直接覆盖。</p>
+                </div>
+
+                <div class="status-row">
+                    <span class="status-pill status-pill--{{ snapshot.selected_day.storage_status if snapshot.selected_day else 'idle' }}">
+                        OSS {{ snapshot.selected_day.storage_status if snapshot.selected_day else 'idle' }}
+                    </span>
+                    <span class="status-pill status-pill--{{ snapshot.selected_day.transcript_status if snapshot.selected_day else 'idle' }}">
+                        STT {{ snapshot.selected_day.transcript_status if snapshot.selected_day else 'idle' }}
+                    </span>
+                    <span class="status-pill status-pill--neutral">
+                        {{ snapshot.selected_day.segment_count if snapshot.selected_day else 0 }} 段语音
+                    </span>
+                </div>
+
+                <div class="capture-panel">
+                    <div class="capture-actions">
+                        <button type="button" id="record-start">开始录音</button>
+                        <button type="button" id="record-stop" class="secondary-button" disabled>停止并上传</button>
+                    </div>
+                    <div class="upload-strip">
+                        <input id="audio-file" type="file" accept="audio/*">
+                        <button type="button" id="upload-file" class="secondary-button">上传现有音频</button>
+                    </div>
+                    <p id="client-status" class="client-status">浏览器支持麦克风时可直接录制 WAV；也可以手动上传音频文件。</p>
+                </div>
+
+                {% if snapshot.selected_day and snapshot.selected_day.playback_url %}
+                <div class="audio-card">
+                    <p class="audio-label">当天合并音频</p>
+                    <audio controls preload="none" src="{{ snapshot.selected_day.playback_url }}"></audio>
+                    {% if snapshot.selected_day.combined_audio_object_key %}
+                    <p class="audio-meta">OSS Key: {{ snapshot.selected_day.combined_audio_object_key }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <label class="journal-textarea-wrap">
+                    <span>当天文本</span>
+                    <textarea id="entry-text" rows="14" placeholder="录音转写会落在这里，你也可以直接手写补充。">{% if snapshot.selected_day %}{{ snapshot.selected_day.entry_text }}{% endif %}</textarea>
+                </label>
+                <div class="editor-actions">
+                    <button type="button" id="save-entry">保存文本</button>
+                    <p class="editor-note">未来 agent 会基于这里的原始日记做结构化事实提取，但这部分逻辑不在当前项目内。</p>
+                </div>
+
+                <div class="transcript-columns">
+                    <article class="info-card">
+                        <p class="eyebrow">Raw STT</p>
+                        <h3>自动转写原文</h3>
+                        <p>{% if snapshot.selected_day and snapshot.selected_day.stt_text %}{{ snapshot.selected_day.stt_text }}{% else %}还没有自动转写结果。{% endif %}</p>
+                    </article>
+                    <article class="info-card">
+                        <p class="eyebrow">Sync Notes</p>
+                        <h3>状态与错误</h3>
+                        <p>{% if snapshot.selected_day and snapshot.selected_day.last_error_message %}{{ snapshot.selected_day.last_error_message }}{% else %}当前没有同步错误。{% endif %}</p>
+                    </article>
+                </div>
+            </section>
+        </main>
+
+        <aside class="journal-sidebar">
+            <section class="timeline-card">
+                <div class="section-heading">
+                    <p class="eyebrow">Recent Days</p>
+                    <h2>最近的日志天</h2>
+                    <p>快速切换回最近录过音或修改过文本的日期。</p>
+                </div>
+                <div class="timeline-list">
+                    {% if snapshot.recent_days %}
+                    {% for item in snapshot.recent_days %}
+                    <a class="timeline-entry {% if item.entry_date == snapshot.selected_date %}timeline-entry--active{% endif %}" href="/?date={{ item.entry_date }}">
+                        <div class="timeline-top">
+                            <strong>{{ item.entry_date }}</strong>
+                            <span>{{ item.segment_count }} 段</span>
+                        </div>
+                        <p>{{ item.transcript_preview }}</p>
+                        <div class="timeline-meta">
+                            <span>{{ item.storage_status }}</span>
+                            <span>{{ item.transcript_status }}</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                    {% else %}
+                    <p class="empty-state">还没有任何日记记录。先选择日期并开始第一段录音。</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="timeline-card">
+                <div class="section-heading">
+                    <p class="eyebrow">Segments</p>
+                    <h2>当天片段</h2>
+                    <p>同一天的多段语音会在服务层重新合并为单个归档文件。</p>
+                </div>
+                <div class="segment-list">
+                    {% if snapshot.selected_day and snapshot.selected_day.segments %}
+                    {% for item in snapshot.selected_day.segments %}
+                    <article class="segment-entry">
+                        <div class="segment-top">
+                            <strong>#{{ item.sequence_no }}</strong>
+                            <span>{{ item.byte_size }} bytes</span>
+                        </div>
+                        <p>{{ item.original_filename }}</p>
+                        <div class="timeline-meta">
+                            <span>{{ item.mime_type }}</span>
+                            <span>{{ item.created_by }}</span>
+                        </div>
+                    </article>
+                    {% endfor %}
+                    {% else %}
+                    <p class="empty-state">今天还没有音频片段。开始录音或上传一段文件。</p>
+                    {% endif %}
+                </div>
+            </section>
+        </aside>
+    </section>
+</div>
+<script>
+window.BENJOURNAL_BOOTSTRAP = {{ snapshot_json | safe }};
+</script>
+<script src="/static/journal.js"></script>
+{% endblock %}

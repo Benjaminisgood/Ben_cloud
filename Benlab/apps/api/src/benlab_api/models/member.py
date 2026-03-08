@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from benlab_api.models.event import EventParticipant
     from benlab_api.models.item import Item
     from benlab_api.models.location import Location
+    from benlab_api.models.member_connection import MemberConnection
     from benlab_api.models.log import Log
     from benlab_api.models.message import Message
 
@@ -74,6 +75,20 @@ class Member(Base):
         primaryjoin=id == member_follows.c.followed_id,
         secondaryjoin=id == member_follows.c.follower_id,
         back_populates="following",
+        lazy="selectin",
+    )
+    outbound_connections: Mapped[list["MemberConnection"]] = relationship(
+        "MemberConnection",
+        foreign_keys="MemberConnection.source_member_id",
+        back_populates="source_member",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    inbound_connections: Mapped[list["MemberConnection"]] = relationship(
+        "MemberConnection",
+        foreign_keys="MemberConnection.target_member_id",
+        back_populates="target_member",
+        cascade="all, delete-orphan",
         lazy="selectin",
     )
 

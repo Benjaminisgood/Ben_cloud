@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ credential.name }} · Bencred</title>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='app.css') }}" />
+  </head>
+  <body data-app="bencred">
+    <main class="detail-shell">
+      <a class="back-link" href="/">返回审核台</a>
+      <section class="detail-hero">
+        <div>
+          <p class="eyebrow">Bencred Detail</p>
+          <h1>{{ credential.name }}</h1>
+          <p class="lede">{{ credential.credential_type }} · {{ credential.category or "uncategorized" }} · {{ credential.review_status }}</p>
+        </div>
+        <div class="detail-badges">
+          <span>{{ credential.sensitivity }}</span>
+          <span>{{ credential.agent_access }}</span>
+          <span>{{ credential.source }}</span>
+        </div>
+      </section>
+
+      <section class="detail-grid">
+        <article class="panel">
+          <h2>记录信息</h2>
+          <dl class="detail-list">
+            <div><dt>服务</dt><dd>{{ credential.service_name or "-" }}</dd></div>
+            <div><dt>账号/标识</dt><dd>{{ credential.username or "-" }}</dd></div>
+            <div><dt>地址/端点</dt><dd>{{ credential.endpoint or "-" }}</dd></div>
+            <div><dt>来源详情</dt><dd>{{ credential.source_detail or "-" }}</dd></div>
+            <div><dt>标签</dt><dd>{{ credential.tags|join(", ") if credential.tags else "-" }}</dd></div>
+            <div><dt>上次轮换</dt><dd>{{ credential.last_rotated or "-" }}</dd></div>
+            <div><dt>最近访问</dt><dd>{{ credential.accessed_at or "-" }}</dd></div>
+          </dl>
+        </article>
+
+        <article class="panel">
+          <h2>审核信息</h2>
+          <dl class="detail-list">
+            <div><dt>审核状态</dt><dd>{{ credential.review_status }}</dd></div>
+            <div><dt>审核人</dt><dd>{{ credential.reviewed_by or "-" }}</dd></div>
+            <div><dt>审核时间</dt><dd>{{ credential.reviewed_at or "-" }}</dd></div>
+            <div><dt>审核备注</dt><dd>{{ credential.review_notes or "-" }}</dd></div>
+            <div><dt>创建时间</dt><dd>{{ credential.created_at }}</dd></div>
+            <div><dt>更新时间</dt><dd>{{ credential.updated_at }}</dd></div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="panel secret-panel">
+        <div class="panel-head">
+          <h2>敏感值</h2>
+          <p>默认不展示，只有你主动查看时才解密。</p>
+        </div>
+        {% if revealed_secret %}
+          <pre class="secret-block">{{ revealed_secret }}</pre>
+        {% else %}
+          <a class="primary inline-button" href="/credentials/{{ credential.id }}?reveal=true">查看一次</a>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

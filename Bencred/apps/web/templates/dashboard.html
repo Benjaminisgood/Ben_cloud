@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bencred Vault Review</title>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='app.css') }}" />
+  </head>
+  <body data-app="bencred">
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Bencred</p>
+          <h1>先审核，再让 agent 记住。</h1>
+          <p class="lede">
+            这里同时管理密码、API key、设备号、编码、IP 和其他 agent 之后应自行查询的固定信息。
+          </p>
+        </div>
+        <div class="stats">
+          <article>
+            <span>待审核</span>
+            <strong>{{ counts.pending }}</strong>
+          </article>
+          <article>
+            <span>已批准</span>
+            <strong>{{ counts.approved }}</strong>
+          </article>
+          <article>
+            <span>已驳回</span>
+            <strong>{{ counts.rejected }}</strong>
+          </article>
+          <article>
+            <span>已归档</span>
+            <strong>{{ counts.archived }}</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="layout">
+        <aside class="panel form-panel">
+          <div class="panel-head">
+            <h2>提交新资料</h2>
+            <p>默认进入待审核，适合 agent 自动记录。</p>
+          </div>
+          <form id="credential-create-form" class="stack">
+            <label>
+              <span>名称</span>
+              <input name="name" placeholder="OpenAI 生产密钥" required />
+            </label>
+            <label>
+              <span>类型</span>
+              <input name="credential_type" placeholder="api_key / password / device / ip" required />
+            </label>
+            <label>
+              <span>敏感值</span>
+              <textarea name="secret_data" rows="4" placeholder="密码、token、设备编号、地址等" required></textarea>
+            </label>
+            <label>
+              <span>服务/系统</span>
+              <input name="service_name" placeholder="OpenAI / NAS / 路由器" />
+            </label>
+            <label>
+              <span>账号/标识</span>
+              <input name="username" placeholder="username / device id / account id" />
+            </label>
+            <label>
+              <span>地址/端点</span>
+              <input name="endpoint" placeholder="https://... / 10.0.0.8 / ssh endpoint" />
+            </label>
+            <label>
+              <span>分类</span>
+              <input name="category" placeholder="cloud / network / ops / finance" />
+            </label>
+            <label>
+              <span>标签</span>
+              <input name="tags" placeholder="prod, ai, router" />
+            </label>
+            <label>
+              <span>来源</span>
+              <select name="source">
+                <option value="agent" selected>agent</option>
+                <option value="manual">manual</option>
+                <option value="api">api</option>
+                <option value="import">import</option>
+              </select>
+            </label>
+            <label>
+              <span>来源说明</span>
+              <input name="source_detail" placeholder="由哪个 agent / 哪次任务发现" />
+            </label>
+            <div class="dual">
+              <label>
+                <span>敏感级别</span>
+                <select name="sensitivity">
+                  <option value="critical">critical</option>
+                  <option value="high" selected>high</option>
+                  <option value="medium">medium</option>
+                  <option value="low">low</option>
+                </select>
+              </label>
+              <label>
+                <span>agent 访问</span>
+                <select name="agent_access">
+                  <option value="approval_required" selected>approval_required</option>
+                  <option value="masked">masked</option>
+                  <option value="read">read</option>
+                  <option value="deny">deny</option>
+                </select>
+              </label>
+            </div>
+            <button type="submit" class="primary">提交待审核</button>
+            <p id="credential-create-message" class="message" aria-live="polite"></p>
+          </form>
+        </aside>
+
+        <section class="content">
+          <nav class="tabs">
+            {% for tab in ["pending", "approved", "rejected", "archived"] %}
+              <a href="/?view={{ tab }}" class="{{ 'active' if active_view == tab else '' }}">
+                {{ tab }}
+              </a>
+            {% endfor %}
+          </nav>
+
+          <section class="panel stream">
+            <div class="panel-head">
+              <h2>{{ active_view|capitalize }} Queue</h2>
+              <p>{{ current_items|length }} 条记录正在这个视图中。</p>
+            </div>
+            <div class="cards">
+              {% for item in current_items %}
+                <article class="card {{ item.review_status }}">
+                  <div class="card-top">
+                    <div>
+                      <p class="card-title">{{ item.name }}</p>
+                      <p class="card-meta">{{ item.credential_type }} · {{ item.category or "uncategorized" }}</p>
+                    </div>
+                    <span class="pill">{{ item.review_status }}</span>
+                  </div>
+                  <p class="card-copy">
+                    {{ item.service_name or "未标注系统" }}
+                    {% if item.username %} · {{ item.username }}{% endif %}
+                  </p>
+                  <dl class="kv">
+                    <div><dt>source</dt><dd>{{ item.source }}</dd></div>
+                    <div><dt>access</dt><dd>{{ item.agent_access }}</dd></div>
+                    <div><dt>sensitivity</dt><dd>{{ item.sensitivity }}</dd></div>
+                  </dl>
+                  <div class="review-controls" data-credential-id="{{ item.id }}">
+                    <label>
+                      <span>审核人</span>
+                      <input name="reviewed_by" placeholder="Ben" />
+                    </label>
+                    <label>
+                      <span>审核备注</span>
+                      <textarea name="review_notes" rows="2" placeholder="说明保留原因或限制"></textarea>
+                    </label>
+                    <div class="dual">
+                      <label>
+                        <span>agent 访问</span>
+                        <select name="agent_access">
+                          {% for access in ["approval_required", "masked", "read", "deny"] %}
+                            <option value="{{ access }}" {{ "selected" if item.agent_access == access else "" }}>{{ access }}</option>
+                          {% endfor %}
+                        </select>
+                      </label>
+                      <label>
+                        <span>敏感级别</span>
+                        <select name="sensitivity">
+                          {% for level in ["critical", "high", "medium", "low"] %}
+                            <option value="{{ level }}" {{ "selected" if item.sensitivity == level else "" }}>{{ level }}</option>
+                          {% endfor %}
+                        </select>
+                      </label>
+                    </div>
+                    <div class="actions">
+                      {% if item.review_status == "pending" %}
+                        <button type="button" class="primary" onclick="reviewCredential(this, 'approved')">批准</button>
+                        <button type="button" class="ghost" onclick="reviewCredential(this, 'rejected')">驳回</button>
+                      {% endif %}
+                      <button type="button" class="ghost" onclick="reviewCredential(this, 'archived')">归档</button>
+                      <a href="/credentials/{{ item.id }}" class="text-link">详情</a>
+                    </div>
+                  </div>
+                </article>
+              {% else %}
+                <article class="empty">
+                  <h3>当前没有记录</h3>
+                  <p>这个视图里是空的，先从左侧提交一条资料，或切换别的审核状态。</p>
+                </article>
+              {% endfor %}
+            </div>
+          </section>
+
+          <section class="panel split-preview">
+            <div>
+              <h3>待审核快照</h3>
+              <ul>
+                {% for item in pending_items[:5] %}
+                  <li><a href="/credentials/{{ item.id }}">{{ item.name }}</a> <span>{{ item.source }}</span></li>
+                {% else %}
+                  <li>暂无待审核记录</li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div>
+              <h3>正式库快照</h3>
+              <ul>
+                {% for item in approved_items[:5] %}
+                  <li><a href="/credentials/{{ item.id }}">{{ item.name }}</a> <span>{{ item.agent_access }}</span></li>
+                {% else %}
+                  <li>暂无已批准记录</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+    <script src="{{ request.url_for('static', path='app.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="page-shell">
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">{{ nav_label }}</p>
+            <h1>{{ hero_title }}</h1>
+            <p class="subtitle">{{ hero_subtitle }}</p>
+        </div>
+        <div class="session-card">
+            <p class="session-role">{{ current_user.role }}</p>
+            <p class="session-user">{{ current_user.username }}</p>
+            <p class="session-hint">{{ snapshot.graphiti.backend }}</p>
+            <a class="ghost-link" href="/logout">退出</a>
+        </div>
+    </header>
+
+    <section class="summary-grid">
+        {% for card in snapshot.summary %}
+        <article class="metric-card">
+            <p class="metric-label">{{ card.label }}</p>
+            <p class="metric-value">{{ card.value }}</p>
+            <p class="metric-hint">{{ card.hint }}</p>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="status-banner">
+        <p class="eyebrow">Graphiti Status</p>
+        <p>{{ snapshot.graphiti.sync_hint }}</p>
+    </section>
+
+    <section class="content-grid">
+        <div class="collections-panel">
+            <article class="data-card">
+                <div class="card-header">
+                    <h2>Raw Journals</h2>
+                    <p>这些内容来自 `journals.db`，是 AI 认识你的原始语料，不自动等于确认事实。</p>
+                </div>
+                <div class="journal-list">
+                    {% for item in snapshot.raw_journals %}
+                    <article class="journal-card">
+                        <div class="journal-meta">
+                            <span>{{ item.date }}</span>
+                            <span>{{ item.mood }}</span>
+                            <span>{{ item.word_count }} words</span>
+                        </div>
+                        <h3>{{ item.title }}</h3>
+                        <p><strong>状态：</strong>{{ item.current_state }}</p>
+                        <p><strong>想法：</strong>{{ item.thoughts }}</p>
+                        <p><strong>关注：</strong>{{ item.focus_areas }}</p>
+                        <p class="muted"><strong>标签：</strong>{{ item.tags }}</p>
+                    </article>
+                    {% else %}
+                    <p class="empty-state">还没有可用的 raw journals。</p>
+                    {% endfor %}
+                </div>
+            </article>
+
+            {% for domain in snapshot.confirmed_domains %}
+            <article class="data-card">
+                <div class="card-header">
+                    <h2>{{ domain.icon }} {{ domain.title }}</h2>
+                    <p>{{ domain.subtitle }}</p>
+                </div>
+                <div class="fact-list">
+                    {% for fact in domain.facts %}
+                    <article class="fact-card">
+                        <div class="fact-meta">
+                            <span>{{ fact.fact_date }}</span>
+                            <span>{{ fact.source_label }}</span>
+                        </div>
+                        <h3>{{ fact.title }}</h3>
+                        <p>{{ fact.detail }}</p>
+                    </article>
+                    {% else %}
+                    <p class="empty-state">这个确认域暂时没有数据。</p>
+                    {% endfor %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        <aside class="focus-panel">
+            <div class="section-heading">
+                <p class="eyebrow">Agent Brief</p>
+                <h2>给 AI 的自我说明</h2>
+                <p>{{ snapshot.agent_context.narrative }}</p>
+            </div>
+
+            <article class="data-card compact-card">
+                <div class="card-header">
+                    <h3>Confirmed Facts</h3>
+                </div>
+                <ul class="compact-list">
+                    {% for item in snapshot.agent_context.confirmed_facts %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </article>
+
+            <article class="data-card compact-card">
+                <div class="card-header">
+                    <h3>Recent Signals</h3>
+                </div>
+                <ul class="compact-list">
+                    {% for item in snapshot.agent_context.recent_signals %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </article>
+
+            <article class="data-card compact-card">
+                <div class="card-header">
+                    <h3>Prompt Block</h3>
+                    <p>可以直接复制给任何 agent。</p>
+                </div>
+                <pre class="prompt-block">{{ snapshot.agent_context.prompt_block }}</pre>
+            </article>
+
+            <article class="data-card compact-card">
+                <div class="card-header">
+                    <h3>Graphiti Sync</h3>
+                    <p>先做 preview，再决定是否真正写入图数据库。</p>
+                </div>
+                <form class="focus-form" method="post" action="/graph-sync-runs">
+                    <label>
+                        模式
+                        <select name="mode">
+                            <option value="preview" selected>preview</option>
+                            <option value="sync">sync</option>
+                        </select>
+                    </label>
+                    <button type="submit">执行同步</button>
+                </form>
+                <div class="run-list">
+                    {% for item in graph_runs %}
+                    <article class="run-card">
+                        <div class="fact-meta">
+                            <span>{{ item.mode }}</span>
+                            <span>{{ item.status }}</span>
+                        </div>
+                        <p>{{ item.message }}</p>
+                        <p class="muted">raw {{ item.raw_episode_count }} / confirmed {{ item.confirmed_episode_count }}</p>
+                    </article>
+                    {% else %}
+                    <p class="empty-state">还没有 Graphiti 运行记录。</p>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="data-card compact-card">
+                <div class="card-header">
+                    <h3>Graph Search</h3>
+                    <p>如果 Graphiti 已就绪，可直接问图谱你最近的事实。</p>
+                </div>
+                <form class="focus-form" method="get" action="/">
+                    <label>
+                        查询
+                        <input type="text" name="q" value="{{ graph_query }}" placeholder="例如：我最近的健康状态">
+                    </label>
+                    <button type="submit">搜索图谱</button>
+                </form>
+                {% if graph_error %}
+                <p class="flash flash-error">{{ graph_error }}</p>
+                {% endif %}
+                {% if graph_results %}
+                <div class="run-list">
+                    {% for item in graph_results.results %}
+                    <article class="run-card">
+                        <h3>{{ item.name }}</h3>
+                        <p>{{ item.fact }}</p>
+                        <p class="muted">valid_at={{ item.valid_at or '-' }} | invalid_at={{ item.invalid_at or '-' }}</p>
+                    </article>
+                    {% else %}
+                    <p class="empty-state">图谱里还没有命中结果。</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </article>
+        </aside>
+    </section>
+</div>
+{% endblock %}

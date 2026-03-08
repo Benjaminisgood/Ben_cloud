@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .bug_reports import (
+    clear_archived_bug_reports,
     create_bug_report,
     get_bug_report,
     list_approved_bug_reports,
@@ -45,6 +46,7 @@ from .user_project_access import (
 )
 
 __all__ = [
+    "clear_archived_bug_reports",
     "create_bug_report",
     "get_bug_report",
     "save_bug_report",

@@ -2,178 +2,97 @@
 
 {% block content %}
 <div class="auth-page">
-  <div class="auth-card">
-    <div class="auth-logo">
-      <span class="auth-logo-icon">🤖</span>
-      <h1 class="auth-title">Benbot</h1>
-      <p class="auth-subtitle">创建账号 · 访问所有项目</p>
-    </div>
+  <div class="auth-layout">
+    <section class="auth-story">
+      <span class="portal-eyebrow auth-eyebrow">Benbot Access</span>
+      <h1 class="auth-hero-title">创建一个统一入口账号</h1>
+      <p class="auth-hero-desc">注册完成后，项目是否可见仍由管理员集中分配；Benbot 负责发放访问入口，而不是替代各项目本身。</p>
+      <div class="auth-feature-list">
+        <article class="auth-feature-card">
+          <span class="auth-feature-icon">#</span>
+          <div>
+            <h2>账户规则</h2>
+            <p>用户名仅支持字母、数字和下划线，便于在各子应用中保持一致。</p>
+          </div>
+        </article>
+        <article class="auth-feature-card">
+          <span class="auth-feature-icon">✓</span>
+          <div>
+            <h2>权限收口</h2>
+            <p>注册不会自动开放所有项目，管理员会按需勾选可见性。</p>
+          </div>
+        </article>
+        <article class="auth-feature-card">
+          <span class="auth-feature-icon">→</span>
+          <div>
+            <h2>完成即登录</h2>
+            <p>创建账号后就可以回到登录页，通过 Benbot 进入你的工作台。</p>
+          </div>
+        </article>
+      </div>
+    </section>
 
-    <form class="auth-form" action="/register" method="post">
-      <div class="form-group">
-        <label class="form-label" for="username">用户名</label>
-        <input 
-          type="text" 
-          id="username" 
-          name="username" 
-          class="form-input" 
-          placeholder="请输入用户名（3-20 个字符）"
-          required
-          minlength="3"
-          maxlength="20"
-          pattern="[a-zA-Z0-9_]+"
-          title="用户名只能包含字母、数字和下划线"
-        >
+    <section class="auth-card auth-card-shell">
+      <div class="auth-card-head">
+        <span class="auth-card-kicker">注册</span>
+        <div class="auth-logo">
+          <span class="auth-logo-icon">🤖</span>
+          <h2 class="auth-title">创建 Benbot 账号</h2>
+          <p class="auth-subtitle">统一入口账号 · 后续项目权限由管理员分配</p>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="password">密码</label>
-        <input 
-          type="password" 
-          id="password" 
-          name="password" 
-          class="form-input" 
-          placeholder="请输入密码（至少 6 位）"
-          required
-          minlength="6"
-        >
+      <form class="auth-form" action="/register" method="post">
+        <div class="form-group">
+          <label class="form-label" for="username">用户名</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            class="form-input"
+            placeholder="请输入用户名（3-20 个字符）"
+            required
+            minlength="3"
+            maxlength="20"
+            pattern="[a-zA-Z0-9_]+"
+            title="用户名只能包含字母、数字和下划线"
+          >
+          <p class="form-help">只能包含字母、数字和下划线。</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">密码</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-input"
+            placeholder="请输入密码（至少 6 位）"
+            required
+            minlength="6"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="confirm_password">确认密码</label>
+          <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            class="form-input"
+            placeholder="请再次输入密码"
+            required
+          >
+        </div>
+
+        <button type="submit" class="btn-primary">注册</button>
+      </form>
+
+      <div class="auth-footer">
+        <p>已有账号？<a href="/login" class="auth-link">立即登录</a></p>
       </div>
-
-      <div class="form-group">
-        <label class="form-label" for="confirm_password">确认密码</label>
-        <input 
-          type="password" 
-          id="confirm_password" 
-          name="confirm_password" 
-          class="form-input" 
-          placeholder="请再次输入密码"
-          required
-        >
-      </div>
-
-      <button type="submit" class="auth-btn">注册</button>
-    </form>
-
-    <div class="auth-footer">
-      <p>已有账号？<a href="/login" class="auth-link">立即登录</a></p>
-    </div>
+      <p class="auth-note">创建账号后，如看不到任何项目，说明还未被分配入口权限。</p>
+    </section>
   </div>
 </div>
-
-<style>
-.auth-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-}
-
-.auth-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  padding: 40px;
-  width: 100%;
-  max-width: 400px;
-}
-
-.auth-logo {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.auth-logo-icon {
-  font-size: 48px;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.auth-title {
-  font-size: 28px;
-  font-weight: bold;
-  color: #333;
-  margin: 0;
-}
-
-.auth-subtitle {
-  font-size: 14px;
-  color: #666;
-  margin: 8px 0 0 0;
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-}
-
-.form-input {
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border-color 0.2s;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.form-input:invalid {
-  border-color: #f44336;
-}
-
-.auth-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.auth-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-}
-
-.auth-btn:active {
-  transform: translateY(0);
-}
-
-.auth-footer {
-  margin-top: 24px;
-  text-align: center;
-  font-size: 14px;
-  color: #666;
-}
-
-.auth-link {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.auth-link:hover {
-  text-decoration: underline;
-}
-</style>
 {% endblock %}

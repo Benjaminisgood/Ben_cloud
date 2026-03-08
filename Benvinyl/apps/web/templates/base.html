@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+    <style>
+        :root {
+            --primary: {{ theme.primary if theme else '#5b3424' }};
+            --secondary: {{ theme.secondary if theme else '#c69c54' }};
+            --canvas: {{ theme.canvas if theme else '#efe2ca' }};
+            --ink: {{ theme.ink if theme else '#19120d' }};
+        }
+    </style>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    {% block body %}{% endblock %}
+    <script src="/static/vinyl.js" defer></script>
+</body>
+</html>

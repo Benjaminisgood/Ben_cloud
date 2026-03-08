@@ -1,0 +1,26 @@
+
+{% extends "base.html" %}
+{% block body %}
+<div class="login-shell">
+    <section class="login-card">
+        <p class="eyebrow">Private Access</p>
+        <h1>进入 Benself</h1>
+        <p class="subtitle">这里是让 AI 理解你的闭环站点，也可通过 Benbot SSO 进入。</p>
+        {% if error_message %}
+        <div class="flash flash-error">{{ error_message }}</div>
+        {% endif %}
+        <form method="post" action="/login" class="login-form">
+            <label>
+                用户名
+                <input type="text" name="username" autocomplete="username" required>
+            </label>
+            <label>
+                密码
+                <input type="password" name="password" autocomplete="current-password" required>
+            </label>
+            <input type="hidden" name="next" value="/">
+            <button type="submit">本地登录</button>
+        </form>
+    </section>
+</div>
+{% endblock %}

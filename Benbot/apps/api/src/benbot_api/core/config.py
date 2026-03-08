@@ -68,21 +68,41 @@ class Settings(BaseSettings):
 
     # Sub-project URLs
     BENOSS_INTERNAL_URL: str = "http://localhost:8000"
-    BENOSS_PUBLIC_URL: str = "http://00ling.com:8000"
+    BENOSS_PUBLIC_URL: str = "http://localhost:8000"
     BENLAB_INTERNAL_URL: str = "http://localhost:9000"
-    BENLAB_PUBLIC_URL: str = "http://00ling.com:9000"
+    BENLAB_PUBLIC_URL: str = "http://localhost:9000"
     BENUSY_INTERNAL_URL: str = "http://localhost:8100"
-    BENUSY_PUBLIC_URL: str = "http://00ling.com:8100"
+    BENUSY_PUBLIC_URL: str = "http://localhost:8100"
     BENOME_INTERNAL_URL: str = "http://localhost:8200"
-    BENOME_PUBLIC_URL: str = "http://00ling.com:8200"
+    BENOME_PUBLIC_URL: str = "http://localhost:8200"
     BENSCI_INTERNAL_URL: str = "http://localhost:8300"
-    BENSCI_PUBLIC_URL: str = "http://00ling.com:8300"
+    BENSCI_PUBLIC_URL: str = "http://localhost:8300"
     BENFER_INTERNAL_URL: str = "http://localhost:8400"
-    BENFER_PUBLIC_URL: str = "http://00ling.com:8400"
+    BENFER_PUBLIC_URL: str = "http://localhost:8400"
     BENBEN_INTERNAL_URL: str = "http://localhost:8600"
-    BENBEN_PUBLIC_URL: str = "http://00ling.com:8600"
+    BENBEN_PUBLIC_URL: str = "http://localhost:8600"
     BENFAST_INTERNAL_URL: str = "http://localhost:8700"
-    BENFAST_PUBLIC_URL: str = "http://00ling.com:8700"
+    BENFAST_PUBLIC_URL: str = "http://localhost:8700"
+    BENCRED_INTERNAL_URL: str = "http://localhost:9600"
+    BENCRED_PUBLIC_URL: str = "http://localhost:9600"
+    BENLINK_INTERNAL_URL: str = "http://localhost:9700"
+    BENLINK_PUBLIC_URL: str = "http://localhost:9700"
+    BENPREFS_INTERNAL_URL: str = "http://localhost:8800"
+    BENPREFS_PUBLIC_URL: str = "http://localhost:8800"
+    BENHEALTH_INTERNAL_URL: str = "http://localhost:8900"
+    BENHEALTH_PUBLIC_URL: str = "http://localhost:8900"
+    BENFINANCE_INTERNAL_URL: str = "http://localhost:9100"
+    BENFINANCE_PUBLIC_URL: str = "http://localhost:9100"
+    BENSELF_INTERNAL_URL: str = "http://localhost:9800"
+    BENSELF_PUBLIC_URL: str = "http://localhost:9800"
+    BENJOURNAL_INTERNAL_URL: str = "http://localhost:9200"
+    BENJOURNAL_PUBLIC_URL: str = "http://localhost:9200"
+    BENPHOTO_INTERNAL_URL: str = "http://localhost:9300"
+    BENPHOTO_PUBLIC_URL: str = "http://localhost:9300"
+    BENVINYL_INTERNAL_URL: str = "http://localhost:9400"
+    BENVINYL_PUBLIC_URL: str = "http://localhost:9400"
+    BENREEL_INTERNAL_URL: str = "http://localhost:9500"
+    BENREEL_PUBLIC_URL: str = "http://localhost:9500"
 
     # Health check interval (seconds)
     HEALTH_CHECK_INTERVAL: int = 60
@@ -205,6 +225,126 @@ class Settings(BaseSettings):
                 internal_url=self.BENFAST_INTERNAL_URL,
                 public_url=self.BENFAST_PUBLIC_URL,
                 color="#1f4a8a",
+                sso_entry_path="/auth/sso",
+                sso_enabled=True,
+            ),
+            ProjectConfig(
+                id="bencred",
+                name="Bencred",
+                description="凭证保险箱 · 密钥、密码与令牌管理",
+                icon="🔐",
+                port=9600,
+                internal_url=self.BENCRED_INTERNAL_URL,
+                public_url=self.BENCRED_PUBLIC_URL,
+                color="#4338ca",
+                sso_entry_path="/",
+                sso_enabled=False,
+            ),
+            ProjectConfig(
+                id="benlink",
+                name="Benlink",
+                description="链接收藏站 · 保存、整理与追踪网页",
+                icon="🔗",
+                port=9700,
+                internal_url=self.BENLINK_INTERNAL_URL,
+                public_url=self.BENLINK_PUBLIC_URL,
+                color="#0f766e",
+                sso_entry_path="/",
+                sso_enabled=False,
+            ),
+            ProjectConfig(
+                id="benprefs",
+                name="Benprefs",
+                description="偏好档案站 · 喜恶信号、网站习惯与偏好确认板",
+                icon="💛",
+                port=8800,
+                internal_url=self.BENPREFS_INTERNAL_URL,
+                public_url=self.BENPREFS_PUBLIC_URL,
+                color="#9b3d23",
+                sso_entry_path="/auth/sso",
+                sso_enabled=True,
+            ),
+            ProjectConfig(
+                id="benhealth",
+                name="Benhealth",
+                description="健康仪表站 · 运动轨迹、身体指标与健康观察",
+                icon="🫀",
+                port=8900,
+                internal_url=self.BENHEALTH_INTERNAL_URL,
+                public_url=self.BENHEALTH_PUBLIC_URL,
+                color="#0f6d62",
+                sso_entry_path="/auth/sso",
+                sso_enabled=True,
+            ),
+            ProjectConfig(
+                id="benfinance",
+                name="Benfinance",
+                description="财务洞察站 · 账户、流水、预算与资金决策",
+                icon="💹",
+                port=9100,
+                internal_url=self.BENFINANCE_INTERNAL_URL,
+                public_url=self.BENFINANCE_PUBLIC_URL,
+                color="#183a5a",
+                sso_entry_path="/auth/sso",
+                sso_enabled=True,
+            ),
+            ProjectConfig(
+                id="benself",
+                name="Benself",
+                description="数字我闭环站 · raw journal、确认事实与 Graphiti 自我上下文",
+                icon="🧠",
+                port=9800,
+                internal_url=self.BENSELF_INTERNAL_URL,
+                public_url=self.BENSELF_PUBLIC_URL,
+                color="#0c4f67",
+                sso_entry_path="/auth/sso",
+                sso_enabled=True,
+            ),
+            ProjectConfig(
+                id="benjournal",
+                name="Benjournal",
+                description="语音日记站 · 按天录音、合并归档与自动转写",
+                icon="🎙️",
+                port=9200,
+                internal_url=self.BENJOURNAL_INTERNAL_URL,
+                public_url=self.BENJOURNAL_PUBLIC_URL,
+                color="#6c2f1f",
+                sso_entry_path="/auth/sso",
+                sso_enabled=True,
+            ),
+            ProjectConfig(
+                id="benphoto",
+                name="Benphoto",
+                description="照片桌展示站 · OSS 随机拍立得与垃圾桶回收",
+                icon="📸",
+                port=9300,
+                internal_url=self.BENPHOTO_INTERNAL_URL,
+                public_url=self.BENPHOTO_PUBLIC_URL,
+                color="#cc6a2f",
+                sso_entry_path="/auth/sso",
+                sso_enabled=True,
+            ),
+            ProjectConfig(
+                id="benvinyl",
+                name="Benvinyl",
+                description="黑胶音频站 · 每日节目、唱片堆与垃圾桶回收",
+                icon="💿",
+                port=9400,
+                internal_url=self.BENVINYL_INTERNAL_URL,
+                public_url=self.BENVINYL_PUBLIC_URL,
+                color="#5b3424",
+                sso_entry_path="/auth/sso",
+                sso_enabled=True,
+            ),
+            ProjectConfig(
+                id="benreel",
+                name="Benreel",
+                description="老电影放映站 · 每日节目、胶卷切换与垃圾桶回收",
+                icon="🎞️",
+                port=9500,
+                internal_url=self.BENREEL_INTERNAL_URL,
+                public_url=self.BENREEL_PUBLIC_URL,
+                color="#4a2f23",
                 sso_entry_path="/auth/sso",
                 sso_enabled=True,
             ),

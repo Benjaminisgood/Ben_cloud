@@ -26,6 +26,23 @@ def test_get_archived_bugs_returns_service_response(monkeypatch: pytest.MonkeyPa
     assert result[0]["id"] == 5
 
 
+def test_clear_archived_bugs_returns_deleted_count(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        bugs,
+        "require_admin_session_user_or_403",
+        lambda _request, _db: SimpleNamespace(username="root", role="admin"),
+    )
+    monkeypatch.setattr(
+        bugs.bug_service,
+        "clear_archived",
+        lambda _db: 6,
+    )
+
+    result = bugs.clear_archived_bugs(request=object(), db=object())
+
+    assert result == {"ok": True, "cleared_count": 6}
+
+
 def test_archive_bug_returns_archived_bug(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         bugs,

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="login-shell">
+    <section class="login-card">
+        <p class="eyebrow">Benvinyl</p>
+        <h1>管理员登录</h1>
+        <p class="subtitle">公开访客可以直接听今天的节目。只有管理员登录后，才能录入新唱片、下架或恢复节目。</p>
+
+        {% if error_message %}
+        <p class="flash flash-error">{{ error_message }}</p>
+        {% endif %}
+
+        <form class="record-form" method="post" action="/login">
+            <input type="hidden" name="next" value="/">
+            <label>
+                用户名
+                <input type="text" name="username" required autocomplete="username">
+            </label>
+            <label>
+                密码
+                <input type="password" name="password" required autocomplete="current-password">
+            </label>
+            <button type="submit">进入管理员模式</button>
+        </form>
+
+        <div class="login-links">
+            <a class="secondary-link" href="/">回到公开唱片机</a>
+            <a class="secondary-link" href="{{ benbot_base_url }}">从 Benbot 门户进入</a>
+        </div>
+    </section>
+</div>
+{% endblock %}

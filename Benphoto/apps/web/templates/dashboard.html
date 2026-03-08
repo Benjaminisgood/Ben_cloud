@@ -1,0 +1,110 @@
+
+{% extends "base.html" %}
+{% block body %}
+<div class="photo-scene" data-photo-scene>
+    <div class="photo-status-dock">
+        <div class="photo-status-pills">
+            <span>{{ dashboard.display_date }}</span>
+            <span>{{ dashboard.desk_cards|length }} / {{ dashboard.daily_limit }}</span>
+            <span>{{ dashboard.trash_cards|length }} in bin</span>
+        </div>
+        <div class="photo-session-chip">
+            <strong>{{ current_user.username }}</strong>
+            <a href="/logout">退出</a>
+        </div>
+    </div>
+
+    {% if flash_message %}
+    <div class="photo-scene-toast">{{ flash_message }}</div>
+    {% endif %}
+
+    <section class="photo-playground">
+        <div class="photo-sky-layer" aria-hidden="true">
+            <span class="photo-sun"></span>
+            <span class="photo-cloud photo-cloud-a"></span>
+            <span class="photo-cloud photo-cloud-b"></span>
+        </div>
+        <div class="photo-desk-surface" aria-hidden="true"></div>
+
+        <button type="button" class="photo-camera-prop" data-scene-toggle="photo-drawer" aria-expanded="false">
+            <span class="photo-camera-top"></span>
+            <span class="photo-camera-body"></span>
+            <span class="photo-camera-lens"></span>
+            <span class="photo-camera-flash"></span>
+            <span class="photo-prop-label">加图</span>
+        </button>
+
+        <section class="photo-drawer-panel" data-photo-drawer hidden>
+            <div class="photo-drawer-head">
+                <div>
+                    <p>新相纸</p>
+                    <strong>放进照片池</strong>
+                </div>
+                <button type="button" class="photo-mini-close" data-scene-close="photo-drawer" aria-label="关闭"></button>
+            </div>
+            <form class="photo-scene-form" method="post" action="/photos">
+                <label class="sr-only" for="photo-title">标题</label>
+                <input id="photo-title" type="text" name="title" maxlength="120" placeholder="标题">
+                <label class="sr-only" for="photo-oss-path">OSS 地址或对象 key</label>
+                <input id="photo-oss-path" type="text" name="oss_path" required maxlength="1024" placeholder="OSS 地址或对象 key">
+                <label class="sr-only" for="photo-caption">备注</label>
+                <textarea id="photo-caption" name="caption" rows="3" maxlength="500" placeholder="备注"></textarea>
+                <button type="submit">收进桌面</button>
+            </form>
+            <p class="photo-drawer-hint">{{ dashboard.add_photo_hint }}</p>
+        </section>
+
+        <div class="photo-trash-zone" data-trash-zone="true">
+            <div class="photo-bin-body" aria-hidden="true">
+                <span class="photo-bin-lid"></span>
+                <span class="photo-bin-shell"></span>
+            </div>
+            <div class="photo-trash-stack">
+                {% for item in dashboard.trash_cards %}
+                <button
+                    type="button"
+                    class="photo-trash-card"
+                    data-restore-url="/photos/{{ item.id }}/restore"
+                    aria-label="恢复 {{ item.title }}"
+                    title="{{ item.title }}"
+                >
+                    <img src="{{ item.image_url }}" alt="{{ item.title }}">
+                </button>
+                {% else %}
+                <span class="photo-trash-empty"></span>
+                {% endfor %}
+            </div>
+            <span class="photo-prop-label">垃圾桶</span>
+        </div>
+
+        {% for card in dashboard.desk_cards %}
+        <article
+            class="photo-card-scene"
+            style="--x: {{ card.x_pct }}%; --y: {{ card.y_px }}px; --rotate: {{ card.rotation_deg }}deg; --z: {{ card.z_index }}; --accent: {{ card.accent }}; --tape-left: {{ card.tape_offset_pct }}%; --delay: {{ card.animation_delay_ms }}ms;"
+            draggable="true"
+            data-trash-url="/photos/{{ card.id }}/trash"
+        >
+            <button
+                type="button"
+                class="photo-card-action"
+                data-submit-action="/photos/{{ card.id }}/trash"
+                aria-label="扔掉 {{ card.title }}"
+            ></button>
+            <span class="photo-card-tape"></span>
+            <div class="photo-card-frame">
+                <img src="{{ card.image_url }}" alt="{{ card.title }}">
+            </div>
+            <div class="photo-card-copy">
+                <strong>{{ card.title }}</strong>
+                <span>{{ card.source_label }}</span>
+            </div>
+        </article>
+        {% else %}
+        <div class="photo-empty-stage">
+            <strong>桌面空了</strong>
+            <span>{{ dashboard.empty_desk_message }}</span>
+        </div>
+        {% endfor %}
+    </section>
+</div>
+{% endblock %}

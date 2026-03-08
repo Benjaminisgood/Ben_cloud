@@ -1,0 +1,195 @@
+
+{% extends "base.html" %}
+{% block body %}
+<div class="page-shell">
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">{{ nav_label }}</p>
+            <h1>{{ hero_title }}</h1>
+            <p class="subtitle">{{ hero_subtitle }}</p>
+        </div>
+        <div class="session-card">
+            <p class="session-role">{{ current_user.role }}</p>
+            <p class="session-user">{{ current_user.username }}</p>
+            <a class="ghost-link" href="/logout">退出</a>
+        </div>
+    </header>
+
+    <section class="summary-grid">
+        {% for card in dashboard.summary %}
+        <article class="metric-card">
+            <p class="metric-label">{{ card.label }}</p>
+            <p class="metric-value">{{ card.value }}</p>
+            <p class="metric-hint">{{ card.hint }}</p>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="content-grid">
+        <div class="collections-panel">
+            <div class="section-heading">
+                <p class="eyebrow">{{ collections_title }}</p>
+                <h2>{{ collections_subtitle }}</h2>
+            </div>
+            {% for table in dashboard.collections %}
+            <article class="data-card">
+                <div class="card-header">
+                    <h3>{{ table.title }}</h3>
+                    <p>{{ table.subtitle }}</p>
+                </div>
+                {% if table.rows %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for column in table.columns %}
+                                <th>{{ column.label }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in table.rows %}
+                            <tr>
+                                {% for column in table.columns %}
+                                <td>{{ row[column.key] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-state">{{ table.empty_message }}</p>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+
+        <aside class="focus-panel">
+            <div class="section-heading">
+                <p class="eyebrow">{{ records_label }}</p>
+                <h2>健康管理后端</h2>
+                <p>{{ records_hint }}</p>
+            </div>
+            <form class="focus-form" method="post" action="/health-records">
+                <label>
+                    领域
+                    <select name="domain">
+                        <option value="habit">习惯</option>
+                        <option value="diet">饮食</option>
+                        <option value="mental">心理</option>
+                        <option value="exercise">运动</option>
+                        <option value="medical">医疗</option>
+                    </select>
+                </label>
+                <label>
+                    标题
+                    <input type="text" name="title" required maxlength="160" placeholder="例如：午餐后困倦观察、睡前散步计划">
+                </label>
+                <label>
+                    概要
+                    <textarea name="summary" rows="4" required placeholder="写下症状、习惯、计划或观察结论。"></textarea>
+                </label>
+                <label>
+                    照护状态
+                    <select name="care_status">
+                        <option value="planned">计划中</option>
+                        <option value="active" selected>进行中</option>
+                        <option value="stable">稳定</option>
+                        <option value="resolved">已解决</option>
+                        <option value="needs_attention">需重点关注</option>
+                        <option value="archived">归档</option>
+                    </select>
+                </label>
+                <label>
+                    关注级别
+                    <select name="concern_level">
+                        <option value="critical">关键</option>
+                        <option value="high">高</option>
+                        <option value="medium" selected>中</option>
+                        <option value="low">低</option>
+                    </select>
+                </label>
+                <label>
+                    频率
+                    <select name="frequency">
+                        <option value="once">一次性</option>
+                        <option value="daily">每日</option>
+                        <option value="weekly" selected>每周</option>
+                        <option value="monthly">每月</option>
+                        <option value="as_needed">按需</option>
+                    </select>
+                </label>
+                <label>
+                    指标名称
+                    <input type="text" name="metric_name" maxlength="80" placeholder="例如：sleep_hours、duration_minutes">
+                </label>
+                <label>
+                    指标值
+                    <input type="text" name="metric_value" placeholder="例如：7.5">
+                </label>
+                <label>
+                    单位
+                    <input type="text" name="metric_unit" maxlength="24" placeholder="例如：hours、min、kg">
+                </label>
+                <label>
+                    饮食对象
+                    <input type="text" name="food_name" maxlength="160" placeholder="例如：米饭套餐、咖啡">
+                </label>
+                <label>
+                    运动项目
+                    <input type="text" name="exercise_name" maxlength="160" placeholder="例如：慢跑、力量训练">
+                </label>
+                <label>
+                    医疗机构/医生
+                    <input type="text" name="provider_name" maxlength="160" placeholder="例如：体检中心">
+                </label>
+                <label>
+                    药物/补剂
+                    <input type="text" name="medication_name" maxlength="160" placeholder="例如：维生素D、布洛芬">
+                </label>
+                <label>
+                    下次复盘日期
+                    <input type="date" name="next_review_on">
+                </label>
+                <label>
+                    后续计划
+                    <textarea name="follow_up_plan" rows="4" placeholder="例如：连续 14 天记录睡眠和午后能量。"></textarea>
+                </label>
+                <label>
+                    agent 备注
+                    <textarea name="agent_note" rows="4" placeholder="写下观察依据或需要提醒的点。"></textarea>
+                </label>
+                <button type="submit">写入 {{ records_label }}</button>
+            </form>
+
+            <div class="focus-list">
+                {% if health_records %}
+                {% for item in health_records %}
+                <article class="focus-entry">
+                    <div class="focus-meta">
+                        <span>{{ item.domain }}</span>
+                        <span>{{ item.care_status }}</span>
+                        <span>{{ item.concern_level }}</span>
+                        <span>{{ item.review_status }}</span>
+                        <span>{{ item.created_by }}</span>
+                    </div>
+                    <h3>{{ item.title }}</h3>
+                    <p>{{ item.summary }}</p>
+                    <p>写入于 {{ item.created_at }}{% if item.reviewed_at %} · 审核于 {{ item.reviewed_at }}{% endif %}</p>
+                    {% if item.follow_up_plan %}
+                    <p>{{ item.follow_up_plan }}</p>
+                    {% endif %}
+                    {% if item.review_note %}
+                    <p>审核备注：{{ item.review_note }}</p>
+                    {% endif %}
+                </article>
+                {% endfor %}
+                {% else %}
+                <p class="empty-state">还没有健康记录。先把一条最需要持续追踪的事项写进去。</p>
+                {% endif %}
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
