@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.core.config import settings
+from apps.core.http_clients import build_openai_client
 from apps.db.models import Article, LLMQueryFilterDropped, LLMQueryFilterKept
 from apps.providers import ProviderRecord
 from apps.services.normalizers import normalize_list, split_semicolon
@@ -94,7 +95,7 @@ def _create_openai_client() -> OpenAI | None:
     base_url = (settings.aliyun_ai_api_base_url or "").strip().strip("'\"")
     if not api_key or OpenAI is None:
         return None
-    return OpenAI(
+    return build_openai_client(
         api_key=api_key,
         base_url=base_url,
         timeout=max(1.0, float(settings.request_timeout_seconds)),
@@ -451,6 +452,14 @@ class QueryFilterRuntime:
             parts.append(f"keep_cache={'on' if self.llm_use_cached_keep else 'off'}")
             parts.append(f"drop_cache={'on' if self.llm_use_cached_drop else 'off'}")
         return ", ".join(parts)
+
+    def close(self) -> None:
+        if self.client is None:
+            return
+        try:
+            self.client.close()
+        except Exception:
+            pass
 
     def prepare(self, session: Session, records: Iterable[ProviderRecord], *, logger: FilterLog = None) -> None:
         items = list(records)

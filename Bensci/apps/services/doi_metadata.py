@@ -3,9 +3,8 @@ from __future__ import annotations
 import re
 from urllib.parse import quote
 
-import requests
-
 from apps.core.config import settings
+from apps.core.http_clients import request
 
 
 def _clean_html(text: str) -> str:
@@ -25,7 +24,8 @@ def _pick_date(item: dict) -> str:
 
 def _extract_crossref(doi: str) -> dict[str, object]:
     url = f"https://api.crossref.org/works/{quote(doi, safe='')}"
-    response = requests.get(
+    response = request(
+        "GET",
         url,
         timeout=settings.request_timeout_seconds,
         headers={"User-Agent": settings.request_user_agent},
@@ -83,7 +83,8 @@ def _extract_crossref(doi: str) -> dict[str, object]:
 def _extract_openalex(doi: str) -> dict[str, object]:
     encoded = quote(f"https://doi.org/{doi}", safe="")
     url = f"https://api.openalex.org/works/{encoded}"
-    response = requests.get(
+    response = request(
+        "GET",
         url,
         timeout=settings.request_timeout_seconds,
         headers={"User-Agent": settings.request_user_agent},

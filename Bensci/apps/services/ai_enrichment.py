@@ -5,11 +5,11 @@ import re
 from collections.abc import Callable
 from datetime import datetime
 
-import requests
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from apps.core.config import settings
+from apps.core.http_clients import build_openai_client, request
 from apps.db.models import Article
 from apps.providers import ProviderRecord
 from apps.services.article_service import touch_article_activity
@@ -126,7 +126,8 @@ def _assign_if_missing(article: Article, field: str, value: object) -> bool:
 
 def _fetch_article_context(url: str) -> dict[str, str]:
     try:
-        resp = requests.get(
+        resp = request(
+            "GET",
             url,
             timeout=settings.request_timeout_seconds,
             headers={"User-Agent": settings.request_user_agent},
@@ -259,8 +260,16 @@ def _ai_fill_missing(
 
     model_name = (settings.aliyun_ai_model or "qwen-plus").strip().strip("'\"") or "qwen-plus"
 
+    client = None
     try:
-        client = OpenAI(api_key=api_key, base_url=base_url)
+        client = build_openai_client(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=max(1.0, float(settings.request_timeout_seconds)),
+        )
+        if client is None:
+            _log(logger, "openai HTTP client 初始化失败，跳过 AI 补全。")
+            return {}
         resp = client.chat.completions.create(
             model=model_name,
             temperature=0,
@@ -279,6 +288,9 @@ def _ai_fill_missing(
     except Exception as exc:  # pragma: no cover
         _log(logger, f"AI 请求失败: {exc}")
         return {}
+    finally:
+        if client is not None:
+            client.close()
 
     message = ""
     if resp.choices:

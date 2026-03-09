@@ -608,6 +608,9 @@ def ingest_metadata(
             ProviderStats(provider=item.provider, fetched=item.fetched, merged=item.merged, errors=item.errors)
         )
 
+    close_runtime = getattr(query_filter_runtime, "close", None)
+    if callable(close_runtime):
+        close_runtime()
     return IngestResponse(
         query=resolved_query,
         inserted=inserted,

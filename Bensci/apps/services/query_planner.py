@@ -6,6 +6,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 
 from apps.core.config import settings
+from apps.core.http_clients import build_openai_client
 from apps.providers.base import ProviderQuery
 
 try:
@@ -555,8 +556,16 @@ def _ai_plan(
 
     model_name = (settings.aliyun_ai_model or "qwen-plus").strip().strip("'\"") or "qwen-plus"
 
+    client = None
     try:
-        client = OpenAI(api_key=api_key, base_url=base_url)
+        client = build_openai_client(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=max(1.0, float(settings.request_timeout_seconds)),
+        )
+        if client is None:
+            _emit(logger, "query_planner: openai HTTP client 初始化失败，回退为原词检索。")
+            return None
         resp = client.chat.completions.create(
             model=model_name,
             temperature=0,
@@ -569,6 +578,9 @@ def _ai_plan(
     except Exception as exc:  # pragma: no cover - 网络容错
         _emit(logger, f"query_planner: AI 解析失败，回退为原词检索。原因: {exc}")
         return None
+    finally:
+        if client is not None:
+            client.close()
 
     content = ""
     if resp.choices:
