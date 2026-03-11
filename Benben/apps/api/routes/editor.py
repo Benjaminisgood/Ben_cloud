@@ -43,10 +43,24 @@ async def list_files(request: Request, repo: OSSRepository = Depends(get_reposit
     return FileListResponse(files=files)
 
 
+@router.get("/api/template-files", response_model=FileListResponse)
+async def list_template_files(request: Request, repo: OSSRepository = Depends(get_repository)):
+    user = require_session_user(request)
+    files = editor_service.list_template_files(repo, user=user, request=request)
+    return FileListResponse(files=files)
+
+
 @router.get("/api/files/{path:path}", response_model=FileContentResponse)
 async def get_file(path: str, request: Request, repo: OSSRepository = Depends(get_repository)):
     user = require_session_user(request)
     snapshot = editor_service.read_file(repo, path=path, user=user, request=request)
+    return FileContentResponse(path=snapshot.path, content=snapshot.content, version=snapshot.version)
+
+
+@router.get("/api/template-files/{path:path}", response_model=FileContentResponse)
+async def get_template_file(path: str, request: Request, repo: OSSRepository = Depends(get_repository)):
+    user = require_session_user(request)
+    snapshot = editor_service.read_template_file(repo, path=path, user=user, request=request)
     return FileContentResponse(path=snapshot.path, content=snapshot.content, version=snapshot.version)
 
 
@@ -67,11 +81,42 @@ async def save_file(payload: SaveFileRequest, request: Request, repo: OSSReposit
     return SaveFileResponse(path=result.path, version=result.version, created=result.created, operation_id=operation_id)
 
 
+@router.post("/api/template-files", response_model=SaveFileResponse)
+async def save_template_file(payload: SaveFileRequest, request: Request, repo: OSSRepository = Depends(get_repository)):
+    user = require_session_user(request)
+    operation_id = new_operation_id()
+    result = editor_service.save_template_file(
+        repo,
+        path=payload.path,
+        content=payload.content,
+        base_version=payload.base_version,
+        force=payload.force,
+        operation_id=operation_id,
+        user=user,
+        request=request,
+    )
+    return SaveFileResponse(path=result.path, version=result.version, created=result.created, operation_id=operation_id)
+
+
 @router.delete("/api/files/{path:path}", response_model=DeleteFileResponse)
 async def delete_file(path: str, request: Request, repo: OSSRepository = Depends(get_repository)):
     user = require_session_user(request)
     operation_id = new_operation_id()
     safe_path = editor_service.delete_file(
+        repo,
+        path=path,
+        operation_id=operation_id,
+        user=user,
+        request=request,
+    )
+    return DeleteFileResponse(path=safe_path, operation_id=operation_id)
+
+
+@router.delete("/api/template-files/{path:path}", response_model=DeleteFileResponse)
+async def delete_template_file(path: str, request: Request, repo: OSSRepository = Depends(get_repository)):
+    user = require_session_user(request)
+    operation_id = new_operation_id()
+    safe_path = editor_service.delete_template_file(
         repo,
         path=path,
         operation_id=operation_id,
@@ -169,7 +214,7 @@ async def create_from_template(
         template = get_template(payload.template_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    safe_path = repo.normalize_markdown_path(payload.path)
+    safe_path = editor_service.normalize_writing_path(repo, payload.path)
 
     variables = build_template_variables(
         username=user["username"],

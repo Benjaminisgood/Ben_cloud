@@ -204,10 +204,10 @@ class OSSRepository:
                 detail=f"图片过大（最大 {settings.upload_max_bytes} 字节）",
             )
 
-        key = (
-            f"{settings.oss_prefix}/images/"
-            f"{datetime.now().strftime('%Y/%m')}/{uuid.uuid4().hex}{ext}"
-        )
+        now = datetime.now()
+        iso = now.isocalendar()
+        week_folder = f"{iso.year}-W{iso.week:02d}"
+        key = f"{settings.oss_prefix}/assets/{week_folder}/{uuid.uuid4().hex}{ext}"
         headers = {"Content-Type": content_type} if content_type else None
         try:
             self.bucket.put_object(key, file_data, headers=headers)

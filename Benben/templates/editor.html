@@ -18,27 +18,26 @@
                     </div>
                 </div>
 
-                <label class="menu-field">
-                    <span>文件</span>
+                <label class="menu-field" id="file-switcher-field">
+                    <span id="file-switcher-label">文件</span>
                     <select id="file-switcher">
                         <option value="__none__">未选择文件</option>
                     </select>
                 </label>
 
-                <button type="button" class="ghost-btn compact-btn" id="refresh-files-btn">刷新</button>
-
-                <div class="status-chip">
-                    <span>路径</span>
-                    <strong id="current-path-chip">未保存</strong>
-                </div>
+                <label class="menu-field hidden" id="template-switcher-field">
+                    <span>模版文件</span>
+                    <select id="template-switcher">
+                        <option value="__none_template__">未选择模版</option>
+                    </select>
+                </label>
+                <nav class="module-nav" aria-label="模块切换">
+                    <button type="button" id="view-template-btn" class="active">模版</button>
+                    <button type="button" id="view-write-btn">写作</button>
+                    <button type="button" id="view-document-btn">文档</button>
+                    <button type="button" id="view-slides-btn">幻灯片</button>
+                </nav>
             </div>
-
-            <nav class="module-nav" aria-label="模块切换">
-                <button type="button" id="view-template-btn" class="active">模版</button>
-                <button type="button" id="view-write-btn">写作</button>
-                <button type="button" id="view-document-btn">文档</button>
-                <button type="button" id="view-slides-btn">幻灯片</button>
-            </nav>
 
             <div class="menu-cluster menu-cluster--right">
                 <div class="status-chip">
@@ -52,82 +51,16 @@
                 </div>
 
                 <div class="action-stack">
-                    <button type="button" class="ghost-btn" data-action="new-blank">新建空白</button>
-                    <button type="button" class="secondary-btn" data-action="save">保存</button>
                     <button type="button" class="ghost-btn" id="export-btn">导出</button>
-                    <button type="button" class="primary-btn" data-action="present">放映</button>
-                    <button type="button" class="danger-btn" id="delete-btn" disabled>删除</button>
                 </div>
             </div>
         </header>
 
         <main class="module-stage">
-            <section class="module-panel" id="template-view">
-                <div class="template-layout">
-                    <section class="panel template-catalog-panel">
-                        <div class="panel-heading">
-                            <div>
-                                <p class="section-kicker">Templates</p>
-                                <h1>模版</h1>
-                            </div>
-                        </div>
-
-                        <div class="template-catalog" id="template-catalog"></div>
-                    </section>
-
-                    <section class="panel template-compose-panel">
-                        <div class="panel-heading">
-                            <div>
-                                <p class="section-kicker">Compose</p>
-                                <h2 id="selected-template-name">选择一个模板</h2>
-                                <p class="panel-copy" id="selected-template-desc">选择左侧模板后，在这里填写路径并创建文稿。</p>
-                            </div>
-                        </div>
-
-                        <label class="field">
-                            <span>目标路径</span>
-                            <input id="new-file-path" type="text" placeholder="例如：weekly/2026w10.md">
-                        </label>
-
-                        <label class="field">
-                            <span>项目名</span>
-                            <input id="template-project" type="text" placeholder="例如：Benoss 协作周报">
-                        </label>
-
-                        <select id="template-select" hidden>
-                            <option value="">选择模板...</option>
-                        </select>
-
-                        <div class="action-row">
-                            <button type="button" class="secondary-btn" id="template-create-btn">用模板创建</button>
-                            <button type="button" class="ghost-btn" data-action="new-blank">新建空白</button>
-                            <button type="button" class="ghost-btn" id="insert-report-btn">插入汇报骨架</button>
-                        </div>
-
-                        <div class="template-meta-block">
-                            <div class="meta-row">
-                                <span>分类</span>
-                                <strong id="selected-template-category">-</strong>
-                            </div>
-                            <div class="meta-row">
-                                <span>变量</span>
-                                <div class="chip-row" id="selected-template-variables">
-                                    <span class="token-chip">暂无</span>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </section>
-
             <section class="module-panel hidden" id="write-view">
                 <section class="panel editor-panel">
                     <div class="editor-head">
-                        <div>
-                            <p class="section-kicker">Writing</p>
-                            <h1 id="editor-title">未命名文档</h1>
-                            <p class="panel-copy" id="editor-state">未选择文件</p>
-                        </div>
+                        <h1 id="editor-title">未命名文档</h1>
 
                         <div class="chip-row chip-row--stats">
                             <span class="token-chip" id="version-state">version: -</span>
@@ -138,11 +71,7 @@
                         </div>
                     </div>
 
-                    <div class="slash-hint-bar">
-                        <span>输入 <code>/</code> 唤出命令，例如 <code>/assets</code>、<code>/slide</code>、<code>/summary</code></span>
-                    </div>
-
-                    <div class="editor-frame">
+                    <div class="editor-frame" id="editor-frame">
                         <textarea id="editor" placeholder="# 今日同步&#10;&#10;一句话结论&#10;&#10;输入 /slide 或直接写 --- 来分页"></textarea>
 
                         <div id="slash-panel" class="slash-panel hidden" aria-hidden="true">
@@ -174,6 +103,7 @@
             </section>
         </main>
 
+        <input id="new-file-path" type="text" hidden>
         <input type="file" id="image-upload" accept="image/*" hidden>
     </div>
 
@@ -202,6 +132,34 @@
             <div class="action-row">
                 <button type="button" class="secondary-btn" id="asset-insert-btn">插入网络资源</button>
                 <button type="button" class="ghost-btn" id="asset-upload-btn">上传本地图片</button>
+            </div>
+
+            <div class="asset-dropzone" id="asset-dropzone">
+                <strong>拖拽图片到这里上传</strong>
+                <p>也可以在编辑器里直接粘贴截图（Ctrl/Cmd + V）</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="template-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-head">
+                <div>
+                    <p class="section-kicker">Templates</p>
+                    <h2>插入模版</h2>
+                </div>
+                <button type="button" class="ghost-btn compact-btn" id="template-cancel-btn">关闭</button>
+            </div>
+
+            <label class="field">
+                <span>模版文件</span>
+                <select id="template-insert-select">
+                    <option value="__none_template__">未选择模版</option>
+                </select>
+            </label>
+
+            <div class="action-row">
+                <button type="button" class="secondary-btn" id="template-insert-btn">插入模版</button>
             </div>
         </div>
     </div>

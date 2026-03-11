@@ -69,7 +69,8 @@ make check
 
 2. 模板功能
 - `/api/templates` 返回模板库
-- `/api/files/from-template` 支持变量注入（日期、周次、成员、项目）
+- `/api/template-files/*` 独立管理模板文件（`templates/` 目录）
+- `/api/files/from-template` 支持变量注入（日期、周次、成员、项目），写作文件统一落到 `writing/<ISO周>/`
 
 3. 导出功能
 - `/api/export` 支持 `txt` / `md` / `html` 下载
@@ -90,7 +91,12 @@ make check
 - 写接口返回 `operation_id` 并在审计日志中关联 `request_id/operation_id`
 - 支持 `BENBEN_AUDIT_LOG_PATH` 与 `BENBEN_AUDIT_MAX_BYTES`（超限自动轮转）
 
-6. 运维健康检查
+7. 写作与资源目录策略
+- 写作文件仅允许当前周目录：`writing/<ISO年>-W<周次>/`
+- 模板文件仅允许 `templates/` 目录，不能通过写作接口编辑
+- 附件上传统一落到 `assets/<ISO年>-W<周次>/`
+
+8. 运维健康检查
 - `/health`：基础状态与环境信息
 - `/health/live`：进程存活探针
 - `/health/ready`：配置与日志目录可写性探针（未就绪返回 `503`）

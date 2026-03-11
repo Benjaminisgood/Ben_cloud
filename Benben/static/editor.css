@@ -112,38 +112,41 @@ p {
 }
 
 .menu-bar {
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) auto minmax(0, 1.2fr);
-    gap: 16px;
+    display: flex;
     align-items: center;
-    padding: 16px 18px;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    overflow-x: auto;
 }
 
 .menu-cluster {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     min-width: 0;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .menu-cluster--right {
+    margin-left: auto;
     justify-content: flex-end;
 }
 
 .brand-lockup {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .brand-mark {
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
     display: grid;
     place-items: center;
     font-weight: 800;
+    font-size: 14px;
     color: #fff;
     background: linear-gradient(135deg, var(--accent), var(--highlight));
     box-shadow: 0 14px 26px rgba(28, 99, 213, 0.24);
@@ -156,11 +159,11 @@ p {
 }
 
 .brand-copy strong {
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .brand-copy span {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--muted);
 }
 
@@ -172,7 +175,10 @@ p {
 }
 
 .menu-field {
-    min-width: 210px;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
 }
 
 .menu-field span,
@@ -188,13 +194,18 @@ p {
     color: var(--muted);
 }
 
+.menu-field span {
+    display: none;
+}
+
 .menu-field select,
 .field input,
 .field select,
 .preview-actions select {
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: 14px;
+    width: auto;
+    min-width: 170px;
+    padding: 8px 10px;
+    border-radius: 10px;
     border: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.9);
     color: var(--ink);
@@ -203,8 +214,8 @@ p {
 .module-nav,
 .segmented-control {
     display: inline-flex;
-    gap: 6px;
-    padding: 6px;
+    gap: 2px;
+    padding: 2px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(21, 32, 43, 0.08);
@@ -212,11 +223,12 @@ p {
 
 .module-nav button,
 .segmented-control button {
-    padding: 11px 16px;
+    padding: 7px 10px;
     border-radius: 999px;
     background: transparent;
     color: var(--muted);
     white-space: nowrap;
+    font-size: 12px;
 }
 
 .module-nav button.active,
@@ -235,17 +247,21 @@ p {
 }
 
 .status-chip {
-    min-width: 118px;
-    padding: 10px 12px;
-    border-radius: 16px;
+    min-width: 0;
+    padding: 7px 10px;
+    border-radius: 999px;
 }
 
 .status-chip strong {
-    display: block;
-    margin-top: 6px;
-    font-size: 13px;
+    display: inline;
+    margin-top: 0;
+    font-size: 12px;
     line-height: 1.35;
-    word-break: break-word;
+    word-break: keep-all;
+}
+
+.status-chip span {
+    display: none;
 }
 
 .action-stack,
@@ -254,8 +270,8 @@ p {
 .preview-actions,
 .presentation-controls {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap;
 }
 
 .primary-btn,
@@ -264,8 +280,9 @@ p {
 .danger-btn,
 .overlay-close,
 .overlay-nav-btn {
-    padding: 12px 16px;
-    border-radius: 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 13px;
 }
 
 .primary-btn {
@@ -447,29 +464,27 @@ p {
 .present-head {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
 }
 
-.slash-hint-bar {
-    padding: 12px 14px;
-    border-radius: var(--radius-md);
-    background: rgba(28, 99, 213, 0.08);
-    color: var(--muted);
-    font-size: 13px;
-}
-
-.slash-hint-bar code {
-    padding: 2px 6px;
-    border-radius: 999px;
-    background: rgba(21, 32, 43, 0.08);
-    font-family: "SF Mono", "JetBrains Mono", "IBM Plex Mono", monospace;
+#editor-title {
+    font-size: 20px;
+    line-height: 1.2;
 }
 
 .editor-frame {
     position: relative;
     flex: 1;
     min-height: 0;
+    border-radius: 24px;
+    transition: box-shadow 0.16s ease, outline-color 0.16s ease, background 0.16s ease;
+}
+
+.editor-frame.drag-over {
+    background: rgba(0, 179, 164, 0.08);
+    box-shadow: inset 0 0 0 2px rgba(0, 179, 164, 0.35);
 }
 
 #editor {
@@ -670,6 +685,8 @@ p {
     color: var(--ink);
     line-height: 1.78;
     font-size: 15px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .markdown-body > *:first-child {
@@ -691,6 +708,7 @@ p {
 
 .markdown-body a {
     color: var(--accent);
+    word-break: break-all;
 }
 
 .markdown-body p,
@@ -724,6 +742,7 @@ p {
 
 .markdown-body pre {
     overflow: auto;
+    max-width: 100%;
     padding: 16px;
     border-radius: 18px;
     background: #12202f;
@@ -739,6 +758,9 @@ p {
 .markdown-body table {
     width: 100%;
     border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
 .markdown-body th,
@@ -750,6 +772,28 @@ p {
 
 .markdown-body th {
     background: rgba(21, 32, 43, 0.05);
+}
+
+.markdown-body img,
+.markdown-body video,
+.markdown-body iframe {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 14px 0;
+    border-radius: 14px;
+    border: 1px solid rgba(21, 32, 43, 0.12);
+    background: rgba(21, 32, 43, 0.03);
+}
+
+.markdown-body figure {
+    margin: 14px 0;
+}
+
+.markdown-body figcaption {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 6px;
 }
 
 .status {
@@ -807,6 +851,31 @@ p {
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 18px;
+}
+
+.asset-dropzone {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px dashed rgba(28, 99, 213, 0.35);
+    background: rgba(28, 99, 213, 0.06);
+}
+
+.asset-dropzone strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.asset-dropzone p {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.asset-dropzone.drag-over {
+    border-color: rgba(0, 179, 164, 0.7);
+    background: rgba(0, 179, 164, 0.12);
 }
 
 .presentation-overlay {
@@ -888,10 +957,6 @@ p {
 }
 
 @media (max-width: 1440px) {
-    .menu-bar {
-        grid-template-columns: 1fr;
-    }
-
     .menu-cluster--right {
         justify-content: flex-start;
     }
@@ -924,27 +989,27 @@ p {
     .modal-head,
     .presentation-toolbar,
     .slide-stage-toolbar {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
     }
 
     .menu-field {
-        min-width: 0;
-        width: 100%;
+        min-width: auto;
+        width: auto;
     }
 
     .module-nav,
     .segmented-control,
     .action-stack,
     .preview-actions {
-        width: 100%;
+        width: auto;
     }
 
     .module-nav > *,
     .segmented-control > *,
     .action-stack > *,
     .preview-actions > * {
-        flex: 1 1 100%;
+        flex: 0 0 auto;
     }
 
     .chip-row--stats,

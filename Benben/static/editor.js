@@ -1,7 +1,10 @@
 const DRAFT_PREFIX = "benben:draft:";
-const NEW_DRAFT_KEY = `${DRAFT_PREFIX}__new__`;
 const VIEW_NAMES = ["template", "write", "document", "slides"];
 const FILE_SWITCHER_NONE = "__none__";
+const TEMPLATE_SWITCHER_NONE = "__none_template__";
+const FILE_SWITCHER_NEW = "__new__";
+const TEMPLATE_SWITCHER_NEW = "__new_template__";
+const TEMPLATE_PREFIX = "templates/";
 
 const SLASH_COMMANDS = [
     {
@@ -53,22 +56,22 @@ const SLASH_COMMANDS = [
     {
         id: "template",
         label: "/template",
-        aliases: ["module", "templates"],
-        description: "切换到模版模块",
-        kind: "switch",
-        target: "template",
+        aliases: ["tpl", "templates"],
+        description: "插入模版内容",
+        kind: "template",
     },
 ];
 
 const state = {
     currentFile: "",
     currentVersion: null,
+    currentTemplate: "",
     currentUser: null,
     isDirty: false,
     autoSaveTimer: null,
+    remoteSaveTimer: null,
     cachedFiles: [],
-    templates: [],
-    selectedTemplateId: "",
+    templateFiles: [],
     previewMode: "document",
     slides: [],
     activeSlideIndex: 0,
@@ -80,11 +83,11 @@ const state = {
     slashMatches: [],
     slashActiveIndex: 0,
     pendingInsertRange: null,
+    editorDragDepth: 0,
 };
 
 const els = {
     appShell: document.querySelector(".app-shell"),
-    templateView: document.getElementById("template-view"),
     writeView: document.getElementById("write-view"),
     documentView: document.getElementById("document-view"),
     slidesView: document.getElementById("slides-view"),
@@ -92,30 +95,21 @@ const els = {
     viewWriteBtn: document.getElementById("view-write-btn"),
     viewDocumentBtn: document.getElementById("view-document-btn"),
     viewSlidesBtn: document.getElementById("view-slides-btn"),
+    fileSwitcherField: document.getElementById("file-switcher-field"),
     fileSwitcher: document.getElementById("file-switcher"),
-    refreshFilesBtn: document.getElementById("refresh-files-btn"),
-    currentPathChip: document.getElementById("current-path-chip"),
+    templateSwitcherField: document.getElementById("template-switcher-field"),
+    templateSwitcher: document.getElementById("template-switcher"),
     sessionMeta: document.getElementById("session-meta"),
     autosaveMeta: document.getElementById("autosave-meta"),
-    deleteBtn: document.getElementById("delete-btn"),
-    templateCatalog: document.getElementById("template-catalog"),
-    templateSelect: document.getElementById("template-select"),
-    selectedTemplateName: document.getElementById("selected-template-name"),
-    selectedTemplateDesc: document.getElementById("selected-template-desc"),
-    selectedTemplateCategory: document.getElementById("selected-template-category"),
-    selectedTemplateVariables: document.getElementById("selected-template-variables"),
     newFilePath: document.getElementById("new-file-path"),
-    templateProject: document.getElementById("template-project"),
-    templateCreateBtn: document.getElementById("template-create-btn"),
-    insertReportBtn: document.getElementById("insert-report-btn"),
     editor: document.getElementById("editor"),
     editorTitle: document.getElementById("editor-title"),
-    editorState: document.getElementById("editor-state"),
     versionState: document.getElementById("version-state"),
     draftState: document.getElementById("draft-state"),
     wordCount: document.getElementById("word-count"),
     slideCount: document.getElementById("slide-count"),
     readTime: document.getElementById("read-time"),
+    editorFrame: document.getElementById("editor-frame"),
     slashPanel: document.getElementById("slash-panel"),
     slashQuery: document.getElementById("slash-query"),
     slashList: document.getElementById("slash-list"),
@@ -130,6 +124,11 @@ const els = {
     assetInsertBtn: document.getElementById("asset-insert-btn"),
     assetUploadBtn: document.getElementById("asset-upload-btn"),
     assetCancelBtn: document.getElementById("asset-cancel-btn"),
+    assetDropzone: document.getElementById("asset-dropzone"),
+    templateModal: document.getElementById("template-modal"),
+    templateInsertSelect: document.getElementById("template-insert-select"),
+    templateInsertBtn: document.getElementById("template-insert-btn"),
+    templateCancelBtn: document.getElementById("template-cancel-btn"),
     status: document.getElementById("status"),
     presentationOverlay: document.getElementById("presentation-overlay"),
     presentationStage: document.getElementById("presentation-stage"),
@@ -150,8 +149,44 @@ function normalizeView(view) {
     return VIEW_NAMES.includes(view) ? view : "template";
 }
 
+function isTemplateView() {
+    return state.activeView === "template";
+}
+
+function activeScope() {
+    return isTemplateView() ? "template" : "file";
+}
+
+function getActivePath() {
+    return isTemplateView() ? state.currentTemplate : state.currentFile;
+}
+
+function setActivePath(path) {
+    if (isTemplateView()) {
+        state.currentTemplate = path;
+    } else {
+        state.currentFile = path;
+    }
+}
+
+function normalizeTemplatePath(rawPath) {
+    const trimmed = String(rawPath || "").trim();
+    if (!trimmed) {
+        return "";
+    }
+    const suffix = trimmed.endsWith(".md") ? trimmed : `${trimmed}.md`;
+    if (suffix.startsWith(TEMPLATE_PREFIX)) {
+        return suffix;
+    }
+    return `${TEMPLATE_PREFIX}${suffix.replace(/^\/+/, "")}`;
+}
+
+function isTemplatePath(path) {
+    return String(path || "").startsWith(TEMPLATE_PREFIX);
+}
+
 function resolveExportMode() {
-    if (state.activeView === "write") {
+    if (state.activeView === "write" || state.activeView === "template") {
         return "md";
     }
     if (state.activeView === "document") {
@@ -183,8 +218,9 @@ function baseName(path) {
     return (path || "").split("/").pop() || "";
 }
 
-function draftKey(path) {
-    return `${DRAFT_PREFIX}${path || "__new__"}`;
+function draftKey(path, scope) {
+    const bucket = scope || "file";
+    return `${DRAFT_PREFIX}${bucket}:${path || "__new__"}`;
 }
 
 function formatTimeLabel(timestamp) {
@@ -351,34 +387,24 @@ function clampSlideIndex(index) {
     return Math.min(Math.max(index, 0), Math.max(state.slides.length - 1, 0));
 }
 
-function describeDocState(displayPath) {
-    if (state.currentFile) {
-        return `${state.currentFile}${state.isDirty ? " · 未保存" : " · 已同步"}`;
-    }
-    if (state.isDirty && displayPath) {
-        return `${displayPath} · 未保存`;
-    }
-    if (state.isDirty) {
-        return "未命名草稿 · 待保存";
-    }
-    return "未选择文件";
-}
-
 function renderFileSwitcher() {
     const currentValue = state.currentFile || FILE_SWITCHER_NONE;
-    const options = [{ value: FILE_SWITCHER_NONE, label: "未选择文件" }];
+    const options = [
+        { value: FILE_SWITCHER_NONE, label: "未选择文件" },
+        { value: FILE_SWITCHER_NEW, label: "新建文件..." },
+    ];
 
     state.cachedFiles.forEach((file) => {
         options.push({
             value: file,
-            label: file,
+            label: baseName(file),
         });
     });
 
     if (state.currentFile && !state.cachedFiles.includes(state.currentFile)) {
         options.push({
             value: state.currentFile,
-            label: `${state.currentFile}（当前）`,
+            label: `${baseName(state.currentFile)}（当前）`,
         });
     }
 
@@ -388,16 +414,53 @@ function renderFileSwitcher() {
     els.fileSwitcher.value = currentValue;
 }
 
-function updateDocumentMeta() {
-    const displayPath = state.currentFile || els.newFilePath.value.trim();
-    const title = baseName(displayPath) || (els.editor.value.trim() ? "未命名文档" : "未选择文件");
-    const stateText = describeDocState(displayPath);
+function renderTemplateSwitcher() {
+    const currentValue = state.currentTemplate || TEMPLATE_SWITCHER_NONE;
+    const options = [
+        { value: TEMPLATE_SWITCHER_NONE, label: "未选择模版" },
+        { value: TEMPLATE_SWITCHER_NEW, label: "新建模版..." },
+    ];
 
+    state.templateFiles.forEach((file) => {
+        options.push({
+            value: file,
+            label: baseName(file),
+        });
+    });
+
+    if (state.currentTemplate && !state.templateFiles.includes(state.currentTemplate)) {
+        options.push({
+            value: state.currentTemplate,
+            label: `${baseName(state.currentTemplate)}（当前）`,
+        });
+    }
+
+    const optionHtml = options.map((item) => (
+        `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`
+    )).join("");
+    const insertHtml = options.filter((item) => item.value !== TEMPLATE_SWITCHER_NEW).map((item) => (
+        `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`
+    )).join("");
+    els.templateSwitcher.innerHTML = optionHtml;
+    els.templateSwitcher.value = currentValue;
+    els.templateInsertSelect.innerHTML = insertHtml;
+    els.templateInsertSelect.value = currentValue === TEMPLATE_SWITCHER_NEW ? TEMPLATE_SWITCHER_NONE : currentValue;
+}
+
+function updateDocumentMeta() {
+    const activePath = getActivePath();
+    const displayPath = activePath || els.newFilePath.value.trim();
+    const title = baseName(displayPath) || (els.editor.value.trim() ? "未命名文档" : "未选择文件");
     els.editorTitle.textContent = title;
-    els.editorState.textContent = stateText;
-    els.currentPathChip.textContent = displayPath || "未保存";
-    els.deleteBtn.disabled = !state.currentFile;
     renderFileSwitcher();
+    renderTemplateSwitcher();
+}
+
+function syncViewChrome() {
+    const templateMode = isTemplateView();
+    els.fileSwitcherField.classList.toggle("hidden", templateMode);
+    els.templateSwitcherField.classList.toggle("hidden", !templateMode);
+    updateDocumentMeta();
 }
 
 function setDirty(nextDirty) {
@@ -488,8 +551,8 @@ function setActiveView(view, { updateHash = true } = {}) {
     }
     els.appShell.dataset.view = state.activeView;
 
-    els.templateView.classList.toggle("hidden", state.activeView !== "template");
-    els.writeView.classList.toggle("hidden", state.activeView !== "write");
+    const showEditor = state.activeView === "write" || state.activeView === "template";
+    els.writeView.classList.toggle("hidden", !showEditor);
     els.documentView.classList.toggle("hidden", state.activeView !== "document");
     els.slidesView.classList.toggle("hidden", state.activeView !== "slides");
 
@@ -498,13 +561,14 @@ function setActiveView(view, { updateHash = true } = {}) {
     els.viewDocumentBtn.classList.toggle("active", state.activeView === "document");
     els.viewSlidesBtn.classList.toggle("active", state.activeView === "slides");
 
-    if (state.activeView !== "write") {
+    if (state.activeView !== "write" && state.activeView !== "template") {
         closeSlashMenu();
     }
 
     const exportMode = resolveExportMode();
     els.exportBtn.disabled = !exportMode;
     els.exportBtn.textContent = exportMode ? `导出 ${exportMode.toUpperCase()}` : "导出";
+    syncViewChrome();
 
     if (updateHash) {
         history.replaceState(null, "", `${window.location.pathname}#${state.activeView}`);
@@ -513,21 +577,21 @@ function setActiveView(view, { updateHash = true } = {}) {
 
 function saveDraftToLocal() {
     const payload = {
-        path: state.currentFile || "",
+        path: getActivePath() || "",
         content: els.editor.value,
         version: state.currentVersion,
         updated_at: Date.now(),
     };
-    localStorage.setItem(draftKey(state.currentFile), JSON.stringify(payload));
+    localStorage.setItem(draftKey(getActivePath(), activeScope()), JSON.stringify(payload));
     setDraftLabel(`草稿已缓存 ${formatTimeLabel(payload.updated_at)}`);
 }
 
-function clearDraft(path) {
-    localStorage.removeItem(draftKey(path));
+function clearDraft(path, scope) {
+    localStorage.removeItem(draftKey(path, scope));
 }
 
-function maybeRestoreDraftForPath(path, serverContent) {
-    const raw = localStorage.getItem(draftKey(path));
+function maybeRestoreDraftForPath(path, serverContent, scope) {
+    const raw = localStorage.getItem(draftKey(path, scope));
     if (!raw) {
         return { content: serverContent, restored: false };
     }
@@ -535,7 +599,7 @@ function maybeRestoreDraftForPath(path, serverContent) {
     try {
         const draft = JSON.parse(raw);
         if (draft.content === serverContent) {
-            clearDraft(path);
+            clearDraft(path, scope);
             return { content: serverContent, restored: false };
         }
 
@@ -546,16 +610,16 @@ function maybeRestoreDraftForPath(path, serverContent) {
             setDraftLabel(`已恢复草稿 ${formatTimeLabel(draft.updated_at)}`);
             return { content: draft.content || serverContent, restored: true };
         }
-        clearDraft(path);
+        clearDraft(path, scope);
     } catch (_error) {
-        clearDraft(path);
+        clearDraft(path, scope);
     }
 
     return { content: serverContent, restored: false };
 }
 
-function maybeRestoreUnsavedDraft() {
-    const raw = localStorage.getItem(NEW_DRAFT_KEY);
+function maybeRestoreUnsavedDraft(scope) {
+    const raw = localStorage.getItem(draftKey("", scope));
     if (!raw) {
         return;
     }
@@ -572,16 +636,20 @@ function maybeRestoreUnsavedDraft() {
             return;
         }
 
-        state.currentFile = "";
+        if (scope === "template") {
+            state.currentTemplate = "";
+        } else {
+            state.currentFile = "";
+        }
         updateVersion(null);
         els.editor.value = draft.content;
         setDirty(true);
         setDraftLabel(`已恢复草稿 ${formatTimeLabel(draft.updated_at)}`);
         refreshDerivedState(draft.content);
-        setActiveView("write");
+        setActiveView(scope === "template" ? "template" : "write");
         showStatus("已恢复未命名草稿", "warn");
     } catch (_error) {
-        localStorage.removeItem(NEW_DRAFT_KEY);
+        localStorage.removeItem(draftKey("", scope));
     }
 }
 
@@ -591,7 +659,22 @@ function scheduleDraftAutoSave() {
     }
     state.autoSaveTimer = window.setTimeout(() => {
         saveDraftToLocal();
-    }, 1200);
+    }, 500);
+}
+
+function scheduleRemoteAutoSave() {
+    if (state.remoteSaveTimer) {
+        clearTimeout(state.remoteSaveTimer);
+    }
+    if (!getActivePath()) {
+        return;
+    }
+    state.remoteSaveTimer = window.setTimeout(() => {
+        if (!state.isDirty || !getActivePath()) {
+            return;
+        }
+        saveFile(false, { auto: true, interactive: false });
+    }, 800);
 }
 
 async function requestJSON(url, options = {}) {
@@ -600,19 +683,24 @@ async function requestJSON(url, options = {}) {
     return { res, data };
 }
 
-function resolveTargetPath(defaultValue, promptMessage) {
-    const inlineValue = els.newFilePath.value.trim();
-    const initial = inlineValue || defaultValue;
-    const picked = inlineValue || window.prompt(promptMessage, initial);
+function resolveTargetPath(defaultValue, promptMessage, { scope = "file" } = {}) {
+    const activePath = scope === "template" ? state.currentTemplate : state.currentFile;
+    const initial = activePath || defaultValue;
+    const picked = window.prompt(promptMessage, initial);
     if (!picked) {
         return "";
     }
-    return picked.endsWith(".md") ? picked : `${picked}.md`;
+    const normalized = picked.endsWith(".md") ? picked : `${picked}.md`;
+    if (scope === "template") {
+        return normalizeTemplatePath(normalized);
+    }
+    return normalized;
 }
 
 function resolveExportBaseName() {
-    if (state.currentFile) {
-        const fileName = baseName(state.currentFile) || "note.md";
+    const activePath = getActivePath();
+    if (activePath) {
+        const fileName = baseName(activePath) || "note.md";
         return fileName.replace(/\.md$/i, "") || "note";
     }
 
@@ -693,7 +781,7 @@ async function exportCurrentNote() {
 
     if (format === "png") {
         state.previewMode = "slides";
-        exportAsPng();
+        await exportAsPng();
         return;
     }
 
@@ -724,36 +812,26 @@ async function exportCurrentNote() {
     showStatus(`已导出 ${fileName}`, "success");
 }
 
-function exportAsPng() {
-    const sourceText = (
-        state.previewMode === "slides"
-            ? els.slideStage.innerText
-            : els.preview.innerText || els.editor.value
-    ).trim();
-    if (!sourceText) {
-        showStatus("当前内容为空，无法导出图片", "warn");
-        return;
+function buildPngBlobFromText({ sourceText, title, slideMode }) {
+    const contentText = String(sourceText || "").trim();
+    if (!contentText) {
+        return Promise.resolve(null);
     }
 
     const canvas = document.createElement("canvas");
     const width = 1600;
     const padding = 64;
     const maxTextWidth = width - padding * 2;
-    const lineHeight = state.previewMode === "slides" ? 42 : 32;
+    const lineHeight = slideMode ? 42 : 32;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
-        showStatus("当前浏览器不支持图片导出", "error");
-        return;
+        return Promise.resolve(null);
     }
 
-    const title = state.previewMode === "slides"
-        ? `${resolveExportBaseName()} - slide-${state.activeSlideIndex + 1}`
-        : resolveExportBaseName();
-
-    ctx.font = state.previewMode === "slides"
+    ctx.font = slideMode
         ? "28px 'PingFang SC', 'Microsoft YaHei', sans-serif"
         : "20px 'PingFang SC', 'Microsoft YaHei', sans-serif";
-    const lines = buildWrappedLines(ctx, sourceText, maxTextWidth);
+    const lines = buildWrappedLines(ctx, contentText, maxTextWidth);
     const height = Math.min(16000, padding * 2 + lineHeight * (lines.length + 6));
 
     canvas.width = width;
@@ -784,7 +862,7 @@ function exportAsPng() {
     y += lineHeight;
 
     ctx.fillStyle = "#15202b";
-    ctx.font = state.previewMode === "slides"
+    ctx.font = slideMode
         ? "26px 'PingFang SC', 'Microsoft YaHei', sans-serif"
         : "20px 'PingFang SC', 'Microsoft YaHei', sans-serif";
 
@@ -796,17 +874,48 @@ function exportAsPng() {
         y += lineHeight;
     }
 
-    canvas.toBlob((blob) => {
-        if (!blob) {
-            showStatus("图片导出失败", "error");
-            return;
-        }
-        const suffix = state.previewMode === "slides" ? `-slide-${state.activeSlideIndex + 1}` : "";
-        const fileName = `${resolveExportBaseName()}${suffix}.png`;
-        triggerDownload(blob, fileName);
-        showStatus(`已导出 ${fileName}`, "success");
-    }, "image/png");
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), "image/png");
+    });
 }
+
+async function exportAllSlidesAsPng() {
+    const slides = state.slides.length ? state.slides : parseSlides(els.editor.value);
+    if (!slides.length) {
+        showStatus("当前内容为空，无法导出图片", "warn");
+        return;
+    }
+
+    const baseName = resolveExportBaseName();
+    let exported = 0;
+    for (let index = 0; index < slides.length; index += 1) {
+        const slide = slides[index];
+        const sourceText = (slide.rawMarkdown || "").trim();
+        const blob = await buildPngBlobFromText({
+            sourceText,
+            title: `${baseName} - slide-${index + 1}`,
+            slideMode: true,
+        });
+        if (!blob) {
+            continue;
+        }
+        const fileName = `${baseName}-slide-${index + 1}.png`;
+        triggerDownload(blob, fileName);
+        exported += 1;
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+    }
+
+    if (!exported) {
+        showStatus("图片导出失败", "error");
+        return;
+    }
+    showStatus(`已导出 ${exported} 张 PNG`, "success");
+}
+
+async function exportAsPng() {
+    await exportAllSlidesAsPng();
+}
+
 
 async function loadSession() {
     const { res, data } = await requestJSON("/api/session");
@@ -818,74 +927,15 @@ async function loadSession() {
     els.sessionMeta.textContent = `${data.username} · ${data.role}`;
 }
 
-function selectTemplate(templateId) {
-    state.selectedTemplateId = templateId || "";
-    els.templateSelect.value = templateId || "";
-
-    const selected = state.templates.find((template) => template.id === templateId);
-    if (!selected) {
-        els.selectedTemplateName.textContent = "选择一个模板";
-        els.selectedTemplateDesc.textContent = "选择左侧模板后，在这里填写路径并创建文稿。";
-        els.selectedTemplateCategory.textContent = "-";
-        els.selectedTemplateVariables.innerHTML = '<span class="token-chip">暂无</span>';
-        return;
-    }
-
-    els.selectedTemplateName.textContent = selected.name;
-    els.selectedTemplateDesc.textContent = selected.description;
-    els.selectedTemplateCategory.textContent = selected.category;
-    els.selectedTemplateVariables.innerHTML = selected.variables.map((item) => (
-        `<span class="token-chip">${escapeHtml(item)}</span>`
-    )).join("");
-}
-
-function renderTemplateCatalog() {
-    els.templateCatalog.innerHTML = "";
-    if (!state.templates.length) {
-        els.templateCatalog.innerHTML = '<div class="panel-copy">暂无模板</div>';
-        selectTemplate("");
-        return;
-    }
-
-    state.templates.forEach((template) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = `template-card${template.id === state.selectedTemplateId ? " active" : ""}`;
-        button.innerHTML = `
-            <strong>${escapeHtml(template.name)}</strong>
-            <p>${escapeHtml(template.description)}</p>
-            <small>${escapeHtml(template.category)} · ${template.variables.length} 个变量</small>
-        `;
-        button.addEventListener("click", () => {
-            selectTemplate(template.id);
-            renderTemplateCatalog();
-        });
-        els.templateCatalog.appendChild(button);
-    });
-}
-
-async function loadTemplates() {
-    const { res, data } = await requestJSON("/api/templates");
+async function loadTemplateFiles() {
+    const { res, data } = await requestJSON("/api/template-files");
     if (!res.ok) {
-        showStatus(`加载模板失败：${extractErrorDetail(data, "未知错误")}`, "error");
+        showStatus(`加载模版失败：${extractErrorDetail(data, "未知错误")}`, "error");
         return;
     }
 
-    state.templates = data.templates || [];
-    els.templateSelect.innerHTML = '<option value="">选择模板...</option>';
-    state.templates.forEach((template) => {
-        const option = document.createElement("option");
-        option.value = template.id;
-        option.textContent = `${template.name} · ${template.description}`;
-        els.templateSelect.appendChild(option);
-    });
-
-    if (!state.selectedTemplateId && state.templates.length) {
-        state.selectedTemplateId = state.templates[0].id;
-    }
-
-    selectTemplate(state.selectedTemplateId);
-    renderTemplateCatalog();
+    state.templateFiles = data.files || [];
+    renderTemplateSwitcher();
 }
 
 async function loadFileList() {
@@ -895,18 +945,52 @@ async function loadFileList() {
         return;
     }
     state.cachedFiles = data.files || [];
+    if (isTemplatePath(state.currentFile)) {
+        state.currentFile = "";
+    }
     renderFileSwitcher();
 }
 
-async function openFile(path) {
+async function flushPendingChangesBeforeSwitch() {
+    if (state.autoSaveTimer) {
+        clearTimeout(state.autoSaveTimer);
+        state.autoSaveTimer = null;
+    }
+    if (state.remoteSaveTimer) {
+        clearTimeout(state.remoteSaveTimer);
+        state.remoteSaveTimer = null;
+    }
+
+    if (!state.isDirty) {
+        return;
+    }
+
+    saveDraftToLocal();
+    if (!getActivePath()) {
+        return;
+    }
+
+    await saveFile(false, { auto: true, interactive: false });
+    if (state.isDirty) {
+        showStatus("自动保存失败，已保留本地草稿", "warn");
+    }
+}
+
+async function openFile(path, { skipDirtyCheck = false } = {}) {
     if (!path || path === FILE_SWITCHER_NONE) {
         renderFileSwitcher();
         return;
     }
 
-    if (state.isDirty && !window.confirm("当前内容未保存，确认切换文件？")) {
+    if (isTemplatePath(path)) {
+        state.currentFile = "";
         renderFileSwitcher();
+        showStatus("写作模式不允许打开模版文件", "warn");
         return;
+    }
+
+    if (!skipDirtyCheck) {
+        await flushPendingChangesBeforeSwitch();
     }
 
     const { res, data } = await requestJSON(`/api/files/${encodeURIComponent(path)}`);
@@ -920,7 +1004,7 @@ async function openFile(path) {
     els.newFilePath.value = state.currentFile;
     updateVersion(data.version);
 
-    const restored = maybeRestoreDraftForPath(state.currentFile, data.content);
+    const restored = maybeRestoreDraftForPath(state.currentFile, data.content, "file");
     els.editor.value = restored.content;
     setDirty(restored.restored);
     if (!restored.restored) {
@@ -931,12 +1015,60 @@ async function openFile(path) {
     setActiveView("write");
 }
 
-async function saveFile(force = false) {
-    let targetPath = state.currentFile;
+async function openTemplate(path, { skipDirtyCheck = false } = {}) {
+    if (!path || path === TEMPLATE_SWITCHER_NONE) {
+        renderTemplateSwitcher();
+        return;
+    }
+
+    if (!skipDirtyCheck) {
+        await flushPendingChangesBeforeSwitch();
+    }
+
+    const { res, data } = await requestJSON(`/api/template-files/${encodeURIComponent(path)}`);
+    if (!res.ok) {
+        showStatus(`加载模版失败：${extractErrorDetail(data, "未知错误")}`, "error");
+        renderTemplateSwitcher();
+        return;
+    }
+
+    state.currentTemplate = data.path;
+    els.newFilePath.value = state.currentTemplate;
+    updateVersion(data.version);
+
+    const restored = maybeRestoreDraftForPath(state.currentTemplate, data.content, "template");
+    els.editor.value = restored.content;
+    setDirty(restored.restored);
+    if (!restored.restored) {
+        setDraftLabel("草稿未缓存");
+    }
+
+    refreshDerivedState(restored.content);
+    setActiveView("template");
+}
+
+async function saveFile(force = false, { auto = false, interactive = true } = {}) {
+    const templateMode = isTemplateView();
+    let targetPath = templateMode ? state.currentTemplate : state.currentFile;
+    if (!templateMode && isTemplatePath(targetPath)) {
+        state.currentFile = "";
+        renderFileSwitcher();
+        if (!auto || interactive) {
+            showStatus("写作模式不允许保存到模版目录", "warn");
+        }
+        return;
+    }
+
     if (!targetPath) {
+        if (auto) {
+            return;
+        }
         targetPath = resolveTargetPath(
-            "untitled.md",
-            "请输入文件名（例如：notes.md）",
+            templateMode ? "templates/untitled.md" : "untitled.md",
+            templateMode
+                ? "请输入模版文件名（例如：templates/weekly.md）"
+                : "请输入文件名（将自动保存到本周目录，例如：notes.md）",
+            { scope: templateMode ? "template" : "file" },
         );
         if (!targetPath) {
             return;
@@ -949,7 +1081,8 @@ async function saveFile(force = false) {
         base_version: state.currentVersion,
         force,
     };
-    const { res, data } = await requestJSON("/api/files", {
+    const endpoint = templateMode ? "/api/template-files" : "/api/files";
+    const { res, data } = await requestJSON(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -957,9 +1090,13 @@ async function saveFile(force = false) {
 
     if (res.status === 409) {
         const detail = data.detail || {};
+        if (!interactive) {
+            return;
+        }
+
         const overwrite = window.confirm("检测到并发修改冲突。是否覆盖远端版本（谨慎）？");
         if (overwrite) {
-            return saveFile(true);
+            return saveFile(true, { auto, interactive });
         }
         if (detail.current_content) {
             const reload = window.confirm("是否加载服务器最新内容？");
@@ -978,26 +1115,43 @@ async function saveFile(force = false) {
         return;
     }
 
-    state.currentFile = data.path;
-    els.newFilePath.value = state.currentFile;
+    if (templateMode) {
+        state.currentTemplate = data.path;
+    } else {
+        state.currentFile = data.path;
+    }
+    els.newFilePath.value = data.path;
     updateVersion(data.version);
     setDirty(false);
-    clearDraft(state.currentFile);
-    clearDraft("");
-    setDraftLabel(`已保存 ${formatTimeLabel(Date.now())}`);
+    clearDraft(data.path, templateMode ? "template" : "file");
+    clearDraft("", templateMode ? "template" : "file");
+    const savedLabel = auto
+        ? `已自动保存 ${formatTimeLabel(Date.now())}`
+        : `已保存 ${formatTimeLabel(Date.now())}`;
+    setDraftLabel(savedLabel);
     refreshDerivedState(els.editor.value);
-    await loadFileList();
-    showStatus("已保存", "success");
+    if (templateMode) {
+        await loadTemplateFiles();
+    } else {
+        await loadFileList();
+    }
+    if (!auto) {
+        showStatus("已保存", "success");
+    }
 }
 
-async function createBlankFile() {
-    if (state.isDirty && !window.confirm("当前内容未保存，确认新建空白草稿？")) {
-        return;
-    }
+async function createBlankFile(scopeOverride = null) {
+    await flushPendingChangesBeforeSwitch();
 
+    const templateMode = scopeOverride
+        ? scopeOverride === "template"
+        : isTemplateView();
     const filePath = resolveTargetPath(
-        "scratch/untitled.md",
-        "请输入目标文件名（例如：notes.md）",
+        templateMode ? "templates/untitled.md" : "untitled.md",
+        templateMode
+            ? "请输入模版文件名（例如：templates/weekly.md）"
+            : "请输入目标文件名（将自动保存到本周目录，例如：notes.md）",
+        { scope: templateMode ? "template" : "file" },
     );
     if (!filePath) {
         return;
@@ -1006,71 +1160,21 @@ async function createBlankFile() {
     const title = baseName(filePath).replace(/\.md$/i, "") || "untitled";
     const initialContent = `# ${title}\n\n一句话结论：\n\n## 记录\n- `;
 
-    state.currentFile = "";
+    if (templateMode) {
+        state.currentTemplate = filePath;
+    } else {
+        state.currentFile = filePath;
+    }
     els.newFilePath.value = filePath;
     updateVersion(null);
     els.editor.value = initialContent;
     setDirty(true);
     setDraftLabel("草稿未缓存");
     refreshDerivedState(initialContent);
-    setActiveView("write");
+    setActiveView(templateMode ? "template" : "write");
     els.editor.focus();
+    scheduleRemoteAutoSave();
     showStatus("已创建空白草稿", "success");
-}
-
-async function createFromTemplate() {
-    if (state.isDirty && !window.confirm("当前内容未保存，确认使用模板新建？")) {
-        return;
-    }
-
-    const templateId = state.selectedTemplateId || els.templateSelect.value;
-    if (!templateId) {
-        showStatus("请先选择模板", "warn");
-        return;
-    }
-
-    const filePath = resolveTargetPath(
-        "weekly/new.md",
-        "请输入新文件名（例如：weekly/2026w10.md）",
-    );
-    if (!filePath) {
-        return;
-    }
-
-    const project = els.templateProject.value.trim() || null;
-    const createPayload = {
-        path: filePath,
-        template_id: templateId,
-        project,
-        force: false,
-    };
-
-    let { res, data } = await requestJSON("/api/files/from-template", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createPayload),
-    });
-
-    if (res.status === 409) {
-        const overwrite = window.confirm("文件已存在且版本不一致，是否覆盖创建？");
-        if (!overwrite) {
-            return;
-        }
-        ({ res, data } = await requestJSON("/api/files/from-template", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...createPayload, force: true }),
-        }));
-    }
-
-    if (!res.ok) {
-        showStatus(`模板创建失败：${extractErrorDetail(data, "未知错误")}`, "error");
-        return;
-    }
-
-    showStatus("模板文档已创建", "success");
-    await loadFileList();
-    await openFile(filePath);
 }
 
 function setEditorContent(content, { moveCursorToEnd = true } = {}) {
@@ -1142,16 +1246,19 @@ function insertReportDeck() {
 }
 
 async function deleteFile() {
-    if (!state.currentFile) {
-        showStatus("请先选择文件", "warn");
+    const templateMode = isTemplateView();
+    const targetPath = templateMode ? state.currentTemplate : state.currentFile;
+    if (!targetPath) {
+        showStatus(templateMode ? "请先选择模版文件" : "请先选择文件", "warn");
         return;
     }
 
-    if (!window.confirm(`确定删除 ${state.currentFile} 吗？`)) {
+    if (!window.confirm(`确定删除 ${targetPath} 吗？`)) {
         return;
     }
 
-    const { res, data } = await requestJSON(`/api/files/${encodeURIComponent(state.currentFile)}`, {
+    const endpoint = templateMode ? "/api/template-files" : "/api/files";
+    const { res, data } = await requestJSON(`${endpoint}/${encodeURIComponent(targetPath)}`, {
         method: "DELETE",
     });
     if (!res.ok) {
@@ -1159,16 +1266,25 @@ async function deleteFile() {
         return;
     }
 
-    clearDraft(state.currentFile);
-    state.currentFile = "";
+    clearDraft(targetPath, templateMode ? "template" : "file");
+    if (templateMode) {
+        state.currentTemplate = "";
+    } else {
+        state.currentFile = "";
+    }
     els.newFilePath.value = "";
     updateVersion(null);
     els.editor.value = "";
     setDirty(false);
     setDraftLabel("草稿未缓存");
     refreshDerivedState("");
-    await loadFileList();
-    setActiveView("template");
+    if (templateMode) {
+        await loadTemplateFiles();
+        setActiveView("template");
+    } else {
+        await loadFileList();
+        setActiveView("write");
+    }
     showStatus("文件已删除", "success");
 }
 
@@ -1311,7 +1427,50 @@ function openAssetModal(range = null) {
 function closeAssetModal() {
     els.assetModal.classList.add("hidden");
     els.assetModal.setAttribute("aria-hidden", "true");
+    setDropzoneActive(false);
     els.editor.focus();
+}
+
+function openTemplateInsertModal() {
+    if (state.activeView !== "write") {
+        showStatus("请在写作模式插入模版", "warn");
+        return;
+    }
+    if (!state.templateFiles.length) {
+        showStatus("暂无可用模版文件", "warn");
+        return;
+    }
+    renderTemplateSwitcher();
+    els.templateModal.classList.remove("hidden");
+    els.templateModal.setAttribute("aria-hidden", "false");
+    if (!els.templateInsertSelect.value || els.templateInsertSelect.value === TEMPLATE_SWITCHER_NONE) {
+        els.templateInsertSelect.value = state.templateFiles[0] || TEMPLATE_SWITCHER_NONE;
+    }
+    els.templateInsertSelect.focus();
+}
+
+function closeTemplateInsertModal() {
+    els.templateModal.classList.add("hidden");
+    els.templateModal.setAttribute("aria-hidden", "true");
+    els.editor.focus();
+}
+
+async function insertTemplateContent() {
+    const path = els.templateInsertSelect.value;
+    if (!path || path === TEMPLATE_SWITCHER_NONE) {
+        showStatus("请先选择模版文件", "warn");
+        return;
+    }
+
+    const { res, data } = await requestJSON(`/api/template-files/${encodeURIComponent(path)}`);
+    if (!res.ok) {
+        showStatus(`加载模版失败：${extractErrorDetail(data, "未知错误")}`, "error");
+        return;
+    }
+
+    replaceEditorRange(els.editor.selectionStart, els.editor.selectionEnd, data.content || "");
+    closeTemplateInsertModal();
+    showStatus("已插入模版内容", "success");
 }
 
 function insertPendingAsset(markdown) {
@@ -1336,6 +1495,58 @@ function insertRemoteAsset() {
     const markdown = isImage ? `![${alt}](${url})` : `[${alt}](${url})`;
     insertPendingAsset(markdown);
     showStatus("已插入资源", "success");
+}
+
+function setDropzoneActive(active) {
+    if (!els.assetDropzone) {
+        return;
+    }
+    els.assetDropzone.classList.toggle("drag-over", Boolean(active));
+}
+
+function setEditorDropActive(active) {
+    if (!els.editorFrame) {
+        return;
+    }
+    els.editorFrame.classList.toggle("drag-over", Boolean(active));
+}
+
+function isUploadableImage(file) {
+    if (!file) {
+        return false;
+    }
+    if ((file.type || "").startsWith("image/")) {
+        return true;
+    }
+    return /\.(png|jpe?g|gif|webp)$/i.test(file.name || "");
+}
+
+async function uploadAssetFile(file, { source = "upload" } = {}) {
+    if (!file) {
+        return false;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const { res, data } = await requestJSON("/api/upload", {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!res.ok) {
+        showStatus(`上传失败：${extractErrorDetail(data, "未知错误")}`, "error");
+        return false;
+    }
+
+    const markdown = `![${file.name}](${data.url})`;
+    if (state.pendingInsertRange) {
+        insertPendingAsset(markdown);
+    } else {
+        replaceEditorRange(els.editor.selectionStart, els.editor.selectionEnd, markdown);
+    }
+    showStatus(source === "paste" ? "已粘贴并上传图片" : "图片已上传", "success");
+    return true;
 }
 
 function applySlashCommand(command = null, explicitRange = null) {
@@ -1365,39 +1576,106 @@ function applySlashCommand(command = null, explicitRange = null) {
         return;
     }
 
-    if (targetCommand.kind === "switch") {
+    if (targetCommand.kind === "template") {
         replaceEditorRange(range.start, range.end, "");
-        setActiveView(targetCommand.target || "template");
+        openTemplateInsertModal();
     }
 }
 
 async function handleImageUpload(event) {
     const file = event.target.files[0];
     event.target.value = "";
+    await uploadAssetFile(file, { source: "upload" });
+}
+
+async function handleEditorPaste(event) {
+    const clipboard = event.clipboardData;
+    if (!clipboard) {
+        return;
+    }
+
+    const items = Array.from(clipboard.items || []);
+    const imageItem = items.find((item) => item.kind === "file" && item.type.startsWith("image/"));
+    if (!imageItem) {
+        return;
+    }
+
+    const file = imageItem.getAsFile();
     if (!file) {
         return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
+    event.preventDefault();
+    state.pendingInsertRange = {
+        start: els.editor.selectionStart || 0,
+        end: els.editor.selectionEnd || 0,
+    };
+    await uploadAssetFile(file, { source: "paste" });
+}
 
-    const { res, data } = await requestJSON("/api/upload", {
-        method: "POST",
-        body: formData,
-    });
-
-    if (!res.ok) {
-        showStatus(`上传失败：${extractErrorDetail(data, "未知错误")}`, "error");
+async function handleAssetDrop(event) {
+    event.preventDefault();
+    setDropzoneActive(false);
+    const files = Array.from(event.dataTransfer?.files || []);
+    const imageFile = files.find((file) => isUploadableImage(file));
+    if (!imageFile) {
+        showStatus("仅支持拖拽图片文件", "warn");
         return;
     }
 
-    const markdown = `![${file.name}](${data.url})`;
-    if (state.pendingInsertRange) {
-        insertPendingAsset(markdown);
-    } else {
-        replaceEditorRange(els.editor.selectionStart, els.editor.selectionEnd, markdown);
+    await uploadAssetFile(imageFile, { source: "drop" });
+}
+
+function handleEditorDragEnter(event) {
+    if (!(event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files"))) {
+        return;
     }
-    showStatus("图片已上传", "success");
+    event.preventDefault();
+    state.editorDragDepth += 1;
+    setEditorDropActive(true);
+}
+
+function handleEditorDragOver(event) {
+    if (!(event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files"))) {
+        return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setEditorDropActive(true);
+}
+
+function handleEditorDragLeave(event) {
+    if (!(event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files"))) {
+        return;
+    }
+    event.preventDefault();
+    state.editorDragDepth = Math.max(0, state.editorDragDepth - 1);
+    if (state.editorDragDepth === 0) {
+        setEditorDropActive(false);
+    }
+}
+
+async function handleEditorDrop(event) {
+    if (!(event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files"))) {
+        return;
+    }
+    event.preventDefault();
+    state.editorDragDepth = 0;
+    setEditorDropActive(false);
+
+    const files = Array.from(event.dataTransfer.files || []);
+    const imageFile = files.find((file) => isUploadableImage(file));
+    if (!imageFile) {
+        showStatus("仅支持拖拽图片文件", "warn");
+        return;
+    }
+
+    els.editor.focus();
+    state.pendingInsertRange = {
+        start: els.editor.selectionStart || 0,
+        end: els.editor.selectionEnd || 0,
+    };
+    await uploadAssetFile(imageFile, { source: "drop" });
 }
 
 function handleEditorInput() {
@@ -1413,6 +1691,7 @@ function handleEditorInput() {
     refreshDerivedState(els.editor.value);
     setDirty(true);
     scheduleDraftAutoSave();
+    scheduleRemoteAutoSave();
     syncSlashMenu();
 }
 
@@ -1487,6 +1766,12 @@ function handleGlobalShortcuts(event) {
         event.preventDefault();
         closeAssetModal();
         state.pendingInsertRange = null;
+        return;
+    }
+
+    if (!els.templateModal.classList.contains("hidden") && event.key === "Escape") {
+        event.preventDefault();
+        closeTemplateInsertModal();
         return;
     }
 
@@ -1574,33 +1859,90 @@ function bindActionButtons() {
 }
 
 function bindViewButtons() {
-    els.viewTemplateBtn.addEventListener("click", () => setActiveView("template"));
-    els.viewWriteBtn.addEventListener("click", () => {
-        setActiveView("write");
-        els.editor.focus();
-    });
-    els.viewDocumentBtn.addEventListener("click", () => {
-        setPreviewMode("document");
-        setActiveView("document");
-    });
-    els.viewSlidesBtn.addEventListener("click", () => {
+    async function switchView(targetView) {
+        if (state.isDirty) {
+            await flushPendingChangesBeforeSwitch();
+        }
+
+        if (targetView === "write") {
+            if (isTemplatePath(state.currentFile)) {
+                state.currentFile = "";
+            }
+            setActiveView("write");
+            if (state.currentFile) {
+                await openFile(state.currentFile, { skipDirtyCheck: true });
+            } else {
+                els.newFilePath.value = "";
+                updateVersion(null);
+                els.editor.value = "";
+                setDirty(false);
+                setDraftLabel("草稿未缓存");
+                refreshDerivedState("");
+            }
+            els.editor.focus();
+            return;
+        }
+
+        if (targetView === "template") {
+            setActiveView("template");
+            if (state.currentTemplate) {
+                await openTemplate(state.currentTemplate, { skipDirtyCheck: true });
+            } else {
+                els.newFilePath.value = "";
+                updateVersion(null);
+                els.editor.value = "";
+                setDirty(false);
+                setDraftLabel("草稿未缓存");
+                refreshDerivedState("");
+            }
+            els.editor.focus();
+            return;
+        }
+
+        if (targetView === "document") {
+            setPreviewMode("document");
+            setActiveView("document");
+            return;
+        }
+
         setPreviewMode("slides");
         setActiveView("slides");
-    });
+    }
+
+    els.viewTemplateBtn.addEventListener("click", () => switchView("template"));
+    els.viewWriteBtn.addEventListener("click", () => switchView("write"));
+    els.viewDocumentBtn.addEventListener("click", () => switchView("document"));
+    els.viewSlidesBtn.addEventListener("click", () => switchView("slides"));
 }
 
 function bindEvents() {
     bindActionButtons();
     bindViewButtons();
 
-    els.refreshFilesBtn.addEventListener("click", loadFileList);
     els.fileSwitcher.addEventListener("change", () => {
-        openFile(els.fileSwitcher.value);
+        const value = els.fileSwitcher.value;
+        if (value === FILE_SWITCHER_NEW) {
+            createBlankFile("file");
+            renderFileSwitcher();
+            return;
+        }
+        openFile(value);
     });
-    els.templateCreateBtn.addEventListener("click", createFromTemplate);
-    els.insertReportBtn.addEventListener("click", insertReportDeck);
-    els.deleteBtn.addEventListener("click", deleteFile);
-    els.exportBtn.addEventListener("click", exportCurrentNote);
+    els.templateSwitcher.addEventListener("change", () => {
+        const value = els.templateSwitcher.value;
+        if (value === TEMPLATE_SWITCHER_NEW) {
+            createBlankFile("template");
+            renderTemplateSwitcher();
+            return;
+        }
+        openTemplate(value);
+    });
+    els.exportBtn.addEventListener("click", async () => {
+        if (state.isDirty) {
+            await flushPendingChangesBeforeSwitch();
+        }
+        await exportCurrentNote();
+    });
     els.presentationPrevBtn.addEventListener("click", () => changeSlide(-1));
     els.presentationNextBtn.addEventListener("click", () => changeSlide(1));
     els.presentationCloseBtn.addEventListener("click", stopPresentation);
@@ -1608,6 +1950,13 @@ function bindEvents() {
     els.editor.addEventListener("input", handleEditorInput);
     els.editor.addEventListener("click", syncActiveSlideFromCursor);
     els.editor.addEventListener("keyup", syncActiveSlideFromCursor);
+    els.editor.addEventListener("paste", handleEditorPaste);
+    if (els.editorFrame) {
+        els.editorFrame.addEventListener("dragenter", handleEditorDragEnter);
+        els.editorFrame.addEventListener("dragover", handleEditorDragOver);
+        els.editorFrame.addEventListener("dragleave", handleEditorDragLeave);
+        els.editorFrame.addEventListener("drop", handleEditorDrop);
+    }
 
     els.assetInsertBtn.addEventListener("click", insertRemoteAsset);
     els.assetUploadBtn.addEventListener("click", () => {
@@ -1617,6 +1966,24 @@ function bindEvents() {
         closeAssetModal();
         state.pendingInsertRange = null;
     });
+    if (els.assetDropzone) {
+        els.assetDropzone.addEventListener("dragenter", (event) => {
+            event.preventDefault();
+            setDropzoneActive(true);
+        });
+        els.assetDropzone.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            setDropzoneActive(true);
+        });
+        els.assetDropzone.addEventListener("dragleave", (event) => {
+            if (event.target === els.assetDropzone) {
+                setDropzoneActive(false);
+            }
+        });
+        els.assetDropzone.addEventListener("drop", handleAssetDrop);
+    }
+    els.templateInsertBtn.addEventListener("click", insertTemplateContent);
+    els.templateCancelBtn.addEventListener("click", closeTemplateInsertModal);
     els.imageUpload.addEventListener("change", handleImageUpload);
 
     document.addEventListener("selectionchange", syncActiveSlideFromCursor);
@@ -1628,6 +1995,9 @@ function bindEvents() {
         if (!els.assetModal.classList.contains("hidden") && event.target === els.assetModal) {
             closeAssetModal();
             state.pendingInsertRange = null;
+        }
+        if (!els.templateModal.classList.contains("hidden") && event.target === els.templateModal) {
+            closeTemplateInsertModal();
         }
     });
     window.addEventListener("hashchange", () => {
@@ -1648,11 +2018,12 @@ async function bootstrap() {
     setDraftLabel("草稿未缓存");
     refreshDerivedState("");
     renderFileSwitcher();
+    renderTemplateSwitcher();
     setActiveView(normalizeView(window.location.hash.replace("#", "")), { updateHash: false });
     await loadSession();
-    await loadTemplates();
+    await loadTemplateFiles();
     await loadFileList();
-    maybeRestoreUnsavedDraft();
+    maybeRestoreUnsavedDraft(activeScope());
 }
 
 bootstrap();

@@ -8,9 +8,15 @@ import json
 from pathlib import Path
 import sys
 import time
+from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
+
+
+def _current_week_folder() -> str:
+    iso = date.today().isocalendar()
+    return f"writing/{iso.year}-W{iso.week:02d}"
 
 
 def _load_app_module(monkeypatch: pytest.MonkeyPatch, *, audit_log_path: str | None = None):
@@ -185,7 +191,7 @@ def test_editor_home_page_contains_workspace_and_slide_support(client: TestClien
     assert "文档" in page.text
     assert "幻灯片" in page.text
     assert "导出" in page.text
-    assert "/assets" in page.text
+    assert "slash-panel" in page.text
     assert "Markdown + Slides" in page.text
     assert "/static/editor.css" in page.text
     assert "/static/editor.js" in page.text
@@ -228,7 +234,7 @@ def test_templates_endpoint_and_creation(client: TestClient) -> None:
     created = client.post(
         "/api/files/from-template",
         json={
-            "path": "weekly/alice-weekly.md",
+            "path": "alice-weekly.md",
             "template_id": "weekly_report",
             "project": "Benlab",
         },
@@ -236,11 +242,41 @@ def test_templates_endpoint_and_creation(client: TestClient) -> None:
     assert created.status_code == 200
     assert created.json()["template_id"] == "weekly_report"
     assert created.json()["operation_id"]
+    created_path = created.json()["path"]
+    assert created_path.startswith(f"{_current_week_folder()}/")
 
-    loaded = client.get("/api/files/weekly/alice-weekly.md")
+    loaded = client.get(f"/api/files/{created_path}")
     assert loaded.status_code == 200
     assert "Benlab" in loaded.json()["content"]
     assert "alice" in loaded.json()["content"].lower()
+
+
+def test_write_and_template_scopes_are_isolated(client: TestClient) -> None:
+    token = _build_sso_token("dummy", username="scope-user")
+    client.get(f"/auth/sso?token={token}", follow_redirects=False)
+
+    template_saved = client.post(
+        "/api/template-files",
+        json={"path": "templates/base.md", "content": "# base", "base_version": None},
+    )
+    assert template_saved.status_code == 200
+
+    write_saved = client.post(
+        "/api/files",
+        json={"path": "todo.md", "content": "# this week", "base_version": None},
+    )
+    assert write_saved.status_code == 200
+    write_path = write_saved.json()["path"]
+    assert write_path.startswith(f"{_current_week_folder()}/")
+
+    listed = client.get("/api/files")
+    assert listed.status_code == 200
+    files = listed.json()["files"]
+    assert write_path in files
+    assert "templates/base.md" not in files
+
+    reject_template_from_write_api = client.get("/api/files/templates/base.md")
+    assert reject_template_from_write_api.status_code == 400
 
 
 def test_export_api_supports_txt_md_html(client: TestClient, tmp_path: Path) -> None:
